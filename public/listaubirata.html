@@ -1,36 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<script>
-(function () {
-  document.documentElement.style.visibility = 'hidden';
-  var token = localStorage.getItem('session_token');
-  if (!token) { window.location.replace('/login.html'); return; }
-  fetch('/api/verify-session', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ token: token, list: 'ubirata' })
-  }).then(function (r) { return r.json(); }).then(function (data) {
-    if (data && data.ok) {
-      document.documentElement.style.visibility = 'visible';
-      if (data.role === 'admin') {
-        window.addEventListener('DOMContentLoaded', function () {
-          var btn = document.createElement('a');
-          btn.href = '/admin-listas.html';
-          btn.textContent = '← Voltar';
-          btn.style.cssText = 'position:fixed; top:12px; left:12px; z-index:99999; background:#1f3a5f; color:#fff; text-decoration:none; padding:8px 14px; border-radius:6px; font-size:13px; font-family:Arial, Helvetica, sans-serif; box-shadow:0 2px 8px rgba(0,0,0,.25);';
-          document.body.appendChild(btn);
-        });
-      }
-    } else {
-      localStorage.removeItem('session_token');
-      window.location.replace('/login.html');
-    }
-  }).catch(function () {
-    window.location.replace('/login.html');
-  });
-})();
-</script>
 <meta charset="UTF-8">
 <title>LISTA UBIRATÃ</title>
 <style>
@@ -110,8 +80,6 @@
       <button onclick="exportJSON()">⬇️ Salvar (.json)</button>
       <button onclick="document.getElementById('importInput').click()">⬆️ Carregar (.json)</button>
       <input type="file" id="importInput" accept=".json" style="display:none" onchange="importJSON(event)">
-      <button id="btnOneDriveSalvar" onclick="salvarNoOneDrive()">☁️ Salvar no OneDrive</button>
-      <button id="btnOneDriveCarregar" onclick="carregarDoOneDrive()">☁️ Carregar do OneDrive</button>
       <button class="danger" onclick="if(confirm('Limpar tudo?')) resetAll()">🗑️ Limpar Tudo</button>
     </div>
 
@@ -623,21 +591,18 @@ function exportJSON() {
   a.click();
 }
 
-function loadStateFromJSON(text) {
-  try {
-    STATE = JSON.parse(text);
-    if(!STATE.meta.fonte) STATE.meta.fonte = 11;
-    updateMetaInputs();
-    renderSections(); renderPreview(); saveState();
-    return true;
-  } catch(e) { alert('Arquivo inválido.'); return false; }
-}
-
 function importJSON(ev) {
   const file = ev.target.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = () => { loadStateFromJSON(reader.result); };
+  reader.onload = () => {
+    try {
+      STATE = JSON.parse(reader.result);
+      if(!STATE.meta.fonte) STATE.meta.fonte = 11;
+      updateMetaInputs();
+      renderSections(); renderPreview(); saveState();
+    } catch(e) { alert('Arquivo inválido.'); }
+  };
   reader.readAsText(file);
 }
 
@@ -659,95 +624,6 @@ window.onload = () => {
   
   renderPreview();
 };
-</script>
-<script>
-(function () {
-  var REGIAO = 'ubirata';
-
-  function tokenAtual() {
-    return localStorage.getItem('session_token');
-  }
-
-  window.salvarNoOneDrive = async function () {
-    var btn = document.getElementById('btnOneDriveSalvar');
-    if (btn) { btn.disabled = true; btn.textContent = '☁️ Salvando...'; }
-    try {
-      saveState();
-      var conteudo = JSON.stringify(STATE, null, 2);
-      var res = await fetch('/api/onedrive-save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: tokenAtual(), regiao: REGIAO, conteudo: conteudo })
-      });
-      var data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Erro ao salvar');
-      alert('Salvo no OneDrive como: ' + data.nomeArquivo);
-    } catch (e) {
-      alert('Erro ao salvar no OneDrive: ' + e.message);
-    } finally {
-      if (btn) { btn.disabled = false; btn.textContent = '☁️ Salvar no OneDrive'; }
-    }
-  };
-
-  window.carregarDoOneDrive = async function () {
-    var btn = document.getElementById('btnOneDriveCarregar');
-    if (btn) { btn.disabled = true; btn.textContent = '☁️ Carregando...'; }
-    try {
-      var res = await fetch('/api/onedrive-list', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: tokenAtual() })
-      });
-      var data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Erro ao listar arquivos');
-      if (!data.arquivos.length) { alert('Ainda não existe nenhum arquivo salvo no OneDrive.'); return; }
-      mostrarSeletorOneDrive(data.arquivos);
-    } catch (e) {
-      alert('Erro ao acessar o OneDrive: ' + e.message);
-    } finally {
-      if (btn) { btn.disabled = false; btn.textContent = '☁️ Carregar do OneDrive'; }
-    }
-  };
-
-  function mostrarSeletorOneDrive(arquivos) {
-    var overlay = document.createElement('div');
-    overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:99999; display:flex; align-items:center; justify-content:center;';
-    var box = document.createElement('div');
-    box.style.cssText = 'background:#fff; border-radius:10px; padding:20px; width:340px; max-height:70vh; overflow:auto; font-family:Arial, Helvetica, sans-serif;';
-    box.innerHTML = '<h3 style="margin:0 0 12px; font-size:16px;">Escolha o arquivo</h3>';
-
-    arquivos.forEach(function (f) {
-      var item = document.createElement('button');
-      item.textContent = f.name;
-      item.style.cssText = 'display:block; width:100%; text-align:left; padding:9px 10px; margin-bottom:6px; border:1px solid #ccd3da; border-radius:6px; background:#f4f6f8; cursor:pointer; font-size:13px;';
-      item.onclick = async function () {
-        overlay.remove();
-        try {
-          var res = await fetch('/api/onedrive-load', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: tokenAtual(), itemId: f.id })
-          });
-          var data = await res.json();
-          if (!res.ok) throw new Error(data.error || 'Erro ao carregar');
-          loadStateFromJSON(data.conteudo);
-        } catch (e) {
-          alert('Erro ao carregar arquivo: ' + e.message);
-        }
-      };
-      box.appendChild(item);
-    });
-
-    var cancelar = document.createElement('button');
-    cancelar.textContent = 'Cancelar';
-    cancelar.style.cssText = 'display:block; width:100%; text-align:center; padding:9px 10px; margin-top:6px; border:1px solid #ccd3da; border-radius:6px; background:#fff; cursor:pointer; font-size:13px;';
-    cancelar.onclick = function () { overlay.remove(); };
-    box.appendChild(cancelar);
-
-    overlay.appendChild(box);
-    document.body.appendChild(overlay);
-  }
-})();
 </script>
 </body>
 </html>
