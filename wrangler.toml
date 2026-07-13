@@ -15,7 +15,7 @@ binding = "ASSETS"
 # Para criar um novo: `wrangler kv namespace create USERS_KV`
 [[kv_namespaces]]
 binding = "USERS_KV"
-id = "SEU_KV_ID_AQUI"
+id = "a3ce11ad984a45a1b7aa5d4d5a45fd5d"
 
 # As variáveis abaixo são SECRETS (não coloque valores aqui no arquivo).
 # Depois do primeiro deploy, defina cada uma com:
