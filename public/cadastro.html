@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cadastro</title>
+<style>
+  :root{ --primary:#1f3a5f; --accent:#8a1f1f; --bg:#f4f6f8; --line:#ccd3da; }
+  *{box-sizing:border-box; font-family:Arial, Helvetica, sans-serif;}
+  body{margin:0; background:var(--bg); color:#222; display:flex; align-items:center; justify-content:center; min-height:100vh;}
+  .card{background:#fff; border:1px solid var(--line); border-radius:10px; padding:28px; width:100%; max-width:380px; box-shadow:0 4px 14px rgba(0,0,0,.06);}
+  h1{font-size:20px; margin:0 0 6px; color:var(--primary);}
+  p.sub{margin:0 0 18px; font-size:13px; color:#666;}
+  label{font-size:13px; font-weight:bold; color:#444; display:block; margin:12px 0 4px;}
+  input{width:100%; border:1px solid var(--line); border-radius:6px; padding:9px 10px; font-size:14px;}
+  button{width:100%; margin-top:18px; padding:10px; border:none; border-radius:6px; background:var(--primary); color:#fff; font-size:14px; cursor:pointer;}
+  button:disabled{opacity:.6; cursor:default;}
+  .msg{margin-top:12px; font-size:13px; padding:8px 10px; border-radius:6px;}
+  .msg.error{background:#fdecea; color:var(--accent);}
+  .msg.ok{background:#eaf6ec; color:#256b32;}
+  .link{margin-top:16px; font-size:13px; text-align:center;}
+  .link a{color:var(--primary);}
+  .hidden{display:none;}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div id="stepSignup">
+      <h1>Criar conta</h1>
+      <p class="sub">Depois de confirmar seu e-mail, aguarde a liberação de acesso.</p>
+      <form id="formSignup">
+        <label>E-mail</label>
+        <input type="email" id="email" required>
+        <label>Senha</label>
+        <input type="password" id="password" minlength="6" required>
+        <label>Confirmar senha</label>
+        <input type="password" id="confirmPassword" minlength="6" required>
+        <button type="submit" id="btnSignup">Criar conta</button>
+      </form>
+      <div class="link">Já tem conta? <a href="login.html">Entrar</a></div>
+    </div>
+
+    <div id="stepConfirm" class="hidden">
+      <h1>Confirme seu e-mail</h1>
+      <p class="sub">Enviamos um código de 6 dígitos para <b id="emailShown"></b>.</p>
+      <form id="formConfirm">
+        <label>Código de confirmação</label>
+        <input type="text" id="code" inputmode="numeric" maxlength="6" required>
+        <button type="submit" id="btnConfirm">Confirmar</button>
+      </form>
+    </div>
+
+    <div id="feedback"></div>
+  </div>
+
+<script>
+const feedback = document.getElementById('feedback');
+function showMsg(text, type){
+  feedback.innerHTML = `<div class="msg ${type}">${text}</div>`;
+}
+
+let cadastroEmail = '';
+
+document.getElementById('formSignup').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const confirmPassword = document.getElementById('confirmPassword').value;
+  const btn = document.getElementById('btnSignup');
+
+  if (password !== confirmPassword) {
+    showMsg('As senhas não conferem.', 'error');
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Enviando...';
+  try {
+    const res = await fetch('/api/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, confirmPassword })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro ao cadastrar');
+
+    cadastroEmail = email;
+    document.getElementById('emailShown').textContent = email;
+    document.getElementById('stepSignup').classList.add('hidden');
+    document.getElementById('stepConfirm').classList.remove('hidden');
+    feedback.innerHTML = '';
+  } catch (err) {
+    showMsg(err.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Criar conta';
+  }
+});
+
+document.getElementById('formConfirm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const code = document.getElementById('code').value.trim();
+  const btn = document.getElementById('btnConfirm');
+
+  btn.disabled = true; btn.textContent = 'Confirmando...';
+  try {
+    const res = await fetch('/api/confirm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: cadastroEmail, code })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro ao confirmar');
+
+    showMsg('E-mail confirmado! Aguarde a liberação de acesso e depois faça login. <a href="login.html">Ir para login</a>', 'ok');
+    document.getElementById('formConfirm').classList.add('hidden');
+  } catch (err) {
+    showMsg(err.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Confirmar';
+  }
+});
+</script>
+</body>
+</html>

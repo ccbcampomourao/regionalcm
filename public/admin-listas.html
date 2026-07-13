@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<script>
+(function () {
+  document.documentElement.style.visibility = 'hidden';
+  var token = localStorage.getItem('session_token');
+  if (!token) { window.location.replace('/login.html'); return; }
+  fetch('/api/verify-session', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: token })
+  }).then(function (r) { return r.json(); }).then(function (data) {
+    if (data && data.ok && data.role === 'admin') {
+      document.documentElement.style.visibility = 'visible';
+    } else {
+      window.location.replace('/login.html');
+    }
+  }).catch(function () {
+    window.location.replace('/login.html');
+  });
+})();
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Acessar listas</title>
+<style>
+  :root{ --primary:#1f3a5f; --accent:#8a1f1f; --bg:#f4f6f8; --line:#ccd3da; }
+  *{box-sizing:border-box; font-family:Arial, Helvetica, sans-serif;}
+  body{margin:0; background:var(--bg); color:#222; min-height:100vh;}
+  header{background:var(--primary); color:#fff; padding:14px 20px; display:flex; justify-content:space-between; align-items:center;}
+  header h1{margin:0; font-size:18px;}
+  header a{color:#fff; font-size:13px; text-decoration:none; border:1px solid rgba(255,255,255,.5); padding:6px 12px; border-radius:6px;}
+  header a:hover{background:rgba(255,255,255,.15);}
+  .wrap{max-width:700px; margin:40px auto; padding:0 16px;}
+  .grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px;}
+  .card{background:#fff; border:1px solid var(--line); border-radius:10px; padding:24px; text-align:center; text-decoration:none; color:#222; box-shadow:0 4px 14px rgba(0,0,0,.05); transition:transform .1s;}
+  .card:hover{transform:translateY(-2px); border-color:var(--primary);}
+  .card .nome{font-size:16px; font-weight:bold; color:var(--primary); margin-top:6px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Acessar listas</h1>
+  <a href="/admin.html">← Voltar ao painel admin</a>
+</header>
+<div class="wrap">
+  <p style="color:#666; font-size:14px; margin-bottom:20px;">Escolha qual lista você quer visualizar:</p>
+  <div class="grid">
+    <a class="card" href="/listacampomourao.html">
+      <div class="nome">Campo Mourão</div>
+    </a>
+    <a class="card" href="/listacianorte.html">
+      <div class="nome">Cianorte</div>
+    </a>
+    <a class="card" href="/listaubirata.html">
+      <div class="nome">Ubiratã</div>
+    </a>
+  </div>
+</div>
+</body>
+</html>

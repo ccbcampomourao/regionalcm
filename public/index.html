@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Redirecionando...</title>
+</head>
+<body>
+<script>
+(function () {
+  var LISTAS = {
+    campomourao: '/listacampomourao.html',
+    cianorte: '/listacianorte.html',
+    ubirata: '/listaubirata.html'
+  };
+
+  function irParaLogin() {
+    localStorage.removeItem('session_token');
+    window.location.replace('/login.html');
+  }
+
+  var token = localStorage.getItem('session_token');
+  if (!token || token.indexOf('.') === -1) {
+    irParaLogin();
+    return;
+  }
+
+  try {
+    var payloadB64 = token.split('.')[0];
+    var normalized = payloadB64.replace(/-/g, '+').replace(/_/g, '/');
+    while (normalized.length % 4 !== 0) { normalized += '='; }
+    var payload = JSON.parse(atob(normalized));
+
+    if (!payload.exp || Date.now() > payload.exp) {
+      irParaLogin();
+      return;
+    }
+
+    if (payload.role === 'admin') {
+      window.location.replace('/admin.html');
+      return;
+    }
+
+    if (!LISTAS[payload.list]) {
+      irParaLogin();
+      return;
+    }
+
+    // A validade real (assinatura) é conferida de novo na própria página da lista.
+    window.location.replace(LISTAS[payload.list]);
+  } catch (e) {
+    irParaLogin();
+  }
+})();
+</script>
+</body>
+</html>

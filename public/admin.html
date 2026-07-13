@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin - Usuários</title>
+<style>
+  :root{ --primary:#1f3a5f; --accent:#8a1f1f; --bg:#f4f6f8; --line:#ccd3da; }
+  *{box-sizing:border-box; font-family:Arial, Helvetica, sans-serif;}
+  body{margin:0; background:var(--bg); color:#222;}
+  header{background:var(--primary); color:#fff; padding:14px 20px;}
+  header h1{margin:0; font-size:18px;}
+  .wrap{max-width:1000px; margin:20px auto; padding:0 16px;}
+  .card{background:#fff; border:1px solid var(--line); border-radius:8px; padding:16px; margin-bottom:16px;}
+  label{font-size:13px; font-weight:bold; color:#444; display:block; margin:10px 0 4px;}
+  input, select{border:1px solid var(--line); border-radius:6px; padding:7px 9px; font-size:13px;}
+  button{cursor:pointer; border:1px solid var(--line); background:#fff; padding:7px 12px; border-radius:6px; font-size:13px;}
+  button.primary{background:var(--primary); color:#fff; border-color:var(--primary);}
+  button:disabled{opacity:.6; cursor:default;}
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  th, td{padding:8px 10px; border-bottom:1px solid var(--line); text-align:left;}
+  th{background:#eef1f5;}
+  .badge{padding:2px 8px; border-radius:10px; font-size:11px; font-weight:bold;}
+  .badge.yes{background:#eaf6ec; color:#256b32;}
+  .badge.no{background:#fdecea; color:var(--accent);}
+  .badge.admin{background:#fff4d6; color:#8a5a00;}
+  .msg{font-size:13px; margin-top:8px;}
+  .msg.error{color:var(--accent);}
+  .msg.ok{color:#256b32;}
+</style>
+</head>
+<body>
+<header><h1>Painel administrativo — Usuários cadastrados</h1></header>
+<div class="wrap">
+  <div style="margin-top:16px; margin-bottom:-4px;">
+    <a href="/admin-listas.html" style="display:inline-block; background:var(--primary); color:#fff; text-decoration:none; padding:8px 14px; border-radius:6px; font-size:13px; margin-bottom:16px;">📋 Acessar listas</a>
+  </div>
+
+  <div class="card" id="loginBox">
+    <label>E-mail</label>
+    <input type="email" id="adminEmail" style="width:280px;">
+    <label>Senha</label>
+    <input type="password" id="adminSenha" style="width:280px;">
+    <div style="margin-top:14px;">
+      <button class="primary" id="btnEntrar">Entrar</button>
+    </div>
+    <div id="loginMsg" class="msg"></div>
+  </div>
+
+  <div class="card" id="tableBox" style="display:none;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <strong>Usuários</strong>
+      <button id="btnAtualizar">Atualizar lista</button>
+    </div>
+    <table>
+      <thead>
+        <tr><th>E-mail</th><th>Confirmado</th><th>Cadastro em</th><th>Lista atribuída</th><th>Papel</th><th></th></tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div id="tableMsg" class="msg"></div>
+  </div>
+
+</div>
+
+<script>
+let adminToken = '';
+
+document.getElementById('btnEntrar').addEventListener('click', fazerLogin);
+
+async function fazerLogin() {
+  const loginMsg = document.getElementById('loginMsg');
+  loginMsg.textContent = '';
+  const email = document.getElementById('adminEmail').value.trim();
+  const senha = document.getElementById('adminSenha').value;
+
+  try {
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: senha })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro ao entrar');
+
+    if (data.role !== 'admin') {
+      throw new Error('Essa conta não tem permissão de administrador.');
+    }
+
+    adminToken = data.token;
+    document.getElementById('loginBox').style.display = 'none';
+    document.getElementById('tableBox').style.display = 'block';
+    await carregarUsuarios();
+  } catch (err) {
+    loginMsg.textContent = err.message;
+    loginMsg.className = 'msg error';
+  }
+}
+
+document.getElementById('btnAtualizar').addEventListener('click', carregarUsuarios);
+
+async function carregarUsuarios() {
+  const tableMsg = document.getElementById('tableMsg');
+  try {
+    const res = await fetch('/api/admin-list', {
+      headers: { 'Authorization': 'Bearer ' + adminToken }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro ao carregar');
+    renderTable(data.users);
+  } catch (err) {
+    tableMsg.textContent = err.message;
+    tableMsg.className = 'msg error';
+  }
+}
+
+function renderTable(users) {
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = '';
+  const listas = { campomourao: 'Campo Mourão', cianorte: 'Cianorte', ubirata: 'Ubiratã' };
+
+  users.forEach(u => {
+    const tr = document.createElement('tr');
+    const dataFmt = u.createdAt ? new Date(u.createdAt).toLocaleString('pt-BR') : '-';
+
+    const selectLista = document.createElement('select');
+    const optNone = document.createElement('option');
+    optNone.value = ''; optNone.textContent = '— nenhuma —';
+    selectLista.appendChild(optNone);
+    Object.entries(listas).forEach(([key, label]) => {
+      const opt = document.createElement('option');
+      opt.value = key; opt.textContent = label;
+      if (u.assignedList === key) opt.selected = true;
+      selectLista.appendChild(opt);
+    });
+
+    const selectRole = document.createElement('select');
+    [['padrao', 'Usuário Padrão'], ['admin', 'ADMIN']].forEach(([value, label]) => {
+      const opt = document.createElement('option');
+      opt.value = value; opt.textContent = label;
+      if (u.role === value) opt.selected = true;
+      selectRole.appendChild(opt);
+    });
+
+    const btnSalvar = document.createElement('button');
+    btnSalvar.textContent = 'Salvar';
+    btnSalvar.className = 'primary';
+    btnSalvar.onclick = () => salvar(u.email, selectLista.value, selectRole.value, btnSalvar);
+
+    tr.innerHTML = `
+      <td>${u.email}</td>
+      <td><span class="badge ${u.confirmed ? 'yes' : 'no'}">${u.confirmed ? 'Sim' : 'Não'}</span></td>
+      <td>${dataFmt}</td>
+      <td></td>
+      <td></td>
+      <td></td>
+    `;
+    tr.children[3].appendChild(selectLista);
+    tr.children[4].appendChild(selectRole);
+    tr.children[5].appendChild(btnSalvar);
+    tbody.appendChild(tr);
+  });
+}
+
+async function salvar(email, list, role, btn) {
+  const tableMsg = document.getElementById('tableMsg');
+  btn.disabled = true;
+  try {
+    const [resLista, resRole] = await Promise.all([
+      fetch('/api/admin-assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + adminToken },
+        body: JSON.stringify({ email, list: list || null })
+      }),
+      fetch('/api/admin-set-role', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + adminToken },
+        body: JSON.stringify({ email, role })
+      })
+    ]);
+    const dataLista = await resLista.json();
+    const dataRole = await resRole.json();
+    if (!resLista.ok) throw new Error(dataLista.error || 'Erro ao salvar lista');
+    if (!resRole.ok) throw new Error(dataRole.error || 'Erro ao salvar papel');
+
+    tableMsg.textContent = `${email} atualizado com sucesso.`;
+    tableMsg.className = 'msg ok';
+    await carregarUsuarios();
+  } catch (err) {
+    tableMsg.textContent = err.message;
+    tableMsg.className = 'msg error';
+  } finally {
+    btn.disabled = false;
+  }
+}
+</script>
+</body>
+</html>
