@@ -1,4 +1,4 @@
-name = "sistema-login-listas"
+name = "listas"
 main = "src/index.js"
 compatibility_date = "2026-07-01"
 
@@ -9,10 +9,8 @@ compatibility_date = "2026-07-01"
 directory = "public"
 binding = "ASSETS"
 
-# Binding do KV que guarda os usuários (antes configurado pelo painel
-# do Pages em Settings -> Functions -> KV namespace bindings).
-# Troque "SEU_KV_ID_AQUI" pelo ID real do seu namespace.
-# Para criar um novo: `wrangler kv namespace create USERS_KV`
+# Binding do KV que guarda os usuários (configurado no dashboard da Cloudflare
+# em Workers & Pages -> listas -> Settings -> Bindings).
 [[kv_namespaces]]
 binding = "USERS_KV"
 id = "a3ce11ad984a45a1b7aa5d4d5a45fd5d"
