@@ -4,8 +4,8 @@
 
 import * as adminAssign from '../functions/api/admin-assign.js';
 import * as adminList from '../functions/api/admin-list.js';
+import * as adminSetActive from '../functions/api/admin-set-active.js';
 import * as adminSetRole from '../functions/api/admin-set-role.js';
-import * as confirm from '../functions/api/confirm.js';
 import * as login from '../functions/api/login.js';
 import * as onedriveList from '../functions/api/onedrive-list.js';
 import * as onedriveLoad from '../functions/api/onedrive-load.js';
@@ -17,8 +17,8 @@ import * as verifySession from '../functions/api/verify-session.js';
 const routes = {
   'POST /api/admin-assign': adminAssign.onRequestPost,
   'GET /api/admin-list': adminList.onRequestGet,
+  'POST /api/admin-set-active': adminSetActive.onRequestPost,
   'POST /api/admin-set-role': adminSetRole.onRequestPost,
-  'POST /api/confirm': confirm.onRequestPost,
   'POST /api/login': login.onRequestPost,
   'POST /api/onedrive-list': onedriveList.onRequestPost,
   'POST /api/onedrive-load': onedriveLoad.onRequestPost,
