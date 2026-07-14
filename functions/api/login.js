@@ -21,26 +21,32 @@ export async function onRequestPost({ request, env }) {
     return jsonResponse(401, { error: 'E-mail ou senha inválidos' });
   }
 
-  if (!record.confirmed) {
-    return jsonResponse(403, { error: 'Confirme seu e-mail antes de fazer login.' });
-  }
-
   const ok = await verifyPassword(password || '', record.passwordHash);
   if (!ok) {
     return jsonResponse(401, { error: 'E-mail ou senha inválidos' });
   }
 
+  if (!record.active) {
+    return jsonResponse(403, { error: 'Seu acesso ainda não foi liberado. Aguarde o administrador liberar seu acesso.' });
+  }
+
   const role = record.role === 'admin' ? 'admin' : 'padrao';
 
   if (role === 'admin') {
-    const token = await createSessionToken(env, { email, list: null, role: 'admin' });
+    const token = await createSessionToken(env, { email, lists: Object.keys(LISTAS), role: 'admin' });
     return jsonResponse(200, { ok: true, redirectUrl: '/admin.html', token, role });
   }
 
-  if (!record.assignedList || !LISTAS[record.assignedList]) {
-    return jsonResponse(403, { error: 'Seu acesso ainda não foi liberado. Aguarde o administrador atribuir sua lista.' });
+  const assignedLists = Array.isArray(record.assignedLists)
+    ? record.assignedLists.filter((l) => LISTAS[l])
+    : [];
+
+  if (assignedLists.length === 0) {
+    return jsonResponse(403, { error: 'Seu acesso ainda não foi liberado. Aguarde o administrador atribuir suas listas.' });
   }
 
-  const token = await createSessionToken(env, { email, list: record.assignedList, role: 'padrao' });
-  return jsonResponse(200, { ok: true, redirectUrl: LISTAS[record.assignedList], token, role });
+  const token = await createSessionToken(env, { email, lists: assignedLists, role: 'padrao' });
+  const redirectUrl = assignedLists.length === 1 ? LISTAS[assignedLists[0]] : '/minhas-listas.html';
+
+  return jsonResponse(200, { ok: true, redirectUrl, token, role });
 }

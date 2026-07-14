@@ -28,10 +28,10 @@ async function getHmacKey(secret) {
   );
 }
 
-export async function createSessionToken(env, { email, list = null, role = 'padrao', hoursValid = 12 }) {
+export async function createSessionToken(env, { email, lists = [], role = 'padrao', hoursValid = 12 }) {
   const payload = {
     email,
-    list,
+    lists,
     role,
     exp: Date.now() + hoursValid * 60 * 60 * 1000,
   };

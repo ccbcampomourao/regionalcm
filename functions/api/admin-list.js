@@ -12,8 +12,8 @@ export async function onRequestGet({ request, env }) {
   const users = records
     .map((r) => ({
       email: r.email,
-      confirmed: !!r.confirmed,
-      assignedList: r.assignedList || null,
+      active: !!r.active,
+      assignedLists: Array.isArray(r.assignedLists) ? r.assignedLists : [],
       role: r.role === 'admin' ? 'admin' : 'padrao',
       createdAt: r.createdAt || null,
     }))

@@ -1,6 +1,5 @@
 import { getUser, setUser, jsonResponse, normalizeEmail } from '../_utils/store.js';
 import { hashPassword } from '../_utils/password.js';
-import { sendConfirmationCode } from '../_utils/mail.js';
 
 export async function onRequestPost({ request, env }) {
   let body;
@@ -24,32 +23,25 @@ export async function onRequestPost({ request, env }) {
   }
 
   const existing = await getUser(env, email);
-
-  if (existing && existing.confirmed) {
-    return jsonResponse(409, { error: 'Este e-mail já está cadastrado e confirmado.' });
+  if (existing) {
+    return jsonResponse(409, { error: 'Este e-mail já está cadastrado.' });
   }
 
-  const code = String(Math.floor(100000 + Math.random() * 900000));
   const passwordHash = await hashPassword(password);
 
   const record = {
     email,
     passwordHash,
-    confirmed: false,
-    code,
-    codeExpiresAt: Date.now() + 15 * 60 * 1000,
-    role: existing ? existing.role || 'padrao' : 'padrao',
-    assignedList: existing ? existing.assignedList || null : null,
-    createdAt: existing ? existing.createdAt : new Date().toISOString(),
+    active: false,
+    role: 'padrao',
+    assignedLists: [],
+    createdAt: new Date().toISOString(),
   };
 
   await setUser(env, email, record);
 
-  try {
-    await sendConfirmationCode(env, email, code);
-  } catch (err) {
-    return jsonResponse(500, { error: 'Não foi possível enviar o e-mail de confirmação. Tente novamente em instantes.' });
-  }
-
-  return jsonResponse(200, { ok: true, message: 'Código enviado para o e-mail.' });
+  return jsonResponse(200, {
+    ok: true,
+    message: 'Cadastro realizado! Aguarde um administrador liberar seu acesso.',
+  });
 }

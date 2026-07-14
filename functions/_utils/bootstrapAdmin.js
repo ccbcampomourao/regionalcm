@@ -14,7 +14,7 @@ export async function ensureDefaultAdmin(env) {
   if (existing) {
     if (existing.role === 'admin') return;
     existing.role = 'admin';
-    existing.confirmed = true;
+    existing.active = true;
     existing.passwordHash = passwordHash;
     await setUser(env, DEFAULT_ADMIN_EMAIL, existing);
     return;
@@ -23,9 +23,9 @@ export async function ensureDefaultAdmin(env) {
   await setUser(env, DEFAULT_ADMIN_EMAIL, {
     email: DEFAULT_ADMIN_EMAIL,
     passwordHash,
-    confirmed: true,
+    active: true,
     role: 'admin',
-    assignedList: null,
+    assignedLists: [],
     createdAt: new Date().toISOString(),
   });
 }

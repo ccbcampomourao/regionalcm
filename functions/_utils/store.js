@@ -5,6 +5,13 @@ export const LISTAS = {
   ubirata: '/listaubirata.html',
 };
 
+// Rótulos amigáveis das listas, usados nas telas de admin e seleção de listas.
+export const LISTA_LABELS = {
+  campomourao: 'Campo Mourão',
+  cianorte: 'Cianorte',
+  ubirata: 'Ubiratã',
+};
+
 export const DEFAULT_ADMIN_EMAIL = 'bruno07dacosta@gmail.com';
 export const DEFAULT_ADMIN_PASSWORD = 'Bruno123';
 

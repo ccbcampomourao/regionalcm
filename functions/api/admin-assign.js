@@ -15,10 +15,12 @@ export async function onRequestPost({ request, env }) {
   }
 
   const email = normalizeEmail(body.email);
-  const list = body.list === null || body.list === '' ? null : body.list;
+  const rawLists = Array.isArray(body.lists) ? body.lists : [];
+  const lists = [...new Set(rawLists.filter((l) => typeof l === 'string' && l))];
 
-  if (list !== null && !LISTAS[list]) {
-    return jsonResponse(400, { error: 'Lista inválida' });
+  const invalid = lists.filter((l) => !LISTAS[l]);
+  if (invalid.length > 0) {
+    return jsonResponse(400, { error: `Lista inválida: ${invalid.join(', ')}` });
   }
 
   const record = await getUser(env, email);
@@ -26,7 +28,7 @@ export async function onRequestPost({ request, env }) {
     return jsonResponse(404, { error: 'Usuário não encontrado' });
   }
 
-  record.assignedList = list;
+  record.assignedLists = lists;
   await setUser(env, email, record);
 
   return jsonResponse(200, { ok: true });

@@ -1,4 +1,4 @@
-import { jsonResponse } from '../_utils/store.js';
+import { jsonResponse, LISTAS } from '../_utils/store.js';
 import { verifySessionToken } from '../_utils/session.js';
 
 export async function onRequestPost({ request, env }) {
@@ -18,12 +18,14 @@ export async function onRequestPost({ request, env }) {
 
   // Admin tem acesso liberado a qualquer lista.
   if (payload.role === 'admin') {
-    return jsonResponse(200, { ok: true, role: 'admin' });
+    return jsonResponse(200, { ok: true, role: 'admin', lists: Object.keys(LISTAS) });
   }
 
-  if (payload.list !== list) {
+  const lists = Array.isArray(payload.lists) ? payload.lists : [];
+
+  if (list && !lists.includes(list)) {
     return jsonResponse(403, { ok: false, error: 'Sem permissão para esta lista' });
   }
 
-  return jsonResponse(200, { ok: true, role: 'padrao' });
+  return jsonResponse(200, { ok: true, role: 'padrao', lists });
 }

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Minhas listas</title>
+<style>
+  :root{ --primary:#1f3a5f; --accent:#8a1f1f; --bg:#f4f6f8; --line:#ccd3da; }
+  *{box-sizing:border-box; font-family:Arial, Helvetica, sans-serif;}
+  body{margin:0; background:var(--bg); color:#222; min-height:100vh; visibility:hidden;}
+  header{background:var(--primary); color:#fff; padding:14px 20px; display:flex; justify-content:space-between; align-items:center;}
+  header h1{margin:0; font-size:18px;}
+  header a{color:#fff; font-size:13px; text-decoration:none; border:1px solid rgba(255,255,255,.5); padding:6px 12px; border-radius:6px;}
+  header a:hover{background:rgba(255,255,255,.15);}
+  .wrap{max-width:700px; margin:40px auto; padding:0 16px;}
+  .grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px;}
+  .card{background:#fff; border:1px solid var(--line); border-radius:10px; padding:24px; text-align:center; text-decoration:none; color:#222; box-shadow:0 4px 14px rgba(0,0,0,.05); transition:transform .1s;}
+  .card:hover{transform:translateY(-2px); border-color:var(--primary);}
+  .card .nome{font-size:16px; font-weight:bold; color:var(--primary); margin-top:6px;}
+  .empty{color:#666; font-size:14px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Minhas listas</h1>
+  <a href="#" id="btnSair">Sair</a>
+</header>
+<div class="wrap">
+  <p style="color:#666; font-size:14px; margin-bottom:20px;">Escolha qual lista você quer visualizar:</p>
+  <div class="grid" id="grid"></div>
+  <p class="empty" id="empty" style="display:none;">Você ainda não tem nenhuma lista liberada. Fale com um administrador.</p>
+</div>
+
+<script>
+const LISTA_URLS = { campomourao: '/listacampomourao.html', cianorte: '/listacianorte.html', ubirata: '/listaubirata.html' };
+const LISTA_LABELS = { campomourao: 'Campo Mourão', cianorte: 'Cianorte', ubirata: 'Ubiratã' };
+
+document.getElementById('btnSair').addEventListener('click', function (e) {
+  e.preventDefault();
+  localStorage.removeItem('session_token');
+  window.location.href = '/login.html';
+});
+
+function renderListas(lists) {
+  const grid = document.getElementById('grid');
+  if (!lists || lists.length === 0) {
+    document.getElementById('empty').style.display = 'block';
+    return;
+  }
+  lists.forEach(function (key) {
+    if (!LISTA_URLS[key]) return;
+    const a = document.createElement('a');
+    a.className = 'card';
+    a.href = LISTA_URLS[key];
+    const div = document.createElement('div');
+    div.className = 'nome';
+    div.textContent = LISTA_LABELS[key] || key;
+    a.appendChild(div);
+    grid.appendChild(a);
+  });
+}
+
+(function () {
+  const token = localStorage.getItem('session_token');
+  if (!token) { window.location.replace('/login.html'); return; }
+  fetch('/api/verify-session', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: token })
+  }).then(function (r) { return r.json(); }).then(function (data) {
+    if (data && data.ok) {
+      document.body.style.visibility = 'visible';
+      renderListas(data.lists);
+    } else {
+      localStorage.removeItem('session_token');
+      window.location.replace('/login.html');
+    }
+  }).catch(function () {
+    window.location.replace('/login.html');
+  });
+})();
+</script>
+</body>
+</html>

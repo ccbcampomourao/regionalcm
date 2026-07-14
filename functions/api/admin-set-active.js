@@ -1,4 +1,4 @@
-import { getUser, setUser, listUsers, jsonResponse, normalizeEmail } from '../_utils/store.js';
+import { getUser, setUser, jsonResponse, normalizeEmail } from '../_utils/store.js';
 import { getAdminPayload } from '../_utils/adminAuth.js';
 
 export async function onRequestPost({ request, env }) {
@@ -15,25 +15,18 @@ export async function onRequestPost({ request, env }) {
   }
 
   const email = normalizeEmail(body.email);
-  const role = body.role === 'admin' ? 'admin' : 'padrao';
+  const active = !!body.active;
 
   const record = await getUser(env, email);
   if (!record) {
     return jsonResponse(404, { error: 'Usuário não encontrado' });
   }
 
-  if (record.role === 'admin' && role !== 'admin') {
-    const all = await listUsers(env);
-    const totalAdmins = all.filter((u) => u.role === 'admin').length;
-    if (totalAdmins <= 1) {
-      return jsonResponse(400, { error: 'Não é possível remover o último administrador do sistema.' });
-    }
+  if (record.role === 'admin' && !active) {
+    return jsonResponse(400, { error: 'Não é possível bloquear o acesso de um administrador. Remova o papel de admin antes.' });
   }
 
-  record.role = role;
-  if (role === 'admin') {
-    record.active = true;
-  }
+  record.active = active;
   await setUser(env, email, record);
 
   return jsonResponse(200, { ok: true });
