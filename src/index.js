@@ -7,9 +7,9 @@ import * as adminList from '../functions/api/admin-list.js';
 import * as adminSetActive from '../functions/api/admin-set-active.js';
 import * as adminSetRole from '../functions/api/admin-set-role.js';
 import * as login from '../functions/api/login.js';
-import * as onedriveList from '../functions/api/onedrive-list.js';
-import * as onedriveLoad from '../functions/api/onedrive-load.js';
-import * as onedriveSave from '../functions/api/onedrive-save.js';
+import * as listaList from '../functions/api/lista-list.js';
+import * as listaLoad from '../functions/api/lista-load.js';
+import * as listaSave from '../functions/api/lista-save.js';
 import * as signup from '../functions/api/signup.js';
 import * as verifySession from '../functions/api/verify-session.js';
 
@@ -20,9 +20,9 @@ const routes = {
   'POST /api/admin-set-active': adminSetActive.onRequestPost,
   'POST /api/admin-set-role': adminSetRole.onRequestPost,
   'POST /api/login': login.onRequestPost,
-  'POST /api/onedrive-list': onedriveList.onRequestPost,
-  'POST /api/onedrive-load': onedriveLoad.onRequestPost,
-  'POST /api/onedrive-save': onedriveSave.onRequestPost,
+  'POST /api/lista-list': listaList.onRequestPost,
+  'POST /api/lista-load': listaLoad.onRequestPost,
+  'POST /api/lista-save': listaSave.onRequestPost,
   'POST /api/signup': signup.onRequestPost,
   'POST /api/verify-session': verifySession.onRequestPost,
 };

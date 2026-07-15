@@ -17,7 +17,8 @@ id = "a3ce11ad984a45a1b7aa5d4d5a45fd5d"
 
 # As variáveis abaixo são SECRETS (não coloque valores aqui no arquivo).
 # Depois do primeiro deploy, defina cada uma com:
-#   wrangler secret put ONEDRIVE_CLIENT_ID
-#   wrangler secret put ONEDRIVE_CLIENT_SECRET
-#   wrangler secret put ONEDRIVE_REFRESH_TOKEN_INICIAL
 #   wrangler secret put SESSION_SECRET
+#
+# Os .json de cada lista são salvos no próprio USERS_KV (chave prefixada por
+# "lista:<regiao>:"), então não é preciso nenhum namespace ou secret extra
+# além do que já existia.
