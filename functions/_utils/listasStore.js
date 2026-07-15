@@ -1,9 +1,11 @@
-// Guarda o .json de cada lista dentro do mesmo KV que já é usado para os
-// usuários (env.USERS_KV) — assim não é preciso criar/vincular um namespace
-// novo no Cloudflare. Cada arquivo vira uma chave separada, prefixada pela
-// região, então uma lista nunca aparece misturada com a de outra região.
+// Guarda o .json de cada lista em um KV PRÓPRIO (env.LISTAS_KV), separado do
+// KV de usuários (env.USERS_KV) — assim uma coisa nunca interfere na outra.
+// Precisa criar um namespace novo no Cloudflare e vincular como "LISTAS_KV"
+// (veja o README, seção "Salvar e carregar listas").
 //
-// Formato da chave: lista:<regiao>:<nome-do-arquivo>.json
+// Dentro desse KV, cada arquivo ainda é separado por região através da
+// chave: lista:<regiao>:<nome-do-arquivo>.json — então mesmo estando todos
+// no mesmo namespace, uma lista nunca aparece misturada com a de outra.
 
 const PREFIXO = 'lista:';
 
@@ -24,7 +26,7 @@ function normalizarNomeArquivo(nome) {
 
 export async function salvarListaJSON(env, regiao, nome, conteudo) {
   const nomeArquivo = normalizarNomeArquivo(nome);
-  await env.USERS_KV.put(chave(regiao, nomeArquivo), conteudo, {
+  await env.LISTAS_KV.put(chave(regiao, nomeArquivo), conteudo, {
     metadata: { modificado: Date.now() },
   });
   return nomeArquivo;
@@ -35,7 +37,7 @@ export async function listarListasJSON(env, regiao) {
   const arquivos = [];
   let cursor;
   while (true) {
-    const page = await env.USERS_KV.list(cursor ? { prefix: prefixo, cursor } : { prefix: prefixo });
+    const page = await env.LISTAS_KV.list(cursor ? { prefix: prefixo, cursor } : { prefix: prefixo });
     for (const key of page.keys) {
       arquivos.push({
         nome: key.name.slice(prefixo.length),
@@ -51,11 +53,11 @@ export async function listarListasJSON(env, regiao) {
 }
 
 export async function carregarListaJSON(env, regiao, nome) {
-  const conteudo = await env.USERS_KV.get(chave(regiao, nome));
+  const conteudo = await env.LISTAS_KV.get(chave(regiao, nome));
   if (conteudo === null) throw new Error('Arquivo não encontrado.');
   return conteudo;
 }
 
 export async function apagarListaJSON(env, regiao, nome) {
-  await env.USERS_KV.delete(chave(regiao, nome));
+  await env.LISTAS_KV.delete(chave(regiao, nome));
 }

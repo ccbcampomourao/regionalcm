@@ -15,10 +15,15 @@ binding = "ASSETS"
 binding = "USERS_KV"
 id = "a3ce11ad984a45a1b7aa5d4d5a45fd5d"
 
+# Binding do KV que guarda os .json das listas — separado do USERS_KV de
+# propósito, pra não misturar dados de login com os arquivos salvos.
+# Depois de criar o namespace "listas" no painel da Cloudflare (veja o
+# README, seção "Salvar e carregar listas"), troque o id abaixo pelo ID que
+# a Cloudflare gerar para ele.
+[[kv_namespaces]]
+binding = "LISTAS_KV"
+id = "COLOQUE_AQUI_O_ID_DO_NAMESPACE_LISTAS_KV"
+
 # As variáveis abaixo são SECRETS (não coloque valores aqui no arquivo).
 # Depois do primeiro deploy, defina cada uma com:
 #   wrangler secret put SESSION_SECRET
-#
-# Os .json de cada lista são salvos no próprio USERS_KV (chave prefixada por
-# "lista:<regiao>:"), então não é preciso nenhum namespace ou secret extra
-# além do que já existia.

@@ -106,26 +106,40 @@ tiver dúvida sobre o número atual.
 Depois de publicado, dá pra apontar um domínio seu (tipo `listas.suaigreja.com.br`) pro
 projeto, em **Custom domains**, dentro do próprio projeto no Cloudflare Pages.
 
-## Salvar e carregar listas (Cloudflare KV)
+## Salvar e carregar listas (Cloudflare KV separado)
 
 Cada página de lista (Campo Mourão, Cianorte, Ubiratã) tem os botões **"☁️ Salvar"** e
 **"☁️ Carregar"**, além dos botões antigos de salvar/carregar `.json` direto no
-computador. Não depende de nenhuma conta externa (nada de OneDrive/Microsoft) — os
-arquivos ficam guardados no mesmo KV que já armazena os usuários (`USERS_KV`), então não
-é preciso criar namespace nem configurar nenhum secret novo.
+computador. Não depende de nenhuma conta externa (nada de OneDrive/Microsoft).
 
-**Como funciona:**
+Os arquivos ficam guardados num **KV próprio, separado do `USERS_KV`** — assim os dados
+de login/cadastro nunca se misturam com os `.json` das listas, e um problema em um lado
+não afeta o outro.
+
+### Criar e vincular o namespace `LISTAS_KV`
+
+1. No painel do Cloudflare, **Storage & Databases** → **Workers KV** → **Create instance**
+   (ou "Create a namespace") → dê o nome `listas` (ou o que preferir) → **Create**.
+2. Copie o **ID** desse namespace (aparece na listagem, ao lado do nome).
+3. Abra o `wrangler.toml` e troque `COLOQUE_AQUI_O_ID_DO_NAMESPACE_LISTAS_KV` pelo ID
+   copiado — ou, se estiver publicando pelo painel (Git integration), vá em
+   **Workers & Pages** → seu projeto → **Settings** → **Bindings** → **Add** → **KV
+   namespace**:
+   - Variable name: `LISTAS_KV` (tem que ser exatamente esse nome, é o que o código usa).
+   - KV namespace: selecione o `listas` que você acabou de criar.
+4. Salve e **refaça o deploy** do projeto (Bindings novos só valem a partir do próximo
+   deploy — vá em **Deployments** → nos três pontinhos do último deploy → **Retry
+   deployment**, ou dê um novo commit no GitHub).
+
+### Como funciona
 
 - Ao clicar em **"☁️ Salvar"**, o sistema pergunta o nome do arquivo (já vem sugerido
   algo como `campomourao_2026-07-14`, mas pode digitar qualquer nome).
 - Cada lista só enxerga (salva e lista) os **próprios arquivos** — o JSON de Campo Mourão
-  nunca aparece misturado com o de Cianorte ou Ubiratã, mesmo estando no mesmo KV, porque
-  cada arquivo é guardado com uma chave prefixada pela região
+  nunca aparece misturado com o de Cianorte ou Ubiratã, mesmo estando no mesmo
+  namespace, porque cada arquivo é guardado com uma chave prefixada pela região
   (`lista:<regiao>:<nome>.json`).
 - Ao clicar em **"☁️ Carregar"**, aparece a lista de arquivos já salvos daquela região
   (mais recentes primeiro) para escolher.
 - Só quem tem permissão de acesso àquela lista (ou é admin) consegue salvar/carregar os
   arquivos dela — a mesma regra de permissão que já protege a página em si.
-
-Não há nenhum passo extra de configuração: assim que o deploy estiver no ar com o
-`USERS_KV` já vinculado (passo 6 acima), salvar e carregar já funcionam.
