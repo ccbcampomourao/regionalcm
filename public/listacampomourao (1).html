@@ -1,8 +1,39 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+<script>
+(function () {
+  document.documentElement.style.visibility = 'hidden';
+  var token = localStorage.getItem('session_token');
+  if (!token) { window.location.replace('/login.html'); return; }
+  fetch('/api/verify-session', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: token, list: 'campomourao' })
+  }).then(function (r) { return r.json(); }).then(function (data) {
+    if (data && data.ok) {
+      document.documentElement.style.visibility = 'visible';
+      var lists = Array.isArray(data.lists) ? data.lists : [];
+      if (data.role === 'admin' || lists.length > 1) {
+        window.addEventListener('DOMContentLoaded', function () {
+          var btn = document.createElement('a');
+          btn.href = data.role === 'admin' ? '/admin-listas.html' : '/minhas-listas.html';
+          btn.textContent = '← Voltar';
+          btn.style.cssText = 'position:fixed; top:12px; left:12px; z-index:99999; background:#1f3a5f; color:#fff; text-decoration:none; padding:8px 14px; border-radius:6px; font-size:13px; font-family:Arial, Helvetica, sans-serif; box-shadow:0 2px 8px rgba(0,0,0,.25);';
+          document.body.appendChild(btn);
+        });
+      }
+    } else {
+      localStorage.removeItem('session_token');
+      window.location.replace('/login.html');
+    }
+  }).catch(function () {
+    window.location.replace('/login.html');
+  });
+})();
+</script>
 <meta charset="UTF-8">
-<title>LISTA CAMPO MOURÃO</title>
+<title>LISTA REGIONAL</title>
 <link rel="icon" type="image/png" href="data:image/png;base64,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">
 
 <style>
@@ -97,7 +128,7 @@
 </head>
 <body>
 <header>
-  <h1>Congregação Cristã no Brasil - Lista de Serviços de Campo Mourão - Regional - Campo Mourão - PR</h1>
+  <h1>Congregação Cristã no Brasil - Lista de Serviços da Regional de Campo Mourão</h1>
   <p>Monte a lista escolhendo os tipos de serviço. Pode arrastar as seções criadas pelo cabeçalho para reordená-las.</p>
 </header>
 
@@ -108,6 +139,8 @@
       <button onclick="exportJSON()">⬇️ Salvar (.json)</button>
       <button onclick="document.getElementById('importInput').click()">⬆️ Carregar (.json)</button>
       <input type="file" id="importInput" accept=".json" style="display:none" onchange="importJSON(event)">
+      <button id="btnListaSalvar" onclick="salvarLista()">☁️ Salvar</button>
+      <button id="btnListaCarregar" onclick="carregarLista()">☁️ Carregar</button>
       <button class="danger" onclick="if(confirm('Limpar tudo?')) resetAll()">🗑️ Limpar Tudo</button>
     </div>
     <div class="note">Para o PDF sair <strong>idêntico</strong> ao que vê na pré-visualização: na janela de impressão que abrir, marque <strong>"Gráficos de fundo"</strong> (Background graphics), desmarque "Cabeçalhos e rodapés" e deixe a <strong>Escala em 100%</strong>.</div>
@@ -1557,7 +1590,7 @@ function buildDocumentHTML(){
           <div class="content-padding">
             <div class="doc-header">
               <div class="org">CONGREGAÇÃO CRISTÃ NO BRASIL</div>
-              <div class="ttl">${escapeHTML(titulo)} - REGIÃO - ${escapeHTML(regiao)}${periodo? ' - '+escapeHTML(periodo):''}</div>
+              <div class="ttl">${escapeHTML(titulo)} - REGIONAL - ${escapeHTML(regiao)}${periodo? ' - '+escapeHTML(periodo):''}</div>
             </div>
 
             ${avisosHTML ? `<div class="avisos-container">${avisosHTML}</div>` : ''}
@@ -1833,25 +1866,27 @@ function exportJSON(){
   a.click();
 }
 
+function loadStateFromJSON(texto){
+  try{
+    STATE = JSON.parse(texto);
+    if(!STATE.meta) STATE.meta = {regiao:"CAMPO MOURÃO - PR", periodo:"", titulo:"LISTA DE SERVIÇOS", rodape_esq:"", rodape_dir:[]};
+    if(!STATE.cargos || !STATE.cargos.length) STATE.cargos = JSON.parse(JSON.stringify(DEFAULT_CARGOS));
+    document.getElementById('meta_regiao').value = 'CAMPO MOURÃO - PR';
+    populatePeriodoOptions(STATE.meta?.periodo);
+    document.getElementById('meta_titulo').value = STATE.meta?.titulo||'LISTA DE SERVIÇOS';
+    document.getElementById('meta_rodape_esq').value = STATE.meta?.rodape_esq||'';
+    sanitizeState(); 
+    window.TOTAL_PAGES_ESTIMATED = 1;
+    renderRodapeDirInputs();
+    renderCargos(); renderSections(); renderPreview(); saveState();
+  }catch(e){ alert('Arquivo inválido.'); }
+}
+
 function importJSON(ev){
   const file = ev.target.files[0];
   if(!file) return;
   const reader = new FileReader();
-  reader.onload = ()=>{
-    try{
-      STATE = JSON.parse(reader.result);
-      if(!STATE.meta) STATE.meta = {regiao:"CAMPO MOURÃO - PR", periodo:"", titulo:"LISTA DE SERVIÇOS", rodape_esq:"", rodape_dir:[]};
-      if(!STATE.cargos || !STATE.cargos.length) STATE.cargos = JSON.parse(JSON.stringify(DEFAULT_CARGOS));
-      document.getElementById('meta_regiao').value = 'CAMPO MOURÃO - PR';
-      populatePeriodoOptions(STATE.meta?.periodo);
-      document.getElementById('meta_titulo').value = STATE.meta?.titulo||'LISTA DE SERVIÇOS';
-      document.getElementById('meta_rodape_esq').value = STATE.meta?.rodape_esq||'';
-      sanitizeState(); 
-      window.TOTAL_PAGES_ESTIMATED = 1;
-      renderRodapeDirInputs();
-      renderCargos(); renderSections(); renderPreview(); saveState();
-    }catch(e){ alert('Arquivo inválido.'); }
-  };
+  reader.onload = ()=>{ loadStateFromJSON(reader.result); };
   reader.readAsText(file);
 }
 
@@ -1892,6 +1927,105 @@ window.onload = ()=>{
   document.getElementById('meta_titulo').addEventListener('input', ()=>{ saveState(); renderPreview(); });
   document.getElementById('meta_rodape_esq').addEventListener('input', ()=>{ saveState(); renderPreview(); });
 };
+</script>
+<script>
+(function () {
+  var REGIAO = 'campomourao';
+
+  function tokenAtual() {
+    return localStorage.getItem('session_token');
+  }
+
+  function sugerirNomeArquivo() {
+    var d = new Date().toISOString().slice(0, 10);
+    return REGIAO + '_' + d;
+  }
+
+  window.salvarLista = async function () {
+    var btn = document.getElementById('btnListaSalvar');
+    var nome = prompt('Nome para salvar esta lista:', sugerirNomeArquivo());
+    if (nome === null) return; // cancelou
+    nome = nome.trim();
+    if (!nome) { alert('Informe um nome para o arquivo.'); return; }
+
+    if (btn) { btn.disabled = true; btn.textContent = '☁️ Salvando...'; }
+    try {
+      saveState();
+      var conteudo = JSON.stringify(STATE, null, 2);
+      var res = await fetch('/api/lista-save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: tokenAtual(), regiao: REGIAO, nome: nome, conteudo: conteudo })
+      });
+      var data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro ao salvar');
+      alert('Lista salva como: ' + data.nomeArquivo);
+    } catch (e) {
+      alert('Erro ao salvar: ' + e.message);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '☁️ Salvar'; }
+    }
+  };
+
+  window.carregarLista = async function () {
+    var btn = document.getElementById('btnListaCarregar');
+    if (btn) { btn.disabled = true; btn.textContent = '☁️ Carregando...'; }
+    try {
+      var res = await fetch('/api/lista-list', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: tokenAtual(), regiao: REGIAO })
+      });
+      var data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro ao listar arquivos');
+      if (!data.arquivos.length) { alert('Ainda não existe nenhuma lista salva para ' + REGIAO + '.'); return; }
+      mostrarSeletorListas(data.arquivos);
+    } catch (e) {
+      alert('Erro ao acessar as listas salvas: ' + e.message);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '☁️ Carregar'; }
+    }
+  };
+
+  function mostrarSeletorListas(arquivos) {
+    var overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:99999; display:flex; align-items:center; justify-content:center;';
+    var box = document.createElement('div');
+    box.style.cssText = 'background:#fff; border-radius:10px; padding:20px; width:340px; max-height:70vh; overflow:auto; font-family:Arial, Helvetica, sans-serif;';
+    box.innerHTML = '<h3 style="margin:0 0 12px; font-size:16px;">Escolha o arquivo</h3>';
+
+    arquivos.forEach(function (f) {
+      var item = document.createElement('button');
+      item.textContent = f.nome;
+      item.style.cssText = 'display:block; width:100%; text-align:left; padding:9px 10px; margin-bottom:6px; border:1px solid #ccd3da; border-radius:6px; background:#f4f6f8; cursor:pointer; font-size:13px;';
+      item.onclick = async function () {
+        overlay.remove();
+        try {
+          var res = await fetch('/api/lista-load', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: tokenAtual(), regiao: REGIAO, nome: f.nome })
+          });
+          var data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Erro ao carregar');
+          loadStateFromJSON(data.conteudo);
+        } catch (e) {
+          alert('Erro ao carregar arquivo: ' + e.message);
+        }
+      };
+      box.appendChild(item);
+    });
+
+    var cancelar = document.createElement('button');
+    cancelar.textContent = 'Cancelar';
+    cancelar.style.cssText = 'display:block; width:100%; text-align:center; padding:9px 10px; margin-top:6px; border:1px solid #ccd3da; border-radius:6px; background:#fff; cursor:pointer; font-size:13px;';
+    cancelar.onclick = function () { overlay.remove(); };
+    box.appendChild(cancelar);
+
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+  }
+})();
 </script>
 </body>
 </html>
