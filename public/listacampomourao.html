@@ -15,18 +15,13 @@
       document.documentElement.style.visibility = 'visible';
       var lists = Array.isArray(data.lists) ? data.lists : [];
       if (data.role === 'admin' || lists.length > 1) {
-        var addVoltarBtn = function () {
+        window.addEventListener('DOMContentLoaded', function () {
           var btn = document.createElement('a');
           btn.href = data.role === 'admin' ? '/admin-listas.html' : '/minhas-listas.html';
           btn.textContent = '← Voltar';
           btn.style.cssText = 'position:fixed; top:12px; left:12px; z-index:99999; background:#1f3a5f; color:#fff; text-decoration:none; padding:8px 14px; border-radius:6px; font-size:13px; font-family:Arial, Helvetica, sans-serif; box-shadow:0 2px 8px rgba(0,0,0,.25);';
           document.body.appendChild(btn);
-        };
-        if (document.readyState === 'loading') {
-          window.addEventListener('DOMContentLoaded', addVoltarBtn);
-        } else {
-          addVoltarBtn();
-        }
+        });
       }
     } else {
       localStorage.removeItem('session_token');
@@ -144,8 +139,8 @@
       <button onclick="exportJSON()">⬇️ Salvar (.json)</button>
       <button onclick="document.getElementById('importInput').click()">⬆️ Carregar (.json)</button>
       <input type="file" id="importInput" accept=".json" style="display:none" onchange="importJSON(event)">
-      <button id="btnListaSalvar" onclick="salvarLista()">☁️ Salvar</button>
-      <button id="btnListaCarregar" onclick="carregarLista()">☁️ Carregar</button>
+      <button id="btnOneDriveSalvar" onclick="salvarNoOneDrive()">☁️ Salvar no OneDrive</button>
+      <button id="btnOneDriveCarregar" onclick="carregarDoOneDrive()">☁️ Carregar do OneDrive</button>
       <button class="danger" onclick="if(confirm('Limpar tudo?')) resetAll()">🗑️ Limpar Tudo</button>
     </div>
     <div class="note">Para o PDF sair <strong>idêntico</strong> ao que vê na pré-visualização: na janela de impressão que abrir, marque <strong>"Gráficos de fundo"</strong> (Background graphics), desmarque "Cabeçalhos e rodapés" e deixe a <strong>Escala em 100%</strong>.</div>
@@ -290,16 +285,6 @@ const SECTION_TYPES = {
       {key:"atende", label:"Atende", type:"list", itemLabel:"Obreiro"}
     ]
   },
-  culto_ensinamento: {
-    label: "Culto de Ensinamento",
-    columns: ["Data","Hora","Local","Atende"],
-    fields: [
-      {key:"data", label:"Data", type:"date"},
-      {key:"hora", label:"Hora", type:"time"},
-      {key:"local", label:"Local", type:"text"},
-      {key:"atende", label:"Atende", type:"list", itemLabel:"Obreiro"}
-    ]
-  },
   ensaio_regional: {
     label: "Ensaio Regional",
     columns: ["Data","Hora","Local","Atende"],
@@ -348,17 +333,6 @@ const SECTION_TYPES = {
       {key:"hora", label:"Hora", type:"time"},
       {key:"local", label:"Local", type:"text"},
       {key:"convocados", label:"Convocados", type:"tags"},
-      {key:"evento", label:"Evento", type:"text"}
-    ]
-  },
-  reuniaodiversa_cozinha: {
-    label: "Reuniões Cozinha Central",
-    columns: ["Data","Hora","Refeição","Participantes","Evento"],
-    fields: [
-      {key:"data", label:"Data", type:"date"},
-      {key:"hora", label:"Hora", type:"time"},
-      {key:"tipo", label:"Refeição", type:"select", options:["JANTA","CAFÉ","ALMOÇO","CAFÉ E ALMOÇO"]},
-      {key:"aprox", label:"Participantes", type:"text"},
       {key:"evento", label:"Evento", type:"text"}
     ]
   },
@@ -904,25 +878,10 @@ function renderSections(){
               lg.appendChild(note);
             }
             fdiv.appendChild(lg);
-          } else if(f.type==='select'){
-            const sel = document.createElement('select');
-            const optPlaceholder = document.createElement('option');
-            optPlaceholder.value = '';
-            optPlaceholder.textContent = 'Selecione...';
-            sel.appendChild(optPlaceholder);
-            (f.options||[]).forEach(opt=>{
-              const o = document.createElement('option');
-              o.value = opt; o.textContent = opt;
-              sel.appendChild(o);
-            });
-            sel.value = entry.data[f.key] || '';
-            sel.onchange = ()=>{ entry.data[f.key] = sel.value; saveState(); renderPreview(); };
-            fdiv.appendChild(sel);
           } else {
             const inp = document.createElement('input');
             inp.type = f.type;
             inp.value = entry.data[f.key];
-            if(f.key === 'aprox') inp.placeholder = 'ex: 40';
             
             if (f.type === 'date') {
               inp.onchange = () => {
@@ -999,7 +958,7 @@ function buildDocumentHTML(){
   }
 
   const narrowCols = {
-    "HORA": "width:40px; max-width:40px;", 
+    "HORA": "width:35px; max-width:35px;", 
     "LOCAL": "width:170px; min-width:170px;",
     "EVENTO": "width:270px; min-width:270px;"
   };
@@ -1161,86 +1120,6 @@ function buildDocumentHTML(){
 
     if(!section.entries.length) return;
 
-    if(section.typeKey === 'reuniaodiversa_cozinha'){
-      // Agrupa só a coluna DATA (rowspan): cada refeição continua na sua
-      // própria linha, com hora/refeição/participantes/evento separados;
-      // só a célula de Data (e o dia da semana) é compartilhada entre as
-      // linhas do mesmo dia, em vez de repetir a data em cada uma.
-      const gruposMap = new Map();
-      const ordemGrupos = [];
-      section.entries.forEach(entry=>{
-        const chave = entry.data.data || '';
-        if(!gruposMap.has(chave)){
-          gruposMap.set(chave, { data: entry.data.data, itens: [] });
-          ordemGrupos.push(chave);
-        }
-        gruposMap.get(chave).itens.push({
-          hora: entry.data.hora,
-          tipo: entry.data.tipo,
-          aprox: entry.data.aprox,
-          evento: entry.data.evento
-        });
-      });
-      const gruposCozinha = ordemGrupos.map(k=>gruposMap.get(k));
-
-      const theadHtmlCozinha = `<tr><th colspan="6" class="table-title">${escapeHTML(def.label.toUpperCase())}</th></tr>
-        <tr>
-          <th colspan="2" style="width:65px; max-width:65px;">DATA</th>
-          <th style="${narrowCols['HORA']}">HORA</th>
-          <th>REFEIÇÃO</th>
-          <th>PARTICIPANTES</th>
-          <th>EVENTO</th>
-        </tr>`;
-
-      // Calcula, para cada dia (grupo), como a coluna PARTICIPANTES deve ser
-      // mesclada: se o usuário deixar as primeiras linhas em branco e só
-      // preencher a última, essas linhas em branco se juntam (rowspan) com
-      // a linha preenchida, mostrando o valor uma única vez.
-      function calcularPlanoParticipantes(itens){
-        const n = itens.length;
-        const plano = new Array(n);
-        let i = 0;
-        while(i < n){
-          const startI = i;
-          while(i < n && !(itens[i].aprox && String(itens[i].aprox).trim() !== '')) i++;
-          if(i < n){
-            const rowspan = i - startI + 1;
-            plano[startI] = { rowspan, valor: itens[i].aprox };
-            for(let j = startI + 1; j <= i; j++) plano[j] = 'skip';
-            i++;
-          } else {
-            for(let j = startI; j < n; j++) plano[j] = { rowspan: 1, valor: '' };
-            i = n;
-          }
-        }
-        return plano;
-      }
-
-      let rowsHtmlCozinha = '';
-      gruposCozinha.forEach(g=>{
-        const n = g.itens.length;
-        const planoParticipantes = calcularPlanoParticipantes(g.itens);
-        g.itens.forEach((it, i)=>{
-          rowsHtmlCozinha += '<tr>';
-          if(i === 0){
-            rowsHtmlCozinha += `<td rowspan="${n}" style="width:10px; max-width:10px;">${fmtDate(g.data)}</td>`;
-            rowsHtmlCozinha += `<td rowspan="${n}" style="width:6px; max-width:6px;">${getWeekdayAbbr(g.data)}</td>`;
-          }
-          rowsHtmlCozinha += `<td>${fmtTime(it.hora) || '-'}</td>`;
-          rowsHtmlCozinha += `<td>${escapeHTML(it.tipo||'') || '-'}</td>`;
-          if(planoParticipantes[i] !== 'skip'){
-            const p = planoParticipantes[i];
-            rowsHtmlCozinha += `<td rowspan="${p.rowspan}">${escapeHTML(p.valor||'') || '-'}</td>`;
-          }
-          rowsHtmlCozinha += `<td style="text-align:left; vertical-align:middle;">${escapeHTML(it.evento||'') || '-'}</td>`;
-          rowsHtmlCozinha += '</tr>';
-        });
-      });
-
-      body += `<div class="table-wrapper"><table><thead>${theadHtmlCozinha}</thead><tbody>${rowsHtmlCozinha}</tbody></table></div>`;
-      return;
-    }
-
     const listFields = def.fields.filter(f=>f.type==='list');
     const maxCounts = {};
     listFields.forEach(f=>{
@@ -1290,43 +1169,12 @@ function buildDocumentHTML(){
     
     section.entries.forEach(entry=>{
       body += '<tr>';
-      const isBatismo = (section.typeKey === 'batismo' || section.typeKey === 'batissimo');
-      const diaconosVaziosBatismo = isBatismo && !((entry.data['diaconos']||[]).filter(x=>x && x.trim()).length);
       def.fields.forEach(f=>{
-        if(isBatismo && f.key === 'anciao' && diaconosVaziosBatismo){
-          // Sem diácono preenchido: a célula do Ancião ocupa também o
-          // espaço das colunas de diácono, em vez de deixar um "-" ali.
-          const n = maxCounts['diaconos'] || 1;
-          body += `<td colspan="${1+n}">${escapeHTML(entry.data[f.key]||'') || '-'}</td>`;
-          return;
-        }
         if(f.type==='list'){
           const n = maxCounts[f.key];
           const vals = (entry.data[f.key]||[]).filter(x=>x && x.trim());
-          const isDiaconosBatismo = isBatismo && f.key === 'diaconos';
-          if(isDiaconosBatismo){
-            if(diaconosVaziosBatismo){
-              // Já foi absorvido pela célula do Ancião acima: não emite
-              // nenhuma célula extra aqui.
-              return;
-            }
-            // Cada linha usa só as colunas de que precisa: se essa entrada
-            // tem menos diáconos que o máximo da seção, a última célula
-            // preenchida se estica (colspan) e ocupa o espaço das colunas
-            // que sobrariam vazias, em vez de mostrar "-" nelas.
-            vals.forEach((v, i)=>{
-              const isLast = i === vals.length - 1;
-              if(isLast && vals.length < n){
-                const span = n - vals.length + 1;
-                body += `<td colspan="${span}">${escapeHTML(v)}</td>`;
-              } else {
-                body += `<td>${escapeHTML(v)}</td>`;
-              }
-            });
-          } else {
-            for(let i=0;i<n;i++){
-              body += `<td>${vals[i] ? escapeHTML(vals[i]) : '-'}</td>`;
-            }
+          for(let i=0;i<n;i++){
+            body += `<td>${vals[i] ? escapeHTML(vals[i]) : '-'}</td>`;
           }
         } else if(f.type==='tags'){
           let tagData = entry.data[f.key];
@@ -1871,20 +1719,21 @@ function exportJSON(){
   a.click();
 }
 
-function loadStateFromJSON(texto){
+function loadStateFromJSON(text){
   try{
-    STATE = JSON.parse(texto);
+    STATE = JSON.parse(text);
     if(!STATE.meta) STATE.meta = {regiao:"CAMPO MOURÃO - PR", periodo:"", titulo:"LISTA DE SERVIÇOS", rodape_esq:"", rodape_dir:[]};
     if(!STATE.cargos || !STATE.cargos.length) STATE.cargos = JSON.parse(JSON.stringify(DEFAULT_CARGOS));
     document.getElementById('meta_regiao').value = 'CAMPO MOURÃO - PR';
     populatePeriodoOptions(STATE.meta?.periodo);
     document.getElementById('meta_titulo').value = STATE.meta?.titulo||'LISTA DE SERVIÇOS';
     document.getElementById('meta_rodape_esq').value = STATE.meta?.rodape_esq||'';
-    sanitizeState(); 
+    sanitizeState();
     window.TOTAL_PAGES_ESTIMATED = 1;
     renderRodapeDirInputs();
     renderCargos(); renderSections(); renderPreview(); saveState();
-  }catch(e){ alert('Arquivo inválido.'); }
+    return true;
+  }catch(e){ alert('Arquivo inválido.'); return false; }
 }
 
 function importJSON(ev){
@@ -1941,58 +1790,48 @@ window.onload = ()=>{
     return localStorage.getItem('session_token');
   }
 
-  function sugerirNomeArquivo() {
-    var d = new Date().toISOString().slice(0, 10);
-    return REGIAO + '_' + d;
-  }
-
-  window.salvarLista = async function () {
-    var btn = document.getElementById('btnListaSalvar');
-    var nome = prompt('Nome para salvar esta lista:', sugerirNomeArquivo());
-    if (nome === null) return; // cancelou
-    nome = nome.trim();
-    if (!nome) { alert('Informe um nome para o arquivo.'); return; }
-
+  window.salvarNoOneDrive = async function () {
+    var btn = document.getElementById('btnOneDriveSalvar');
     if (btn) { btn.disabled = true; btn.textContent = '☁️ Salvando...'; }
     try {
       saveState();
       var conteudo = JSON.stringify(STATE, null, 2);
-      var res = await fetch('/api/lista-save', {
+      var res = await fetch('/api/onedrive-save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: tokenAtual(), regiao: REGIAO, nome: nome, conteudo: conteudo })
+        body: JSON.stringify({ token: tokenAtual(), regiao: REGIAO, conteudo: conteudo })
       });
       var data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Erro ao salvar');
-      alert('Lista salva como: ' + data.nomeArquivo);
+      alert('Salvo no OneDrive como: ' + data.nomeArquivo);
     } catch (e) {
-      alert('Erro ao salvar: ' + e.message);
+      alert('Erro ao salvar no OneDrive: ' + e.message);
     } finally {
-      if (btn) { btn.disabled = false; btn.textContent = '☁️ Salvar'; }
+      if (btn) { btn.disabled = false; btn.textContent = '☁️ Salvar no OneDrive'; }
     }
   };
 
-  window.carregarLista = async function () {
-    var btn = document.getElementById('btnListaCarregar');
+  window.carregarDoOneDrive = async function () {
+    var btn = document.getElementById('btnOneDriveCarregar');
     if (btn) { btn.disabled = true; btn.textContent = '☁️ Carregando...'; }
     try {
-      var res = await fetch('/api/lista-list', {
+      var res = await fetch('/api/onedrive-list', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: tokenAtual(), regiao: REGIAO })
+        body: JSON.stringify({ token: tokenAtual() })
       });
       var data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Erro ao listar arquivos');
-      if (!data.arquivos.length) { alert('Ainda não existe nenhuma lista salva para ' + REGIAO + '.'); return; }
-      mostrarSeletorListas(data.arquivos);
+      if (!data.arquivos.length) { alert('Ainda não existe nenhum arquivo salvo no OneDrive.'); return; }
+      mostrarSeletorOneDrive(data.arquivos);
     } catch (e) {
-      alert('Erro ao acessar as listas salvas: ' + e.message);
+      alert('Erro ao acessar o OneDrive: ' + e.message);
     } finally {
-      if (btn) { btn.disabled = false; btn.textContent = '☁️ Carregar'; }
+      if (btn) { btn.disabled = false; btn.textContent = '☁️ Carregar do OneDrive'; }
     }
   };
 
-  function mostrarSeletorListas(arquivos) {
+  function mostrarSeletorOneDrive(arquivos) {
     var overlay = document.createElement('div');
     overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:99999; display:flex; align-items:center; justify-content:center;';
     var box = document.createElement('div');
@@ -2001,15 +1840,15 @@ window.onload = ()=>{
 
     arquivos.forEach(function (f) {
       var item = document.createElement('button');
-      item.textContent = f.nome;
+      item.textContent = f.name;
       item.style.cssText = 'display:block; width:100%; text-align:left; padding:9px 10px; margin-bottom:6px; border:1px solid #ccd3da; border-radius:6px; background:#f4f6f8; cursor:pointer; font-size:13px;';
       item.onclick = async function () {
         overlay.remove();
         try {
-          var res = await fetch('/api/lista-load', {
+          var res = await fetch('/api/onedrive-load', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: tokenAtual(), regiao: REGIAO, nome: f.nome })
+            body: JSON.stringify({ token: tokenAtual(), itemId: f.id })
           });
           var data = await res.json();
           if (!res.ok) throw new Error(data.error || 'Erro ao carregar');

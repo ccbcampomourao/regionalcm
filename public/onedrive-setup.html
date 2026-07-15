@@ -4,16 +4,27 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Configuração OneDrive</title>
-<style>
-  body { font-family: Arial, Helvetica, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; color: #222; }
-  textarea { width: 100%; height: 90px; font-family: monospace; font-size: 13px; padding: 10px; border: 1px solid #ccd3da; border-radius: 6px; }
-  .erro { color: #8a1f1f; }
-  .aviso { background: #fff4d6; border: 1px solid #e5c675; padding: 12px; border-radius: 6px; font-size: 13px; margin-top: 16px; }
-</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/theme.css">
 </head>
-<body>
-<h1>Autorização do OneDrive</h1>
-<div id="resultado"></div>
+<body class="theme">
+<div class="wrap narrow" style="margin-top:56px;">
+  <div class="panel">
+    <div class="brandmark" style="margin-bottom:14px;">
+      <svg width="28" height="24" viewBox="0 0 30 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M6 20 L15 6 L24 20" stroke="#a97d3d" stroke-width="1.6" stroke-linecap="round"/>
+        <circle cx="6" cy="20" r="3" fill="#1b2a41"/>
+        <circle cx="15" cy="6" r="3" fill="#a97d3d"/>
+        <circle cx="24" cy="20" r="3" fill="#1b2a41"/>
+      </svg>
+      <span class="brandtext" style="font-size:15px;">Sistema de Listas</span>
+    </div>
+    <h1 class="title">Autorização do OneDrive</h1>
+    <div id="resultado"></div>
+  </div>
+</div>
 
 <script>
 (function () {
@@ -23,16 +34,16 @@
   var div = document.getElementById('resultado');
 
   if (erro) {
-    div.innerHTML = '<p class="erro">Erro retornado pela Microsoft: ' + erro + '</p>';
+    div.innerHTML = '<p class="msg error">Erro retornado pela Microsoft: ' + erro + '</p>';
   } else if (code) {
     div.innerHTML =
-      '<p>Copie este código (é de uso único e expira em poucos minutos) e siga o passo ' +
+      '<p class="sub" style="margin-bottom:10px;">Copie este código (é de uso único e expira em poucos minutos) e siga o passo ' +
       '"Trocar o código por tokens" no README:</p>' +
-      '<textarea readonly onclick="this.select()">' + code + '</textarea>' +
-      '<div class="aviso">Não recarregue nem feche esta página antes de copiar — se o ' +
+      '<textarea class="code-out" readonly onclick="this.select()">' + code + '</textarea>' +
+      '<div class="notice">Não recarregue nem feche esta página antes de copiar — se o ' +
       'código expirar, é só refazer o link de autorização de novo.</div>';
   } else {
-    div.innerHTML = '<p>Nenhum código encontrado na URL. Isso é esperado se você abriu esta ' +
+    div.innerHTML = '<p class="sub">Nenhum código encontrado na URL. Isso é esperado se você abriu esta ' +
       'página diretamente — ela só mostra algo quando a Microsoft redireciona pra cá depois ' +
       'do login.</p>';
   }

@@ -24,36 +24,37 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Acessar listas</title>
-<style>
-  :root{ --primary:#1f3a5f; --accent:#8a1f1f; --bg:#f4f6f8; --line:#ccd3da; }
-  *{box-sizing:border-box; font-family:Arial, Helvetica, sans-serif;}
-  body{margin:0; background:var(--bg); color:#222; min-height:100vh;}
-  header{background:var(--primary); color:#fff; padding:14px 20px; display:flex; justify-content:space-between; align-items:center;}
-  header h1{margin:0; font-size:18px;}
-  header a{color:#fff; font-size:13px; text-decoration:none; border:1px solid rgba(255,255,255,.5); padding:6px 12px; border-radius:6px;}
-  header a:hover{background:rgba(255,255,255,.15);}
-  .wrap{max-width:700px; margin:40px auto; padding:0 16px;}
-  .grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px;}
-  .card{background:#fff; border:1px solid var(--line); border-radius:10px; padding:24px; text-align:center; text-decoration:none; color:#222; box-shadow:0 4px 14px rgba(0,0,0,.05); transition:transform .1s;}
-  .card:hover{transform:translateY(-2px); border-color:var(--primary);}
-  .card .nome{font-size:16px; font-weight:bold; color:var(--primary); margin-top:6px;}
-</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/theme.css">
 </head>
-<body>
-<header>
-  <h1>Acessar listas</h1>
-  <a href="/admin.html">← Voltar ao painel admin</a>
+<body class="theme">
+<header class="topbar">
+  <div class="brandmark">
+    <svg width="26" height="22" viewBox="0 0 30 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M6 20 L15 6 L24 20" stroke="#c99a55" stroke-width="1.6" stroke-linecap="round"/>
+      <circle cx="6" cy="20" r="3" fill="#fdfbf6"/>
+      <circle cx="15" cy="6" r="3" fill="#c99a55"/>
+      <circle cx="24" cy="20" r="3" fill="#fdfbf6"/>
+    </svg>
+    <h1>Acessar listas</h1>
+  </div>
+  <a href="/admin.html" class="btn-ghost">← Voltar ao painel admin</a>
 </header>
-<div class="wrap">
-  <p style="color:#666; font-size:14px; margin-bottom:20px;">Escolha qual lista você quer visualizar:</p>
+<div class="wrap narrow">
+  <p class="lede">Escolha qual lista você quer visualizar:</p>
   <div class="grid">
-    <a class="card" href="/listacampomourao.html">
+    <a class="citycard" href="/listacampomourao.html">
+      <div class="pin"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 22s7-7.1 7-12.5A7 7 0 0 0 5 9.5C5 14.9 12 22 12 22Z" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="9.5" r="2.4" stroke="currentColor" stroke-width="1.7"/></svg></div>
       <div class="nome">Campo Mourão</div>
     </a>
-    <a class="card" href="/listacianorte.html">
+    <a class="citycard" href="/listacianorte.html">
+      <div class="pin"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 22s7-7.1 7-12.5A7 7 0 0 0 5 9.5C5 14.9 12 22 12 22Z" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="9.5" r="2.4" stroke="currentColor" stroke-width="1.7"/></svg></div>
       <div class="nome">Cianorte</div>
     </a>
-    <a class="card" href="/listaubirata.html">
+    <a class="citycard" href="/listaubirata.html">
+      <div class="pin"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 22s7-7.1 7-12.5A7 7 0 0 0 5 9.5C5 14.9 12 22 12 22Z" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="9.5" r="2.4" stroke="currentColor" stroke-width="1.7"/></svg></div>
       <div class="nome">Ubiratã</div>
     </a>
   </div>

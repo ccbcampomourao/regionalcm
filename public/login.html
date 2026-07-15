@@ -4,36 +4,35 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Entrar</title>
-<style>
-  :root{ --primary:#1f3a5f; --accent:#8a1f1f; --bg:#f4f6f8; --line:#ccd3da; }
-  *{box-sizing:border-box; font-family:Arial, Helvetica, sans-serif;}
-  body{margin:0; background:var(--bg); color:#222; display:flex; align-items:center; justify-content:center; min-height:100vh;}
-  .card{background:#fff; border:1px solid var(--line); border-radius:10px; padding:28px; width:100%; max-width:380px; box-shadow:0 4px 14px rgba(0,0,0,.06);}
-  h1{font-size:20px; margin:0 0 6px; color:var(--primary);}
-  p.sub{margin:0 0 18px; font-size:13px; color:#666;}
-  label{font-size:13px; font-weight:bold; color:#444; display:block; margin:12px 0 4px;}
-  input{width:100%; border:1px solid var(--line); border-radius:6px; padding:9px 10px; font-size:14px;}
-  button{width:100%; margin-top:18px; padding:10px; border:none; border-radius:6px; background:var(--primary); color:#fff; font-size:14px; cursor:pointer;}
-  button:disabled{opacity:.6; cursor:default;}
-  .msg{margin-top:12px; font-size:13px; padding:8px 10px; border-radius:6px;}
-  .msg.error{background:#fdecea; color:var(--accent);}
-  .link{margin-top:16px; font-size:13px; text-align:center;}
-  .link a{color:var(--primary);}
-</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/theme.css">
 </head>
-<body>
-  <div class="card">
-    <h1>Entrar</h1>
-    <p class="sub">Acesse com o e-mail e senha do seu cadastro.</p>
-    <form id="formLogin">
-      <label>E-mail</label>
-      <input type="email" id="email" required>
-      <label>Senha</label>
-      <input type="password" id="password" required>
-      <button type="submit" id="btnLogin">Entrar</button>
-    </form>
-    <div id="feedback"></div>
-    <div class="link">Ainda não tem conta? <a href="cadastro.html">Cadastre-se</a></div>
+<body class="theme">
+  <div class="auth-shell">
+    <div class="card">
+      <div class="brandmark">
+        <svg width="30" height="26" viewBox="0 0 30 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M6 20 L15 6 L24 20" stroke="#a97d3d" stroke-width="1.6" stroke-linecap="round"/>
+          <circle cx="6" cy="20" r="3" fill="#1b2a41"/>
+          <circle cx="15" cy="6" r="3" fill="#a97d3d"/>
+          <circle cx="24" cy="20" r="3" fill="#1b2a41"/>
+        </svg>
+        <span class="brandtext">Sistema de Listas</span>
+      </div>
+      <h1 class="title">Entrar</h1>
+      <p class="sub">Acesse com o e-mail e senha do seu cadastro.</p>
+      <form id="formLogin">
+        <label>E-mail</label>
+        <input type="email" id="email" required>
+        <label>Senha</label>
+        <input type="password" id="password" required>
+        <button type="submit" id="btnLogin">Entrar</button>
+      </form>
+      <div id="feedback"></div>
+      <div class="link">Ainda não tem conta? <a href="cadastro.html">Cadastre-se</a></div>
+    </div>
   </div>
 
 <script>

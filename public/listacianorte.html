@@ -15,18 +15,13 @@
       document.documentElement.style.visibility = 'visible';
       var lists = Array.isArray(data.lists) ? data.lists : [];
       if (data.role === 'admin' || lists.length > 1) {
-        var addVoltarBtn = function () {
+        window.addEventListener('DOMContentLoaded', function () {
           var btn = document.createElement('a');
           btn.href = data.role === 'admin' ? '/admin-listas.html' : '/minhas-listas.html';
           btn.textContent = '← Voltar';
           btn.style.cssText = 'position:fixed; top:12px; left:12px; z-index:99999; background:#1f3a5f; color:#fff; text-decoration:none; padding:8px 14px; border-radius:6px; font-size:13px; font-family:Arial, Helvetica, sans-serif; box-shadow:0 2px 8px rgba(0,0,0,.25);';
           document.body.appendChild(btn);
-        };
-        if (document.readyState === 'loading') {
-          window.addEventListener('DOMContentLoaded', addVoltarBtn);
-        } else {
-          addVoltarBtn();
-        }
+        });
       }
     } else {
       localStorage.removeItem('session_token');
@@ -90,8 +85,8 @@
       <button onclick="exportJSON()">⬇️ Salvar Backup (.json)</button>
       <button onclick="document.getElementById('importInput').click()">⬆️ Carregar Backup</button>
       <input type="file" id="importInput" accept=".json" style="display:none" onchange="importJSON(event)">
-      <button id="btnListaSalvar" onclick="salvarLista()">☁️ Salvar</button>
-      <button id="btnListaCarregar" onclick="carregarLista()">☁️ Carregar</button>
+      <button id="btnOneDriveSalvar" onclick="salvarNoOneDrive()">☁️ Salvar no OneDrive</button>
+      <button id="btnOneDriveCarregar" onclick="carregarDoOneDrive()">☁️ Carregar do OneDrive</button>
       <button class="danger" onclick="if(confirm('Limpar tudo?')) resetAll()">🗑️ Limpar Tudo</button>
     </div>
 
@@ -493,7 +488,7 @@ function importJSON(ev) {
 }
 
 function resetAll() {
-  STATE = { meta: { titulo: "LISTA DE SERVIÇOS", subtitulo: "RML - REUNIÃO MINISTERIAL LOCAL", periodo: "", rodape: "" }, sections: [] };
+  STATE = { meta: { titulo: "LISTA DE SERVIÇOS", subtitulo: "", periodo: "", rodape: "" }, sections: [] };
   init(); saveData();
 }
 
@@ -521,58 +516,48 @@ window.onload = () => {
     return localStorage.getItem('session_token');
   }
 
-  function sugerirNomeArquivo() {
-    var d = new Date().toISOString().slice(0, 10);
-    return REGIAO + '_' + d;
-  }
-
-  window.salvarLista = async function () {
-    var btn = document.getElementById('btnListaSalvar');
-    var nome = prompt('Nome para salvar esta lista:', sugerirNomeArquivo());
-    if (nome === null) return; // cancelou
-    nome = nome.trim();
-    if (!nome) { alert('Informe um nome para o arquivo.'); return; }
-
+  window.salvarNoOneDrive = async function () {
+    var btn = document.getElementById('btnOneDriveSalvar');
     if (btn) { btn.disabled = true; btn.textContent = '☁️ Salvando...'; }
     try {
       saveState();
       var conteudo = JSON.stringify(STATE, null, 2);
-      var res = await fetch('/api/lista-save', {
+      var res = await fetch('/api/onedrive-save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: tokenAtual(), regiao: REGIAO, nome: nome, conteudo: conteudo })
+        body: JSON.stringify({ token: tokenAtual(), regiao: REGIAO, conteudo: conteudo })
       });
       var data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Erro ao salvar');
-      alert('Lista salva como: ' + data.nomeArquivo);
+      alert('Salvo no OneDrive como: ' + data.nomeArquivo);
     } catch (e) {
-      alert('Erro ao salvar: ' + e.message);
+      alert('Erro ao salvar no OneDrive: ' + e.message);
     } finally {
-      if (btn) { btn.disabled = false; btn.textContent = '☁️ Salvar'; }
+      if (btn) { btn.disabled = false; btn.textContent = '☁️ Salvar no OneDrive'; }
     }
   };
 
-  window.carregarLista = async function () {
-    var btn = document.getElementById('btnListaCarregar');
+  window.carregarDoOneDrive = async function () {
+    var btn = document.getElementById('btnOneDriveCarregar');
     if (btn) { btn.disabled = true; btn.textContent = '☁️ Carregando...'; }
     try {
-      var res = await fetch('/api/lista-list', {
+      var res = await fetch('/api/onedrive-list', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: tokenAtual(), regiao: REGIAO })
+        body: JSON.stringify({ token: tokenAtual() })
       });
       var data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Erro ao listar arquivos');
-      if (!data.arquivos.length) { alert('Ainda não existe nenhuma lista salva para ' + REGIAO + '.'); return; }
-      mostrarSeletorListas(data.arquivos);
+      if (!data.arquivos.length) { alert('Ainda não existe nenhum arquivo salvo no OneDrive.'); return; }
+      mostrarSeletorOneDrive(data.arquivos);
     } catch (e) {
-      alert('Erro ao acessar as listas salvas: ' + e.message);
+      alert('Erro ao acessar o OneDrive: ' + e.message);
     } finally {
-      if (btn) { btn.disabled = false; btn.textContent = '☁️ Carregar'; }
+      if (btn) { btn.disabled = false; btn.textContent = '☁️ Carregar do OneDrive'; }
     }
   };
 
-  function mostrarSeletorListas(arquivos) {
+  function mostrarSeletorOneDrive(arquivos) {
     var overlay = document.createElement('div');
     overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:99999; display:flex; align-items:center; justify-content:center;';
     var box = document.createElement('div');
@@ -581,15 +566,15 @@ window.onload = () => {
 
     arquivos.forEach(function (f) {
       var item = document.createElement('button');
-      item.textContent = f.nome;
+      item.textContent = f.name;
       item.style.cssText = 'display:block; width:100%; text-align:left; padding:9px 10px; margin-bottom:6px; border:1px solid #ccd3da; border-radius:6px; background:#f4f6f8; cursor:pointer; font-size:13px;';
       item.onclick = async function () {
         overlay.remove();
         try {
-          var res = await fetch('/api/lista-load', {
+          var res = await fetch('/api/onedrive-load', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: tokenAtual(), regiao: REGIAO, nome: f.nome })
+            body: JSON.stringify({ token: tokenAtual(), itemId: f.id })
           });
           var data = await res.json();
           if (!res.ok) throw new Error(data.error || 'Erro ao carregar');
