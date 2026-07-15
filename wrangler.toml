@@ -22,7 +22,7 @@ id = "a3ce11ad984a45a1b7aa5d4d5a45fd5d"
 # a Cloudflare gerar para ele.
 [[kv_namespaces]]
 binding = "LISTAS_KV"
-id = "a3ce11ad984a45a1b7aa5d4d5a45fd5d"
+id = "d8dd62c8775e48f986bbea8ec85524e1"
 
 # As variáveis abaixo são SECRETS (não coloque valores aqui no arquivo).
 # Depois do primeiro deploy, defina cada uma com:
