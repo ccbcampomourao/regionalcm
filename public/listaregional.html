@@ -9,7 +9,7 @@
   fetch('/api/verify-session', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ token: token, list: 'campomourao' })
+    body: JSON.stringify({ token: token, list: 'regional' })
   }).then(function (r) { return r.json(); }).then(function (data) {
     if (data && data.ok) {
       document.documentElement.style.visibility = 'visible';
@@ -49,7 +49,7 @@
 })();
 </script>
 <meta charset="UTF-8">
-<title>LISTA CAMPO MOURÃO</title>
+<title>LISTA REGIONAL</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -149,7 +149,7 @@
 </head>
 <body>
 <header>
-  <h1>Congregação Cristã no Brasil - Lista de Serviços de Campo Mourão - Regional - Campo Mourão - PR</h1>
+  <h1>Congregação Cristã no Brasil - Lista de Serviços Regional</h1>
   <p>Monte a lista escolhendo os tipos de serviço. Pode arrastar as seções criadas pelo cabeçalho para reordená-las.</p>
 </header>
 
@@ -168,7 +168,7 @@
 
     <div class="field row-grid">
 	  <div><label>Título</label><input type="text" id="meta_titulo" value="LISTA DE SERVIÇOS" readonly style="background:#eee"></div>
-      <div><label>Região</label><input type="text" id="meta_regiao" value="CAMPO MOURÃO - PR" readonly style="background:#eee"></div>
+      <div><label>Região</label><input type="text" id="meta_regiao" value="" placeholder="opcional"></div>
 	  <div><label>Período</label><select id="meta_periodo"></select></div>
     </div>
 
@@ -800,7 +800,7 @@ function renderSections(){
       const box = document.createElement('div');
       box.className='avisos-box';
       const ta = document.createElement('textarea');
-      ta.placeholder = "Um aviso por linha. Ex:\n(COLETAS) - Durante o mês de novembro...\n(CAMPO MOURÃO) - No dia 30/11...";
+      ta.placeholder = "Um aviso por linha. Ex:\n(COLETAS) - Durante o mês de novembro...\n(REGIONAL) - No dia 30/11...";
       ta.value = section.text || "";
       ta.oninput = ()=>{ section.text = ta.value; saveState(); renderPreview(); };
       box.appendChild(ta);
@@ -998,7 +998,7 @@ function fmtTime(t){ return t || ''; }
 function buildDocumentHTML(){
   sortStateDates(); 
   const titulo = document.getElementById('meta_titulo').value || 'LISTA DE SERVIÇOS';
-  const regiao = document.getElementById('meta_regiao').value || 'CAMPO MOURÃO - PR';
+  const regiao = document.getElementById('meta_regiao').value || '';
   const periodoSel = document.getElementById('meta_periodo');
   const periodo = periodoSel ? periodoSel.value : '';
   
@@ -1611,7 +1611,7 @@ function buildDocumentHTML(){
           <div class="content-padding">
             <div class="doc-header">
               <div class="org">CONGREGAÇÃO CRISTÃ NO BRASIL</div>
-              <div class="ttl">${escapeHTML(titulo)} - REGIÃO - ${escapeHTML(regiao)}${periodo? ' - '+escapeHTML(periodo):''}</div>
+              <div class="ttl">${escapeHTML(titulo)} - REGIONAL${regiao ? ' - '+escapeHTML(regiao) : ''}${periodo? ' - '+escapeHTML(periodo):''}</div>
             </div>
 
             ${avisosHTML ? `<div class="avisos-container">${avisosHTML}</div>` : ''}
@@ -1890,9 +1890,9 @@ function exportJSON(){
 function loadStateFromJSON(texto){
   try{
     STATE = JSON.parse(texto);
-    if(!STATE.meta) STATE.meta = {regiao:"CAMPO MOURÃO - PR", periodo:"", titulo:"LISTA DE SERVIÇOS", rodape_esq:"", rodape_dir:[]};
+    if(!STATE.meta) STATE.meta = {regiao:"", periodo:"", titulo:"LISTA DE SERVIÇOS", rodape_esq:"", rodape_dir:[]};
     if(!STATE.cargos || !STATE.cargos.length) STATE.cargos = JSON.parse(JSON.stringify(DEFAULT_CARGOS));
-    document.getElementById('meta_regiao').value = 'CAMPO MOURÃO - PR';
+    document.getElementById('meta_regiao').value = '';
     populatePeriodoOptions(STATE.meta?.periodo);
     document.getElementById('meta_titulo').value = STATE.meta?.titulo||'LISTA DE SERVIÇOS';
     document.getElementById('meta_rodape_esq').value = STATE.meta?.rodape_esq||'';
@@ -1912,9 +1912,9 @@ function importJSON(ev){
 }
 
 function resetAll(){
-  STATE = { meta:{regiao:"CAMPO MOURÃO - PR", periodo:"", titulo:"LISTA DE SERVIÇOS", rodape_esq:"", rodape_dir:[]}, sections: [], cargos: JSON.parse(JSON.stringify(DEFAULT_CARGOS)) };
+  STATE = { meta:{regiao:"", periodo:"", titulo:"LISTA DE SERVIÇOS", rodape_esq:"", rodape_dir:[]}, sections: [], cargos: JSON.parse(JSON.stringify(DEFAULT_CARGOS)) };
   localStorage.removeItem('ccb_lista_state');
-  document.getElementById('meta_regiao').value='CAMPO MOURÃO - PR';
+  document.getElementById('meta_regiao').value='';
   populatePeriodoOptions('');
   document.getElementById('meta_titulo').value='LISTA DE SERVIÇOS';
   document.getElementById('meta_rodape_esq').value='';
@@ -1927,7 +1927,7 @@ function resetAll(){
 window.onload = ()=>{
   buildAddButtons();
   loadState();
-  document.getElementById('meta_regiao').value = 'CAMPO MOURÃO - PR';
+  document.getElementById('meta_regiao').value = '';
   populatePeriodoOptions(STATE.meta?.periodo);
   document.getElementById('meta_titulo').value = STATE.meta?.titulo || 'LISTA DE SERVIÇOS';
   document.getElementById('meta_rodape_esq').value = STATE.meta?.rodape_esq || '';
@@ -1951,7 +1951,7 @@ window.onload = ()=>{
 </script>
 <script>
 (function () {
-  var REGIAO = 'campomourao';
+  var REGIAO = 'regional';
 
   function tokenAtual() {
     return localStorage.getItem('session_token');

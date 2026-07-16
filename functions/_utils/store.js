@@ -1,5 +1,6 @@
 // Listas permitidas -> URL de destino depois do login.
 export const LISTAS = {
+  regional: '/listaregional.html',
   campomourao: '/listacampomourao.html',
   cianorte: '/listacianorte.html',
   ubirata: '/listaubirata.html',
@@ -7,6 +8,7 @@ export const LISTAS = {
 
 // Rótulos amigáveis das listas, usados nas telas de admin e seleção de listas.
 export const LISTA_LABELS = {
+  regional: 'Regional',
   campomourao: 'Campo Mourão',
   cianorte: 'Cianorte',
   ubirata: 'Ubiratã',

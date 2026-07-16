@@ -15,6 +15,7 @@
     <img src="/assets/ccb-logo.png" alt="CCB" style="height:28px;">
     <h1>Painel administrativo — Usuários cadastrados</h1>
   </div>
+  <a href="#" id="btnSairAdmin" class="btn-ghost">Sair</a>
 </header>
 <div class="wrap">
   <div style="margin-top:16px; margin-bottom:2px;">
@@ -50,7 +51,13 @@
 
 <script>
 let adminToken = '';
-const LISTAS = { campomourao: 'Campo Mourão', cianorte: 'Cianorte', ubirata: 'Ubiratã' };
+const LISTAS = { regional: 'Regional', campomourao: 'Campo Mourão', cianorte: 'Cianorte', ubirata: 'Ubiratã' };
+
+document.getElementById('btnSairAdmin').addEventListener('click', function (e) {
+  e.preventDefault();
+  localStorage.removeItem('session_token');
+  window.location.href = '/login.html';
+});
 
 document.getElementById('btnEntrar').addEventListener('click', fazerLogin);
 

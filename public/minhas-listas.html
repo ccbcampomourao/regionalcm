@@ -25,8 +25,8 @@
 </div>
 
 <script>
-const LISTA_URLS = { campomourao: '/listacampomourao.html', cianorte: '/listacianorte.html', ubirata: '/listaubirata.html' };
-const LISTA_LABELS = { campomourao: 'Campo Mourão', cianorte: 'Cianorte', ubirata: 'Ubiratã' };
+const LISTA_URLS = { regional: '/listaregional.html', campomourao: '/listacampomourao.html', cianorte: '/listacianorte.html', ubirata: '/listaubirata.html' };
+const LISTA_LABELS = { regional: 'Regional', campomourao: 'Campo Mourão', cianorte: 'Cianorte', ubirata: 'Ubiratã' };
 
 document.getElementById('btnSair').addEventListener('click', function (e) {
   e.preventDefault();
@@ -40,7 +40,12 @@ function renderListas(lists) {
     document.getElementById('empty').style.display = 'block';
     return;
   }
-  lists.forEach(function (key) {
+  const ordered = lists.slice().sort(function (a, b) {
+    if (a === 'regional') return -1;
+    if (b === 'regional') return 1;
+    return 0;
+  });
+  ordered.forEach(function (key) {
     if (!LISTA_URLS[key]) return;
     const a = document.createElement('a');
     a.className = 'citycard';

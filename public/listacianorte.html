@@ -14,15 +14,31 @@
     if (data && data.ok) {
       document.documentElement.style.visibility = 'visible';
       var lists = Array.isArray(data.lists) ? data.lists : [];
-      if (data.role === 'admin' || lists.length > 1) {
-        window.addEventListener('DOMContentLoaded', function () {
-          var btn = document.createElement('a');
-          btn.href = data.role === 'admin' ? '/admin-listas.html' : '/minhas-listas.html';
-          btn.textContent = '← Voltar';
-          btn.style.cssText = 'position:fixed; top:12px; left:12px; z-index:99999; background:linear-gradient(180deg,#2c3f5c,#1b2a41); color:#fdfbf6; text-decoration:none; padding:8px 16px; border-radius:9px; font-size:13px; font-weight:600; font-family:Inter, Arial, Helvetica, sans-serif; box-shadow:0 6px 16px -6px rgba(27,42,65,.5);';
-          document.body.appendChild(btn);
-        });
-      }
+      window.addEventListener('DOMContentLoaded', function () {
+        var bar = document.createElement('div');
+        bar.style.cssText = 'position:fixed; top:12px; right:12px; z-index:99999; display:flex; gap:8px;';
+
+        if (data.role === 'admin' || lists.length > 1) {
+          var backBtn = document.createElement('a');
+          backBtn.href = data.role === 'admin' ? '/admin-listas.html' : '/minhas-listas.html';
+          backBtn.textContent = '← Voltar';
+          backBtn.style.cssText = 'background:#fff; color:#1b2a41; text-decoration:none; padding:8px 16px; border-radius:9px; font-size:13px; font-weight:600; font-family:Inter, Arial, Helvetica, sans-serif; border:1.5px solid #e4dcc9; box-shadow:0 4px 10px -4px rgba(27,42,65,.3);';
+          bar.appendChild(backBtn);
+        }
+
+        var sairBtn = document.createElement('a');
+        sairBtn.href = '#';
+        sairBtn.textContent = 'Sair';
+        sairBtn.style.cssText = 'background:linear-gradient(180deg,#2c3f5c,#1b2a41); color:#fdfbf6; text-decoration:none; padding:8px 16px; border-radius:9px; font-size:13px; font-weight:600; font-family:Inter, Arial, Helvetica, sans-serif; box-shadow:0 6px 16px -6px rgba(27,42,65,.5);';
+        sairBtn.onclick = function (e) {
+          e.preventDefault();
+          localStorage.removeItem('session_token');
+          window.location.href = '/login.html';
+        };
+        bar.appendChild(sairBtn);
+
+        document.body.appendChild(bar);
+      });
     } else {
       localStorage.removeItem('session_token');
       window.location.replace('/login.html');
