@@ -83,7 +83,10 @@
   
   .row-grid { display: grid; gap: 8px; grid-template-columns: repeat(3, 1fr); margin-bottom: 12px; }
   
-  .section { border: 1px solid var(--line); border-radius: 12px; margin-bottom: 14px; background: #fff; overflow:hidden;}
+  .section { border: 1px solid var(--line); border-radius: 12px; margin-bottom: 14px; background: #fff; overflow:hidden; transition: 0.2s; }
+  .section.over { border: 2px dashed var(--brass); opacity: 0.7; }
+  .drag-handle { cursor: grab; font-size: 18px; color: #9a9284; padding-right: 8px; user-select: none; }
+  .drag-handle:active { cursor: grabbing; }
   .section-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #f6f2e7; flex-wrap: wrap; gap: 8px;}
   .section-body { padding: 12px; }
   .entry { border: 1px dashed var(--line); border-radius: 8px; padding: 10px; margin-bottom: 10px; position: relative; background: #fafaf5; }
@@ -158,13 +161,59 @@ function addNewSection() {
   renderSections(); updatePreview(); saveData();
 }
 
+function sortStateDates() {
+  STATE.sections.forEach(section => {
+    if (section.entries && section.entries.length > 0) {
+      section.entries.sort((a, b) => {
+        const dateA = a.data || "9999-12-31";
+        const dateB = b.data || "9999-12-31";
+        return dateA.localeCompare(dateB);
+      });
+    }
+  });
+}
+
+let dragSrcEl = null;
+
 function renderSections() {
+  sortStateDates();
   const container = document.getElementById('sectionsContainer');
   container.innerHTML = '';
   
   STATE.sections.forEach((sec, sIdx) => {
     const secDiv = document.createElement('div');
     secDiv.className = 'section';
+    secDiv.draggable = true;
+    secDiv.dataset.index = sIdx;
+
+    secDiv.addEventListener('dragstart', function (e) {
+      dragSrcEl = this;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/html', this.innerHTML);
+      this.style.opacity = '0.4';
+    });
+    secDiv.addEventListener('dragover', function (e) {
+      if (e.preventDefault) e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      return false;
+    });
+    secDiv.addEventListener('dragenter', function () { this.classList.add('over'); });
+    secDiv.addEventListener('dragleave', function () { this.classList.remove('over'); });
+    secDiv.addEventListener('drop', function (e) {
+      if (e.stopPropagation) e.stopPropagation();
+      if (dragSrcEl !== this) {
+        const fromIdx = parseInt(dragSrcEl.dataset.index);
+        const toIdx = parseInt(this.dataset.index);
+        const moved = STATE.sections.splice(fromIdx, 1)[0];
+        STATE.sections.splice(toIdx, 0, moved);
+        renderSections(); updatePreview(); saveData();
+      }
+      return false;
+    });
+    secDiv.addEventListener('dragend', function () {
+      this.style.opacity = '1';
+      document.querySelectorAll('.section').forEach(el => el.classList.remove('over'));
+    });
     
     // Cabeçalho da Seção
     const head = document.createElement('div');
@@ -172,7 +221,7 @@ function renderSections() {
     
     const titleInputs = document.createElement('div');
     titleInputs.style.display = 'flex'; titleInputs.style.gap = '8px'; titleInputs.style.alignItems = 'center'; titleInputs.style.flex = '1';
-    titleInputs.innerHTML = `<b>${sIdx + 1}.</b>`;
+    titleInputs.innerHTML = `<span class="drag-handle" title="Arraste para reordenar">☰</span><b>${sIdx + 1}.</b>`;
     
     const titleInput = document.createElement('input');
     titleInput.type = 'text'; titleInput.value = sec.title; titleInput.style.fontWeight = 'bold';
@@ -413,14 +462,15 @@ function buildDocumentHTML() {
     th.table-title { background: #fff !important; font-size: 12px; text-align: center; }
     th.col-header { background: #fff !important; font-size: 10px; }
 
-    /* DATA/HORAS (1ª coluna) e LOCALIDADE (2ª coluna): alinhadas à esquerda */
+    /* LOCALIDADE (2ª coluna): alinhada à esquerda */
     th.col-header:nth-child(2),
     tbody td:nth-child(2) {
       text-align: left;
     }
 
-    /* ATENDE (3ª coluna, quando existir): continua centralizada */
-    th.col-header:nth-child(1),tbody td:nth-child(1), th.col-header:nth-child(3), tbody td:nth-child(3) {
+    /* DATA/HORAS (1ª coluna) e ATENDE (3ª coluna, quando existir): centralizadas */
+    th.col-header:nth-child(1), th.col-header:nth-child(3),
+    tbody td:nth-child(1), tbody td:nth-child(3) {
       text-align: center;
     }
     
@@ -503,6 +553,7 @@ function loadData() {
     const raw = localStorage.getItem('ccb_generator_state_v2');
     if(raw) STATE = JSON.parse(raw);
   } catch(e) {}
+  sortStateDates();
 }
 
 function saveState() { saveData(); }
