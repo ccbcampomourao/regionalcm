@@ -328,7 +328,7 @@ function buildDocumentHTML() {
       bodyHtml += `<tr>`;
       const diaSemana = getWeekdayAbbr(e.data);
       
-      bodyHtml += `<td style="width: 82px; max-width:82px; white-space: nowrap; text-align: middle; ">`;
+      bodyHtml += `<td style="width: 82px; max-width:82px; white-space: nowrap;">`;
       bodyHtml += `${fmtDate(e.data)} <span style="text-transform:lowercase; margin:0 2px;">${diaSemana}</span> ${escapeHTML(e.hora)}`;
       bodyHtml += `</td>`;
       
@@ -392,7 +392,7 @@ function buildDocumentHTML() {
     
     th, td { 
       border: 1px solid #262626; 
-      text-align: left; 
+      text-align: center; 
       vertical-align: middle; 
       font-weight: bold;
     }
@@ -410,8 +410,19 @@ function buildDocumentHTML() {
     .col-right table { border-right: none; }
     .col-right th:last-child, .col-right td:last-child { border-right: none; }
     
-    th.table-title { background: #fff !important; font-size: 12px; }
+    th.table-title { background: #fff !important; font-size: 12px; text-align: center; }
     th.col-header { background: #fff !important; font-size: 10px; }
+
+    /* DATA/HORAS (1ª coluna) e LOCALIDADE (2ª coluna): alinhadas à esquerda */
+    th.col-header:nth-child(1), th.col-header:nth-child(2),
+    tbody td:nth-child(1), tbody td:nth-child(2) {
+      text-align: left;
+    }
+
+    /* ATENDE (3ª coluna, quando existir): continua centralizada */
+    th.col-header:nth-child(3), tbody td:nth-child(3) {
+      text-align: center;
+    }
     
     /* Regra de Alternância de Cores exata do PDF */
     tbody tr:nth-child(odd) td { background-color: #e8e8e8 !important; }
