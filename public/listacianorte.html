@@ -414,13 +414,13 @@ function buildDocumentHTML() {
     th.col-header { background: #fff !important; font-size: 10px; }
 
     /* DATA/HORAS (1ª coluna) e LOCALIDADE (2ª coluna): alinhadas à esquerda */
-    th.col-header:nth-child(1), th.col-header:nth-child(2),
-    tbody td:nth-child(1), tbody td:nth-child(2) {
+    th.col-header:nth-child(2),
+    tbody td:nth-child(2) {
       text-align: left;
     }
 
     /* ATENDE (3ª coluna, quando existir): continua centralizada */
-    th.col-header:nth-child(3), tbody td:nth-child(3) {
+    th.col-header:nth-child(1),tbody td:nth-child(1), th.col-header:nth-child(3), tbody td:nth-child(3) {
       text-align: center;
     }
     
