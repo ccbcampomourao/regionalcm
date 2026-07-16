@@ -19,7 +19,7 @@
           var btn = document.createElement('a');
           btn.href = data.role === 'admin' ? '/admin-listas.html' : '/minhas-listas.html';
           btn.textContent = '← Voltar';
-          btn.style.cssText = 'position:fixed; top:12px; left:12px; z-index:99999; background:#1f3a5f; color:#fff; text-decoration:none; padding:8px 14px; border-radius:6px; font-size:13px; font-family:Arial, Helvetica, sans-serif; box-shadow:0 2px 8px rgba(0,0,0,.25);';
+          btn.style.cssText = 'position:fixed; top:12px; left:12px; z-index:99999; background:linear-gradient(180deg,#2c3f5c,#1b2a41); color:#fdfbf6; text-decoration:none; padding:8px 16px; border-radius:9px; font-size:13px; font-weight:600; font-family:Inter, Arial, Helvetica, sans-serif; box-shadow:0 6px 16px -6px rgba(27,42,65,.5);';
           document.body.appendChild(btn);
         });
       }
@@ -34,45 +34,49 @@
 </script>
 <meta charset="UTF-8">
 <title>LISTA UBIRATÃ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --primary: #1f3a5f; --accent: #8a1f1f; --bg: #f4f6f8; --line: #ccd3da;
+    --primary: #1b2a41; --primary-2: #2c3f5c; --brass: #a97d3d; --brass-lt: #c99a55; --accent: #b04b3c; --bg: #f5f1e8; --line: #e4dcc9;
   }
-  * { box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; }
-  body { margin: 0; background: var(--bg); color: #222; }
-  header { background: var(--primary); color: #fff; padding: 14px 20px; }
-  header h1 { margin: 0; font-size: 18px; }
-  header p { margin: 2px 0 0; font-size: 12px; opacity: .85; }
+  * { box-sizing: border-box; font-family: 'Inter', Arial, Helvetica, sans-serif; }
+  body { margin: 0; background: var(--bg); color: #24304a; }
+  header { background: linear-gradient(180deg, var(--primary-2), var(--primary)); color: #fdfbf6; padding: 16px 22px; box-shadow: 0 2px 12px rgba(27,42,65,.15); }
+  header h1 { margin: 0; font-size: 19px; font-family: 'Fraunces', Georgia, serif; font-weight: 600; letter-spacing: .01em; }
+  header p { margin: 3px 0 0; font-size: 12px; opacity: .85; }
   
   .wrap { display: flex; gap: 16px; padding: 16px; align-items: flex-start; }
-  .panel { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 14px; flex: 1; min-width: 320px; }
+  .panel { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 16px; flex: 1; min-width: 320px; box-shadow: 0 1px 2px rgba(27,42,65,.04), 0 10px 30px -14px rgba(27,42,65,.18); }
   
   .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
-  button { cursor: pointer; border: 1px solid var(--line); background: #fff; padding: 7px 12px; border-radius: 6px; font-size: 13px; transition: 0.1s;}
-  button:hover { filter: brightness(0.95); }
+  button { cursor: pointer; font-weight: 600; border: 1.5px solid var(--line); background: #fff; color: var(--primary); padding: 8px 13px; border-radius: 9px; font-size: 13px; transition: 0.15s;}
+  button:hover { border-color: var(--brass-lt); }
   button.danger { background: #fff; color: var(--accent); border-color: var(--accent); }
   button.small { padding: 4px 8px; font-size: 12px; }
   
   input[type=text], input[type=date], textarea, select {
-    border: 1px solid var(--line); border-radius: 5px; padding: 6px 8px; font-size: 14px; width: 100%;
+    border: 1.5px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 14px; width: 100%;
   }
+  input:focus, select:focus, textarea:focus{ outline:none; border-color:var(--brass); box-shadow:0 0 0 3px rgba(169,125,61,.15); }
   textarea { resize: vertical; min-height: 40px; }
-  label { font-size: 12px; font-weight: bold; color: #444; display: block; margin-bottom: 2px; }
+  label { font-size: 12px; font-weight: 700; color: var(--primary-2); display: block; margin-bottom: 2px; }
   
   .row-grid { display: grid; gap: 8px; grid-template-columns: repeat(3, 1fr); }
   .field { margin-bottom: 8px; }
   
-  .section { border: 1px solid var(--line); border-radius: 8px; margin-bottom: 14px; overflow: hidden; background: #fff; }
-  .section-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #eef1f5; cursor: pointer; }
+  .section { border: 1px solid var(--line); border-radius: 12px; margin-bottom: 14px; overflow: hidden; background: #fff; }
+  .section-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #f6f2e7; cursor: pointer; }
   .section-head h3 { margin: 0; font-size: 14px; color: var(--primary); text-transform: uppercase; }
   .section-body { padding: 12px; display: none; }
   .section.open .section-body { display: block; }
   
-  .drag-handle { cursor: grab; font-size: 18px; color: #888; padding-right: 8px; user-select: none; }
-  .entry { border: 1px dashed var(--line); border-radius: 6px; padding: 10px; margin-bottom: 10px; position: relative; background: #fafbfc; }
+  .drag-handle { cursor: grab; font-size: 18px; color: #9a9284; padding-right: 8px; user-select: none; }
+  .entry { border: 1px dashed var(--line); border-radius: 8px; padding: 10px; margin-bottom: 10px; position: relative; background: #fafaf5; }
   .entry-controls { position: absolute; top: 6px; right: 6px; display: flex; gap: 4px; }
   
-  .controls-bar { display: flex; gap: 10px; background: #eef1f5; padding: 10px; border-radius: 6px; margin-bottom: 16px; align-items: center;}
+  .controls-bar { display: flex; gap: 10px; background: #f6f2e7; padding: 10px; border-radius: 8px; margin-bottom: 16px; align-items: center;}
   
   #previewHost {
     flex: 1.2; 

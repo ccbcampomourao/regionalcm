@@ -38,9 +38,9 @@ body.theme{
   -webkit-font-smoothing:antialiased;
 }
 
-/* --- Selo / marca: três cidades conectadas --- */
+/* --- Selo / marca: logo CCB --- */
 .brandmark{ display:inline-flex; align-items:center; gap:10px; }
-.brandmark svg{ flex:none; }
+.brandmark img{ flex:none; height:34px; width:auto; display:block; }
 .brandmark .brandtext{
   font-family:var(--font-display);
   font-weight:600;
