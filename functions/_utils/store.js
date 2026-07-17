@@ -4,6 +4,7 @@ export const LISTAS = {
   campomourao: '/listacampomourao.html',
   cianorte: '/listacianorte.html',
   ubirata: '/listaubirata.html',
+  pitanga: '/listapitanga.html',
 };
 
 // Rótulos amigáveis das listas, usados nas telas de admin e seleção de listas.
@@ -12,6 +13,7 @@ export const LISTA_LABELS = {
   campomourao: 'Campo Mourão',
   cianorte: 'Cianorte',
   ubirata: 'Ubiratã',
+  pitanga: 'Pitanga',
 };
 
 export const DEFAULT_ADMIN_EMAIL = 'bruno07dacosta@gmail.com';
