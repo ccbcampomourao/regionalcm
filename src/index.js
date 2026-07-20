@@ -6,6 +6,7 @@ import * as adminAssign from '../functions/api/admin-assign.js';
 import * as adminList from '../functions/api/admin-list.js';
 import * as adminSetActive from '../functions/api/admin-set-active.js';
 import * as adminSetRole from '../functions/api/admin-set-role.js';
+import * as adminUpdate from '../functions/api/admin-update.js';
 import * as login from '../functions/api/login.js';
 import * as listaList from '../functions/api/lista-list.js';
 import * as listaLoad from '../functions/api/lista-load.js';
@@ -19,6 +20,7 @@ const routes = {
   'GET /api/admin-list': adminList.onRequestGet,
   'POST /api/admin-set-active': adminSetActive.onRequestPost,
   'POST /api/admin-set-role': adminSetRole.onRequestPost,
+  'POST /api/admin-update': adminUpdate.onRequestPost,
   'POST /api/login': login.onRequestPost,
   'POST /api/lista-list': listaList.onRequestPost,
   'POST /api/lista-load': listaLoad.onRequestPost,
