@@ -1,7 +1,7 @@
 name = "listas"
 main = "src/index.js"
 compatibility_date = "2026-07-01"
-
+keep_vars = true
 # Serve os arquivos de public/ (html, css, imagens) como assets estáticos.
 # Requisições que baterem em um arquivo aqui são respondidas direto,
 # sem nem passar pelo código do Worker.
