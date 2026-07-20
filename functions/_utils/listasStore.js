@@ -20,8 +20,12 @@ export function nomeValido(nome) {
 }
 
 function normalizarNomeArquivo(nome) {
-  const limpo = nome.trim();
-  return limpo.toLowerCase().endsWith('.json') ? limpo : `${limpo}.json`;
+  // Remove espaços nas pontas, colapsa espaços internos duplicados e deixa
+  // tudo minúsculo — assim "Lista Julho", "lista  julho" e "LISTA JULHO"
+  // sempre caem na MESMA chave e um salvamento novo sobrescreve o antigo,
+  // em vez de criar um arquivo quase-duplicado só porque a digitação mudou.
+  const limpo = nome.trim().replace(/\s+/g, ' ').toLowerCase();
+  return limpo.endsWith('.json') ? limpo : `${limpo}.json`;
 }
 
 export async function salvarListaJSON(env, regiao, nome, conteudo) {
