@@ -172,19 +172,11 @@ let STATE = {
 };
 
 const SECTION_TYPES = {
-  evangelizacao: { label: "Reuniões de Evangelização", kind: "padrao" },
-  ensaio_regional: { label: "Ensaio Regional", kind: "padrao" },
-  mocidade: { label: "Reunião para a Mocidade", kind: "padrao" },
-  culto_jovens_pais: { label: "Culto para Jovens com os Pais", kind: "padrao" },
-  culto_jovens_menores: { label: "Culto com a Participação de Jovens e Menores", kind: "padrao" },
-  coletas: { label: "Coletas para Reforço do Caixa", kind: "padrao" },
-  agenda_musical: { label: "Agenda Musical / Teste Musical", kind: "padrao" },
-  reunioes_goioere: { label: "Reuniões em Goioerê", kind: "duplo", cols: ["Reunião", "Convocados"] },
-  reunioes_campomourao: { label: "Reuniões em Campo Mourão", kind: "duplo", cols: ["Reunião", "Convocados"] },
-  pauta_ministerio: { label: "Pauta para o Ministério", kind: "texto" },
-  topicos_ensinamentos: { label: "Tópicos de Ensinamentos para a Irmandade", kind: "texto" },
-  conselhos_irmandade: { label: "Conselhos para a Irmandade", kind: "texto" },
-  livre: { label: "Tabela livre (nome personalizado)", kind: "padrao", customTitle: true }
+  tabela_hora: { label: "Tabela com Hora", kind: "hora", customTitle: true },
+  tabela_3col: { label: "Tabela 3 Colunas", kind: "col3", customTitle: true },
+  tabela_4col: { label: "Tabela 4 Colunas", kind: "col4", customTitle: true },
+  tabela_livre: { label: "Tabela Livre", kind: "texto", customTitle: true },
+  tabela_livre_data: { label: "Tabela Livre com Data", kind: "livre_data", customTitle: true }
 };
 
 function updateMeta(key, val) {
@@ -223,7 +215,7 @@ function addSectionOfType(typeKey) {
 function sortStateDates() {
   STATE.sections.forEach(section => {
     const def = SECTION_TYPES[section.typeKey];
-    const isDated = !def || def.kind === 'padrao';
+    const isDated = def && (def.kind === 'hora' || def.kind === 'col3' || def.kind === 'col4');
     if (isDated && section.entries && section.entries.length > 0) {
       section.entries.sort((a, b) => {
         const dateA = a.data || "9999-12-31";
@@ -326,7 +318,7 @@ function renderSections() {
     body.className = 'section-body';
 
     const def = SECTION_TYPES[sec.typeKey];
-    const kind = def ? def.kind : 'padrao';
+    const kind = def ? def.kind : 'hora';
 
     if (kind === 'texto') {
       const ta = document.createElement('textarea');
@@ -334,9 +326,9 @@ function renderSections() {
       ta.value = sec.texto || '';
       ta.oninput = (e) => { sec.texto = e.target.value; updatePreview(); saveData(); };
       body.appendChild(ta);
-    } else if (kind === 'duplo') {
+    } else if (kind === 'livre_data') {
       if (!sec.entries) sec.entries = [];
-      const cols = def.cols || ['Coluna A', 'Coluna B'];
+      const cols = ['Data - Hora', 'Convocados'];
       const list = document.createElement('div');
       list.className = 'listgroup';
       if (!sec.entries.length) {
@@ -356,10 +348,62 @@ function renderSections() {
       });
       body.appendChild(list);
 
-      const addDuploBtn = document.createElement('button'); addDuploBtn.textContent = '+ Adicionar Linha'; addDuploBtn.style.marginTop = '8px';
-      addDuploBtn.onclick = () => { sec.entries.push({ colA: '', colB: '' }); renderSections(); updatePreview(); saveData(); };
-      body.appendChild(addDuploBtn);
+      const addLivreDataBtn = document.createElement('button'); addLivreDataBtn.textContent = '+ Adicionar Linha'; addLivreDataBtn.style.marginTop = '8px';
+      addLivreDataBtn.onclick = () => { sec.entries.push({ colA: '', colB: '' }); renderSections(); updatePreview(); saveData(); };
+      body.appendChild(addLivreDataBtn);
+    } else if (kind === 'col3' || kind === 'col4') {
+      if (!sec.entries) sec.entries = [];
+      const fields = kind === 'col3'
+        ? [
+            { label: 'Data', key: 'data', type: 'date', pl: '' },
+            { label: 'Localidade', key: 'local', type: 'text', pl: 'Ex: TAPEJARA' },
+            { label: 'Atende', key: 'atende', type: 'text', pl: '' }
+          ]
+        : [
+            { label: 'Data', key: 'data', type: 'date', pl: '' },
+            { label: 'Localidade', key: 'local', type: 'text', pl: 'Ex: TAPEJARA' },
+            { label: 'Coluna 3', key: 'col3', type: 'text', pl: '' },
+            { label: 'Coluna 4', key: 'col4', type: 'text', pl: '' }
+          ];
+      const gridCols = kind === 'col3' ? '1fr 2fr 2fr' : '1fr 2fr 2fr 2fr';
+
+      sec.entries.forEach((ent, eIdx) => {
+        const eDiv = document.createElement('div');
+        eDiv.className = 'entry';
+
+        const rmEnt = document.createElement('button'); rmEnt.className = 'remove-btn'; rmEnt.textContent = '✕ Remover Linha';
+        rmEnt.onclick = () => { sec.entries.splice(eIdx, 1); renderSections(); updatePreview(); saveData(); };
+        eDiv.appendChild(rmEnt);
+
+        const grid = document.createElement('div');
+        grid.className = 'row-grid'; grid.style.gridTemplateColumns = gridCols; grid.style.marginTop = '12px'; grid.style.marginBottom = '0';
+
+        fields.forEach(f => {
+          const fDiv = document.createElement('div');
+          fDiv.innerHTML = `<label>${f.label}</label>`;
+          const input = document.createElement('input');
+          input.type = f.type; input.value = ent[f.key] || ''; input.placeholder = f.pl;
+          input.oninput = (e) => {
+            ent[f.key] = e.target.value;
+            updatePreview();
+            saveData();
+          };
+          fDiv.appendChild(input);
+          grid.appendChild(fDiv);
+        });
+
+        eDiv.appendChild(grid);
+        body.appendChild(eDiv);
+      });
+
+      const addColBtn = document.createElement('button'); addColBtn.textContent = '+ Adicionar Linha';
+      addColBtn.onclick = () => {
+        sec.entries.push(kind === 'col3' ? { data: '', local: '', atende: '' } : { data: '', local: '', col3: '', col4: '' });
+        renderSections(); updatePreview(); saveData();
+      };
+      body.appendChild(addColBtn);
     } else {
+      // kind === 'hora'
       if (!sec.entries) sec.entries = [];
       sec.entries.forEach((ent, eIdx) => {
         const eDiv = document.createElement('div');
@@ -453,7 +497,7 @@ function buildDocumentHTML() {
 
   STATE.sections.forEach(sec => {
     const def = SECTION_TYPES[sec.typeKey];
-    const kind = def ? def.kind : 'padrao';
+    const kind = def ? def.kind : 'hora';
 
     if (kind === 'texto') {
       if (!sec.texto || sec.texto.trim() === '') return;
@@ -464,24 +508,55 @@ function buildDocumentHTML() {
       return;
     }
 
-    if (kind === 'duplo') {
+    if (kind === 'livre_data') {
       const entries = sec.entries || [];
-      const cols = (def && def.cols) || ['Coluna A', 'Coluna B'];
       bodyHtml += `<div class="table-wrapper col-full" style="width:100%;"><table><thead>`;
       bodyHtml += `<tr><th colspan="2" class="table-title">${escapeHTML(sec.title).toUpperCase()}</th></tr>`;
-      bodyHtml += `<tr><th class="col-header" style="text-align:left;">${escapeHTML(cols[0]).toUpperCase()}</th><th class="col-header" style="text-align:left;">${escapeHTML(cols[1]).toUpperCase()}</th></tr>`;
+      bodyHtml += `<tr><th class="col-header" style="text-align:left;">DATA - HORA</th><th class="col-header" style="text-align:left;">CONVOCADOS</th></tr>`;
       bodyHtml += `</thead><tbody>`;
       if (entries.length === 0) {
         bodyHtml += `<tr><td colspan="2" style="padding:10px; color:#666;">(Nenhuma linha adicionada)</td></tr>`;
       }
       entries.forEach(c => {
-        bodyHtml += `<tr><td style="text-align:left;">${escapeHTML(c.colA)}</td><td style="text-align:left;">${escapeHTML(c.colB)}</td></tr>`;
+        bodyHtml += `<tr><td style="text-align:left; text-decoration:underline;">${escapeHTML(c.colA)}</td><td style="text-align:left; font-weight:bold;">${escapeHTML(c.colB)}</td></tr>`;
       });
       bodyHtml += `</tbody></table></div>`;
       return;
     }
 
-    // kind === 'padrao'
+    if (kind === 'col3' || kind === 'col4') {
+      const entries = sec.entries || [];
+      const colCount = kind === 'col3' ? 3 : 4;
+      const headers = kind === 'col3' ? ['DATA', 'LOCALIDADE', 'ATENDE'] : ['DATA', 'LOCALIDADE', 'COLUNA 3', 'COLUNA 4'];
+
+      bodyHtml += `<div class="table-wrapper col-full" style="width:100%;"><table><thead>`;
+      bodyHtml += `<tr><th colspan="${colCount}" class="table-title">${escapeHTML(sec.title).toUpperCase()}</th></tr>`;
+      bodyHtml += `<tr>`;
+      headers.forEach(h => { bodyHtml += `<th class="col-header">${h}</th>`; });
+      bodyHtml += `</tr></thead><tbody>`;
+
+      if (entries.length === 0) {
+        bodyHtml += `<tr><td colspan="${colCount}" style="padding:10px; color:#666;">(Nenhuma linha adicionada)</td></tr>`;
+      }
+
+      entries.forEach(e => {
+        bodyHtml += `<tr>`;
+        bodyHtml += `<td style="white-space: nowrap;">${fmtDate(e.data)}</td>`;
+        bodyHtml += `<td style="white-space: nowrap;">${escapeHTML(e.local)}</td>`;
+        if (kind === 'col3') {
+          bodyHtml += `<td>${escapeHTML(e.atende)}</td>`;
+        } else {
+          bodyHtml += `<td>${escapeHTML(e.col3)}</td>`;
+          bodyHtml += `<td>${escapeHTML(e.col4)}</td>`;
+        }
+        bodyHtml += `</tr>`;
+      });
+
+      bodyHtml += `</tbody></table></div>`;
+      return;
+    }
+
+    // kind === 'hora'
     const entries = sec.entries || [];
     const hasAtende = entries.some(e => e.atende && e.atende.trim() !== '');
 
@@ -579,7 +654,7 @@ function buildDocumentHTML() {
       font-weight: bold;
     }
     
-    th.table-title { background: #e0e0e0 !important; font-size: 12px; text-align: center; }
+    th.table-title { background: #fff !important; font-size: 12px; text-align: center; }
     th.col-header { background: #fff !important; font-size: 10px; }
 
     /* LOCALIDADE (2ª coluna): alinhada à esquerda */
