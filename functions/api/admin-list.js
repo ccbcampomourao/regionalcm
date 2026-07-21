@@ -16,6 +16,7 @@ export async function onRequestGet({ request, env }) {
       assignedLists: Array.isArray(r.assignedLists) ? r.assignedLists : [],
       role: r.role === 'admin' ? 'admin' : 'padrao',
       createdAt: r.createdAt || null,
+      passwordReset: r.passwordReset === 'pending' || r.passwordReset === 'approved' ? r.passwordReset : 'none',
     }))
     .sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
 

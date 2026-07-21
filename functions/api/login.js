@@ -21,6 +21,14 @@ export async function onRequestPost({ request, env }) {
     return jsonResponse(401, { error: 'E-mail ou senha inválidos' });
   }
 
+  if (record.passwordReset === 'approved') {
+    return jsonResponse(200, {
+      ok: true,
+      needsPasswordReset: true,
+      message: 'Sua redefinição de senha foi aprovada. Defina uma nova senha para continuar.',
+    });
+  }
+
   const ok = await verifyPassword(password || '', record.passwordHash);
   if (!ok) {
     return jsonResponse(401, { error: 'E-mail ou senha inválidos' });
