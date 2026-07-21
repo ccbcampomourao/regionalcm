@@ -618,19 +618,6 @@ function buildDocumentHTML() {
       font-weight: bold;
     }
     
-    /* TABELAS INTEIRAS: Tira a linha do canto esquerdo e do canto direito */
-    .col-full table { border-left: none; border-right: none; }
-    .col-full th:first-child, .col-full td:first-child { border-left: none; }
-    .col-full th:last-child, .col-full td:last-child { border-right: none; }
-
-    /* TABELAS ESQUERDA (Metade): Tira APENAS a linha do canto esquerdo */
-    .col-left table { border-left: none; }
-    .col-left th:first-child, .col-left td:first-child { border-left: none; }
-
-    /* TABELAS DIREITA (Metade): Tira APENAS a linha do canto direito */
-    .col-right table { border-right: none; }
-    .col-right th:last-child, .col-right td:last-child { border-right: none; }
-    
     th.table-title { background: #fff !important; font-size: 12px; text-align: center; }
     th.col-header { background: #fff !important; font-size: 10px; }
 
