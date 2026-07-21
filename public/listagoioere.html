@@ -569,7 +569,7 @@ function buildDocumentHTML() {
     bodyHtml += `<div class="table-wrapper col-full" style="width: 100%;">`;
     bodyHtml += `<table><thead>`;
 
-    const colSpan = hasAtende ? 3 : 2;
+    const colSpan = hasAtende ? 4 : 3;
     bodyHtml += `<tr><th colspan="${colSpan}" class="table-title">${escapeHTML(sec.title).toUpperCase()}</th></tr>`;
 
     bodyHtml += `</thead><tbody>`;
@@ -581,12 +581,8 @@ function buildDocumentHTML() {
     entries.forEach(e => {
       bodyHtml += `<tr>`;
 
-      bodyHtml += `<td style="width: 82px; max-width:82px; white-space: nowrap; padding:0;">`;
-      bodyHtml += `<div style="display:flex; align-items:center; justify-content:center;">`;
-      bodyHtml += `<div style="border-right:1px solid #262626; padding:2px 4px;">${fmtDate(e.data)}</div>`;
-      bodyHtml += `<div style="padding:2px 4px;">${escapeHTML(e.hora)}</div>`;
-      bodyHtml += `</div>`;
-      bodyHtml += `</td>`;
+      bodyHtml += `<td style="width: 41px; max-width:41px; white-space: nowrap;">${fmtDate(e.data)}</td>`;
+      bodyHtml += `<td style="width: 41px; max-width:41px; white-space: nowrap;">${escapeHTML(e.hora)}</td>`;
 
       bodyHtml += `<td style="white-space: nowrap;">${escapeHTML(e.local)}</td>`;
 
@@ -660,20 +656,8 @@ function buildDocumentHTML() {
       font-weight: bold;
     }
     
-    th.table-title { background: #E0E0E0 !important; font-size: 12px; text-align: center; }
+    th.table-title { background: #fff !important; font-size: 12px; text-align: center; }
     th.col-header { background: #fff !important; font-size: 10px; }
-
-    /* LOCALIDADE (2ª coluna): alinhada à esquerda */
-    th.col-header:nth-child(2),
-    tbody td:nth-child(2) {
-      text-align: center;
-    }
-
-    /* DATA/HORAS (1ª coluna) e ATENDE (3ª coluna, quando existir): centralizadas */
-    th.col-header:nth-child(1), th.col-header:nth-child(3),
-    tbody td:nth-child(1), tbody td:nth-child(3) {
-      text-align: center;
-    }
 
     @media print {
       * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
