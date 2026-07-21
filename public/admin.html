@@ -18,8 +18,21 @@
   <a href="#" id="btnSairAdmin" class="btn-ghost">Sair</a>
 </header>
 <div class="wrap">
-  <div style="margin-top:16px; margin-bottom:2px;">
-    <a href="/admin-listas.html" class="cta">📋 Acessar listas</a>
+  <div class="quickaccess">
+    <div class="quickaccess-icon">
+      <svg width="34" height="30" viewBox="0 0 680 380" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M200,120 L228,70 L256,120 L284,70 L312,120 L340,70 L368,120 L396,70 L424,120 L452,70 L480,120 L480,340 L200,340 Z" fill="#1b2a41"/>
+        <path d="M225,300 L225,195 L250,150 L275,195 L275,300 Z" fill="#f7f4ee"/>
+        <path d="M405,300 L405,195 L430,150 L455,195 L455,300 Z" fill="#f7f4ee"/>
+        <path d="M310,340 L310,195 L340,135 L370,195 L370,340 Z" fill="#f7f4ee"/>
+      </svg>
+    </div>
+    <div class="quickaccess-body">
+      <h2>Listas de Serviços</h2>
+      <p>Acesse, edite e gere os documentos de cada região em um só lugar.</p>
+      <div class="quickaccess-tags" id="quickaccessTags"></div>
+    </div>
+    <a href="/admin-listas.html" class="quickaccess-cta">Acessar listas →</a>
   </div>
 
   <div class="panel" id="loginBox" style="margin-top:16px;">
@@ -52,6 +65,15 @@
 <script>
 let adminToken = '';
 const LISTAS = { regional: 'Regional', campomourao: 'Campo Mourão', cianorte: 'Cianorte', ubirata: 'Ubiratã', pitanga: 'Pitanga', goioere: 'Goioerê' };
+
+(function renderQuickaccessTags() {
+  const host = document.getElementById('quickaccessTags');
+  Object.values(LISTAS).forEach(nome => {
+    const tag = document.createElement('span');
+    tag.textContent = nome;
+    host.appendChild(tag);
+  });
+})();
 
 document.getElementById('btnSairAdmin').addEventListener('click', function (e) {
   e.preventDefault();
