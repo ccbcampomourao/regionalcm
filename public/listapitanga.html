@@ -378,6 +378,10 @@ function renderSections() {
             updatePreview();
             saveData();
           };
+          if (f.key === 'data') {
+            // Assim que a data é definida (campo perde o foco / seletor fecha), reordena as linhas da tabela por data
+            input.onchange = () => { renderSections(); updatePreview(); saveData(); };
+          }
           fDiv.appendChild(input);
           grid.appendChild(fDiv);
         });
