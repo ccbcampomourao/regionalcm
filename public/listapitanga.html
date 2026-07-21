@@ -562,13 +562,11 @@ function buildDocumentHTML() {
 
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escapeHTML(m.titulo)}</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght=400;700&display=swap');
-    
     @page { size: A4; margin: 0; }
     html, body { margin: 0; padding: 0; box-sizing: border-box; }
     
     body { 
-      font-family: 'Roboto', Arial, sans-serif; 
+      font-family: 'Times New Roman', Times, serif; 
       color: #000; font-size: 11px;
       width: 210mm;
       margin: 0 auto;
@@ -618,11 +616,11 @@ function buildDocumentHTML() {
       border: 1px solid #262626; 
       text-align: center; 
       vertical-align: middle; 
-      font-weight: bold;
+      font-weight: normal;
     }
     
-    th.table-title { background: #E0E0E0 !important; font-size: 12px; text-align: left; }
-    th.col-header { background: #E0E0E0 !important; font-size: 12px; }
+    th.table-title { background: #E0E0E0 !important; font-size: 12px; text-align: left; font-weight: bold; }
+    th.col-header { background: #E0E0E0 !important; font-size: 12px; font-weight: bold; }
 
     /* LOCALIDADE (2ª coluna): alinhada à esquerda */
     th.col-header:nth-child(2),
