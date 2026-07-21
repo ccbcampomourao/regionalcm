@@ -517,14 +517,18 @@ function buildDocumentHTML() {
     if (kind === 'livre_data') {
       const entries = sec.entries || [];
       bodyHtml += `<div class="table-wrapper col-full" style="width:100%;"><table><thead>`;
-      bodyHtml += `<tr><th colspan="2" class="table-title">${escapeHTML(sec.title).toUpperCase()}</th></tr>`;
-      bodyHtml += `<tr><th class="col-header" style="text-align:left;">DATA - HORA</th><th class="col-header" style="text-align:left;">CONVOCADOS</th></tr>`;
+      bodyHtml += `<tr><th class="table-title">${escapeHTML(sec.title).toUpperCase()}</th></tr>`;
       bodyHtml += `</thead><tbody>`;
       if (entries.length === 0) {
-        bodyHtml += `<tr><td colspan="2" style="padding:10px; color:#666;">(Nenhuma linha adicionada)</td></tr>`;
+        bodyHtml += `<tr><td style="padding:10px; color:#666;">(Nenhuma linha adicionada)</td></tr>`;
       }
       entries.forEach(c => {
-        bodyHtml += `<tr><td style="text-align:left; text-decoration:underline;">${escapeHTML(c.colA)}</td><td style="text-align:left; font-weight:bold;">${escapeHTML(c.colB)}</td></tr>`;
+        bodyHtml += `<tr><td style="text-align:left;">`;
+        bodyHtml += `<div style="text-decoration:underline;">${escapeHTML(c.colA)}</div>`;
+        if (c.colB && c.colB.trim() !== '') {
+          bodyHtml += `<div><span style="font-weight:bold;">CONVOCADOS: </span><span style="font-weight:normal;">${escapeHTML(c.colB)}</span></div>`;
+        }
+        bodyHtml += `</td></tr>`;
       });
       bodyHtml += `</tbody></table></div>`;
       return;
@@ -533,13 +537,10 @@ function buildDocumentHTML() {
     if (kind === 'col3' || kind === 'col4') {
       const entries = sec.entries || [];
       const colCount = kind === 'col3' ? 3 : 4;
-      const headers = kind === 'col3' ? ['DATA', 'LOCALIDADE', 'ATENDE'] : ['DATA', 'LOCALIDADE', 'COLUNA 3', 'COLUNA 4'];
 
       bodyHtml += `<div class="table-wrapper col-full" style="width:100%;"><table><thead>`;
       bodyHtml += `<tr><th colspan="${colCount}" class="table-title">${escapeHTML(sec.title).toUpperCase()}</th></tr>`;
-      bodyHtml += `<tr>`;
-      headers.forEach(h => { bodyHtml += `<th class="col-header">${h}</th>`; });
-      bodyHtml += `</tr></thead><tbody>`;
+      bodyHtml += `</thead><tbody>`;
 
       if (entries.length === 0) {
         bodyHtml += `<tr><td colspan="${colCount}" style="padding:10px; color:#666;">(Nenhuma linha adicionada)</td></tr>`;
