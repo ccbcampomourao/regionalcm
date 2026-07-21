@@ -129,58 +129,17 @@
     </div>
 
     <div class="row-grid" style="grid-template-columns: 1fr 1fr;">
-      <div><label>Título Superior</label><input type="text" id="meta_titulo" value="LISTA DE SERVIÇOS E DIVERSOS" readonly style="background:#eee"></div>
-      <div><label>Endereço</label><input type="text" id="meta_subtitulo" value="Rua Henrique Michalak, 180 - Pitanga - PR" readonly style="background:#eee"></div>
+      <div><label>Título Superior</label><input type="text" id="meta_titulo" value="LISTA DE SERVIÇOS E DIVERSOS" oninput="updateMeta('titulo', this.value)"></div>
+      <div><label>Endereço</label><input type="text" id="meta_subtitulo" value="Rua Henrique Michalak, 180 - Pitanga - PR" oninput="updateMeta('subtitulo', this.value)"></div>
       <div><label>Data / Período</label><input type="date" id="meta_periodo" oninput="updateMeta('periodo', this.value)"></div>
     </div>
 
     <div style="margin-bottom: 12px; padding-top: 10px; border-top: 1px solid var(--line);">
-      <label style="margin-bottom:6px;">Adicionar tabela de serviço</label>
-      <div class="add-section-types" id="addButtons">
-        <button onclick="addFixedSection('BATISMOS')">+ Batismos</button>
-        <button onclick="addFixedSection('ENSAIO REGIONAL')">+ Ensaio Regional</button>
-        <button onclick="addFixedSection('REUNIÃO PARA MOCIDADE')">+ Reunião para Mocidade</button>
-        <button onclick="addFixedSection('REUNIÃO DE EVANGELIZAÇÃO')">+ Reunião de Evangelização</button>
-        <button onclick="addFixedSection('ENSAIO LOCAL')">+ Ensaio Local</button>
-        <button onclick="addFixedSection('COLETAS ESPECIAIS')">+ Coletas Especiais</button>
-        <button onclick="addNewSection()">+ Tabela livre (nome personalizado)</button>
-      </div>
+      <label style="margin-bottom:6px;">Adicionar tabela</label>
+      <div class="add-section-types" id="addButtons"></div>
     </div>
 
     <div id="sectionsContainer"></div>
-
-    <div class="section open" id="cargosNovosSection" style="margin-top:14px;">
-      <div class="section-head">
-        <div style="display:flex; gap:8px; align-items:center;"><span class="toggle-chevron" onclick="document.getElementById('cargosNovosSection').classList.toggle('open')" style="cursor:pointer;">▸</span><h3 style="margin:0;color:var(--primary);">Novos Cargos</h3></div>
-      </div>
-      <div class="section-body">
-        <div id="cargosNovosList" class="listgroup"></div>
-        <div class="row-grid" style="grid-template-columns: 1fr 1fr auto; margin-top:8px;">
-          <input type="text" id="novoCargoLocalidade" placeholder="Localidade (ex: Nova Tebas)">
-          <input type="text" id="novoCargoFuncao" placeholder="Função (ex: Irmãos para Colaborador da Limpeza)">
-          <button onclick="addCargoNovo()">+ adicionar</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="section open" id="irmandadeSection" style="margin-top:14px;">
-      <div class="section-head">
-        <div style="display:flex; gap:8px; align-items:center;"><span class="toggle-chevron" onclick="document.getElementById('irmandadeSection').classList.toggle('open')" style="cursor:pointer;">▸</span><h3 style="margin:0;color:var(--primary);">Informação à Irmandade</h3></div>
-      </div>
-      <div class="section-body">
-        <textarea id="meta_irmandade" style="width:100%; min-height:100px; border:1.5px solid var(--line); border-radius:8px; padding:8px; font-size:13px;" oninput="updateMeta('irmandade', this.value)"></textarea>
-      </div>
-    </div>
-
-    <div class="section open" id="santaCeiaSection" style="margin-top:14px;">
-      <div class="section-head">
-        <div style="display:flex; gap:8px; align-items:center;"><span class="toggle-chevron" onclick="document.getElementById('santaCeiaSection').classList.toggle('open')" style="cursor:pointer;">▸</span><h3 style="margin:0;color:var(--primary);">Santa Ceia (imprime no verso)</h3></div>
-      </div>
-      <div class="section-body">
-        <div id="santaCeiaList"></div>
-        <button onclick="addSantaCeiaEntry()">+ Adicionar Linha</button>
-      </div>
-    </div>
   </div>
 
   <div class="panel" id="previewHost">
@@ -204,12 +163,16 @@ let STATE = {
   meta: {
     titulo: "LISTA DE SERVIÇOS E DIVERSOS",
     subtitulo: "Rua Henrique Michalak, 180 - Pitanga - PR",
-    periodo: "",
-    irmandade: "Reiterando nosso compromisso com a cara irmandade, lembramos que o Conselho dos Anciães mais Antigos, sempre zelando pela constância e firmeza de todos na fé em Cristo Jesus nosso Senhor, tem feito publicar em nosso site, cartas, avisos e circulares, orientativos a quem quer que seja, com o objetivo de instruir sobre assuntos da atualidade, à luz da palavra de Deus.\n\nConselho dos Anciães mais Antigos"
+    periodo: ""
   },
-  sections: [],
-  cargosNovos: [],
-  santaCeia: { entries: [] }
+  sections: []
+};
+
+const SECTION_TYPES = {
+  tabela: { label: "Tabela (Data/Hora/Local/Atende)", defaultTitle: "NOVA TABELA", kind: "padrao", customTitle: true },
+  santa_ceia: { label: "Santa Ceia (imprime no verso)", defaultTitle: "SANTA CEIA DO SENHOR", kind: "padrao", paginaVerso: true, customTitle: true },
+  novos_cargos: { label: "Novos Cargos (Localidade/Função)", defaultTitle: "NOVOS CARGOS", kind: "cargos", customTitle: true },
+  avisos: { label: "Aviso / Texto Livre", defaultTitle: "INFORMAÇÃO À IRMANDADE", kind: "texto", customTitle: true }
 };
 
 function updateMeta(key, val) {
@@ -218,19 +181,39 @@ function updateMeta(key, val) {
   saveData();
 }
 
-function addNewSection() {
-  STATE.sections.push({ title: "NOVA TABELA", width: "full", entries: [], isOpen: true });
-  renderSections(); updatePreview(); saveData();
+function renderAddButtons() {
+  const host = document.getElementById('addButtons');
+  host.innerHTML = '';
+  Object.entries(SECTION_TYPES).forEach(([key, def]) => {
+    const btn = document.createElement('button');
+    btn.textContent = '+ ' + def.label;
+    btn.onclick = () => addSectionOfType(key);
+    host.appendChild(btn);
+  });
 }
 
-function addFixedSection(titulo) {
-  STATE.sections.push({ title: titulo, width: "full", entries: [], isOpen: true });
+function addSectionOfType(typeKey) {
+  const def = SECTION_TYPES[typeKey];
+  let title = def.label;
+  if (def.customTitle) {
+    const sugestao = def.defaultTitle || 'NOVA TABELA';
+    title = prompt('Nome da tabela:', sugestao) || sugestao;
+  }
+  const sec = { typeKey, title, width: def.defaultWidth || "full", isOpen: true };
+  if (def.kind === 'texto') {
+    sec.texto = "";
+  } else {
+    sec.entries = [];
+  }
+  STATE.sections.push(sec);
   renderSections(); updatePreview(); saveData();
 }
 
 function sortStateDates() {
   STATE.sections.forEach(section => {
-    if (section.entries && section.entries.length > 0) {
+    const def = SECTION_TYPES[section.typeKey];
+    const isDated = !def || def.kind === 'padrao';
+    if (isDated && section.entries && section.entries.length > 0) {
       section.entries.sort((a, b) => {
         const dateA = a.data || "9999-12-31";
         const dateB = b.data || "9999-12-31";
@@ -295,14 +278,7 @@ function renderSections() {
     titleInput.type = 'text'; titleInput.value = sec.title; titleInput.style.fontWeight = 'bold';
     titleInput.oninput = (e) => { sec.title = e.target.value; updatePreview(); saveData(); };
     
-    const widthSelect = document.createElement('select');
-    widthSelect.style.width = '140px';
-    widthSelect.innerHTML = `<option value="full" ${sec.width==='full'?'selected':''}>Inteira (100%)</option>
-                             <option value="half" ${sec.width==='half'?'selected':''}>Metade (50%)</option>`;
-    widthSelect.onchange = (e) => { sec.width = e.target.value; updatePreview(); saveData(); };
-    
     titleInputs.appendChild(titleInput);
-    titleInputs.appendChild(widthSelect);
     
     // Controles Reordenação/Exclusão
     const controls = document.createElement('div');
@@ -337,137 +313,85 @@ function renderSections() {
     // Corpo da Seção (Linhas)
     const body = document.createElement('div');
     body.className = 'section-body';
-    
-    sec.entries.forEach((ent, eIdx) => {
-      const eDiv = document.createElement('div');
-      eDiv.className = 'entry';
-      
-      const rmEnt = document.createElement('button'); rmEnt.className = 'remove-btn'; rmEnt.textContent = '✕ Remover Linha';
-      rmEnt.onclick = () => { sec.entries.splice(eIdx, 1); renderSections(); updatePreview(); saveData(); };
-      eDiv.appendChild(rmEnt);
-      
-      const grid = document.createElement('div');
-      grid.className = 'row-grid'; grid.style.gridTemplateColumns = '1fr 1fr 2fr 2fr'; grid.style.marginTop = '12px'; grid.style.marginBottom = '0';
-      
-      const fields = [
-        { label: 'Data', key: 'data', type: 'date', pl: '' },
-        { label: 'Hora (Ex: 19:30)', key: 'hora', type: 'time', pl: '19:30' },
-        { label: 'Localidade', key: 'local', type: 'text', pl: 'Ex: TAPEJARA' },
-        { label: 'Atende (Opcional)', key: 'atende', type: 'text', pl: 'Se vazio a coluna some' }
-      ];
-      
-      fields.forEach(f => {
-        const fDiv = document.createElement('div');
-        fDiv.innerHTML = `<label>${f.label}</label>`;
-        const input = document.createElement('input');
-        input.type = f.type; input.value = ent[f.key] || ''; input.placeholder = f.pl;
-        input.oninput = (e) => { 
-          ent[f.key] = e.target.value; 
-          updatePreview(); 
-          saveData();
-        };
-        fDiv.appendChild(input);
-        grid.appendChild(fDiv);
+
+    const def = SECTION_TYPES[sec.typeKey];
+    const kind = def ? def.kind : 'padrao';
+
+    if (kind === 'texto') {
+      const ta = document.createElement('textarea');
+      ta.style.cssText = 'width:100%; min-height:100px; border:1.5px solid var(--line); border-radius:8px; padding:8px; font-size:13px;';
+      ta.value = sec.texto || '';
+      ta.oninput = (e) => { sec.texto = e.target.value; updatePreview(); saveData(); };
+      body.appendChild(ta);
+    } else if (kind === 'cargos') {
+      if (!sec.entries) sec.entries = [];
+      const list = document.createElement('div');
+      list.className = 'listgroup';
+      if (!sec.entries.length) {
+        list.innerHTML = '<div class="muted" style="padding:6px;">Nenhum cargo adicionado.</div>';
+      }
+      sec.entries.forEach((ent, eIdx) => {
+        const row = document.createElement('div');
+        row.className = 'listitem';
+        const local = document.createElement('input'); local.type = 'text'; local.placeholder = 'Localidade (ex: Nova Tebas)'; local.value = ent.localidade || '';
+        local.oninput = (e) => { ent.localidade = e.target.value; updatePreview(); saveData(); };
+        const funcao = document.createElement('input'); funcao.type = 'text'; funcao.placeholder = 'Função (ex: Irmãos para Colaborador da Limpeza)'; funcao.value = ent.funcao || '';
+        funcao.oninput = (e) => { ent.funcao = e.target.value; updatePreview(); saveData(); };
+        const del = document.createElement('button'); del.className = 'danger'; del.textContent = '✕';
+        del.onclick = () => { sec.entries.splice(eIdx, 1); renderSections(); updatePreview(); saveData(); };
+        row.appendChild(local); row.appendChild(funcao); row.appendChild(del);
+        list.appendChild(row);
       });
-      
-      eDiv.appendChild(grid);
-      body.appendChild(eDiv);
-    });
-    
-    const addEntBtn = document.createElement('button'); addEntBtn.textContent = '+ Adicionar Linha';
-    addEntBtn.onclick = () => { sec.entries.push({ data: '', hora: '', local: '', atende: '' }); renderSections(); updatePreview(); saveData(); };
-    body.appendChild(addEntBtn);
-    
+      body.appendChild(list);
+
+      const addCargoBtn = document.createElement('button'); addCargoBtn.textContent = '+ Adicionar Cargo'; addCargoBtn.style.marginTop = '8px';
+      addCargoBtn.onclick = () => { sec.entries.push({ localidade: '', funcao: '' }); renderSections(); updatePreview(); saveData(); };
+      body.appendChild(addCargoBtn);
+    } else {
+      if (!sec.entries) sec.entries = [];
+      sec.entries.forEach((ent, eIdx) => {
+        const eDiv = document.createElement('div');
+        eDiv.className = 'entry';
+
+        const rmEnt = document.createElement('button'); rmEnt.className = 'remove-btn'; rmEnt.textContent = '✕ Remover Linha';
+        rmEnt.onclick = () => { sec.entries.splice(eIdx, 1); renderSections(); updatePreview(); saveData(); };
+        eDiv.appendChild(rmEnt);
+
+        const grid = document.createElement('div');
+        grid.className = 'row-grid'; grid.style.gridTemplateColumns = '1fr 1fr 2fr 2fr'; grid.style.marginTop = '12px'; grid.style.marginBottom = '0';
+
+        const fields = [
+          { label: 'Data', key: 'data', type: 'date', pl: '' },
+          { label: 'Hora (Ex: 19:30)', key: 'hora', type: 'time', pl: '19:30' },
+          { label: 'Localidade', key: 'local', type: 'text', pl: 'Ex: TAPEJARA' },
+          { label: 'Atende (Opcional)', key: 'atende', type: 'text', pl: 'Se vazio a coluna some' }
+        ];
+
+        fields.forEach(f => {
+          const fDiv = document.createElement('div');
+          fDiv.innerHTML = `<label>${f.label}</label>`;
+          const input = document.createElement('input');
+          input.type = f.type; input.value = ent[f.key] || ''; input.placeholder = f.pl;
+          input.oninput = (e) => {
+            ent[f.key] = e.target.value;
+            updatePreview();
+            saveData();
+          };
+          fDiv.appendChild(input);
+          grid.appendChild(fDiv);
+        });
+
+        eDiv.appendChild(grid);
+        body.appendChild(eDiv);
+      });
+
+      const addEntBtn = document.createElement('button'); addEntBtn.textContent = '+ Adicionar Linha';
+      addEntBtn.onclick = () => { sec.entries.push({ data: '', hora: '', local: '', atende: '' }); renderSections(); updatePreview(); saveData(); };
+      body.appendChild(addEntBtn);
+    }
+
     secDiv.appendChild(body);
     container.appendChild(secDiv);
-  });
-}
-
-/* ================= NOVOS CARGOS ================= */
-function renderCargosNovos() {
-  const host = document.getElementById('cargosNovosList');
-  host.innerHTML = '';
-  if (!STATE.cargosNovos.length) {
-    host.innerHTML = '<div class="muted" style="padding:6px;">Nenhum cargo adicionado.</div>';
-    return;
-  }
-  STATE.cargosNovos.forEach((c, idx) => {
-    const row = document.createElement('div');
-    row.className = 'listitem';
-    const local = document.createElement('input'); local.type = 'text'; local.value = c.localidade;
-    local.oninput = (e) => { c.localidade = e.target.value; updatePreview(); saveData(); };
-    const funcao = document.createElement('input'); funcao.type = 'text'; funcao.value = c.funcao;
-    funcao.oninput = (e) => { c.funcao = e.target.value; updatePreview(); saveData(); };
-    const del = document.createElement('button'); del.className = 'danger'; del.textContent = '✕';
-    del.onclick = () => removeCargoNovo(idx);
-    row.appendChild(local); row.appendChild(funcao); row.appendChild(del);
-    host.appendChild(row);
-  });
-}
-
-function addCargoNovo() {
-  const localInp = document.getElementById('novoCargoLocalidade');
-  const funcInp = document.getElementById('novoCargoFuncao');
-  const localidade = localInp.value.trim();
-  const funcao = funcInp.value.trim();
-  if (!localidade || !funcao) { alert('Preencha localidade e função.'); return; }
-  STATE.cargosNovos.push({ localidade, funcao });
-  localInp.value = ''; funcInp.value = '';
-  renderCargosNovos(); updatePreview(); saveData();
-}
-
-function removeCargoNovo(idx) {
-  STATE.cargosNovos.splice(idx, 1);
-  renderCargosNovos(); updatePreview(); saveData();
-}
-
-/* ================= SANTA CEIA (VERSO) ================= */
-function renderSantaCeia() {
-  const host = document.getElementById('santaCeiaList');
-  host.innerHTML = '';
-  STATE.santaCeia.entries.forEach((ent, idx) => {
-    const eDiv = document.createElement('div');
-    eDiv.className = 'entry';
-
-    const rmEnt = document.createElement('button'); rmEnt.className = 'remove-btn'; rmEnt.textContent = '✕ Remover Linha';
-    rmEnt.onclick = () => { STATE.santaCeia.entries.splice(idx, 1); renderSantaCeia(); updatePreview(); saveData(); };
-    eDiv.appendChild(rmEnt);
-
-    const grid = document.createElement('div');
-    grid.className = 'row-grid'; grid.style.gridTemplateColumns = '1fr 1fr 2fr 2fr'; grid.style.marginTop = '12px'; grid.style.marginBottom = '0';
-
-    const fields = [
-      { label: 'Data', key: 'data', type: 'date', pl: '' },
-      { label: 'Hora (Ex: 18:00)', key: 'hora', type: 'time', pl: '18:00' },
-      { label: 'Localidade', key: 'localidade', type: 'text', pl: 'Ex: Bela Vista' },
-      { label: 'Atende', key: 'atende', type: 'text', pl: 'Ex: José Becher / Jão' }
-    ];
-
-    fields.forEach(f => {
-      const fDiv = document.createElement('div');
-      fDiv.innerHTML = `<label>${f.label}</label>`;
-      const input = document.createElement('input');
-      input.type = f.type; input.value = ent[f.key] || ''; input.placeholder = f.pl;
-      input.oninput = (e) => { ent[f.key] = e.target.value; updatePreview(); saveData(); };
-      fDiv.appendChild(input);
-      grid.appendChild(fDiv);
-    });
-
-    eDiv.appendChild(grid);
-    host.appendChild(eDiv);
-  });
-}
-
-function addSantaCeiaEntry() {
-  STATE.santaCeia.entries.push({ data: '', hora: '', localidade: '', atende: '' });
-  renderSantaCeia(); updatePreview(); saveData();
-}
-
-function sortSantaCeiaDates() {
-  STATE.santaCeia.entries.sort((a, b) => {
-    const dateA = a.data || "9999-12-31";
-    const dateB = b.data || "9999-12-31";
-    return dateA.localeCompare(dateB);
   });
 }
 
@@ -511,81 +435,89 @@ function escapeHTML(str) {
 
 function buildDocumentHTML() {
   const m = STATE.meta;
+  sortStateDates();
+
+  const paginaUmSections = STATE.sections.filter(sec => {
+    const def = SECTION_TYPES[sec.typeKey];
+    return !(def && def.paginaVerso);
+  });
+  const santaCeiaSections = STATE.sections.filter(sec => {
+    const def = SECTION_TYPES[sec.typeKey];
+    return def && def.paginaVerso;
+  });
+
   let bodyHtml = `<div class="sections-container">`;
 
-  let isLeftCol = true;
+  paginaUmSections.forEach(sec => {
+    const def = SECTION_TYPES[sec.typeKey];
+    const kind = def ? def.kind : 'padrao';
 
-  STATE.sections.forEach(sec => {
-    const hasAtende = sec.entries.some(e => e.atende && e.atende.trim() !== '');
-    
-    let colClass = 'col-full';
-    let widthStyle = 'width: 100%;';
-    
-    if(sec.width === 'half') {
-      widthStyle = 'width: 49.50%;';
-      colClass = isLeftCol ? 'col-left' : 'col-right';
-      isLeftCol = !isLeftCol;
-    } else {
-      isLeftCol = true;
+    if (kind === 'texto') {
+      if (!sec.texto || sec.texto.trim() === '') return;
+      bodyHtml += `<div class="irmandade-box">
+        <div class="irmandade-titulo">${escapeHTML(sec.title).toUpperCase()}</div>
+        <div class="irmandade-texto">${escapeHTML(sec.texto).replace(/\n/g, '<br>')}</div>
+      </div>`;
+      return;
     }
-    
-    bodyHtml += `<div class="table-wrapper ${colClass}" style="${widthStyle}">`;
+
+    if (kind === 'cargos') {
+      const entries = sec.entries || [];
+      bodyHtml += `<div class="table-wrapper col-full" style="width:100%;"><table><thead>`;
+      bodyHtml += `<tr><th colspan="2" class="table-title">${escapeHTML(sec.title).toUpperCase()}</th></tr>`;
+      bodyHtml += `<tr><th class="col-header" style="text-align:left;">LOCALIDADE</th><th class="col-header" style="text-align:left;">FUNÇÃO</th></tr>`;
+      bodyHtml += `</thead><tbody>`;
+      if (entries.length === 0) {
+        bodyHtml += `<tr><td colspan="2" style="padding:10px; color:#666;">(Nenhum cargo adicionado)</td></tr>`;
+      }
+      entries.forEach(c => {
+        bodyHtml += `<tr><td style="text-align:left;">${escapeHTML(c.localidade)}</td><td style="text-align:left;">${escapeHTML(c.funcao)}</td></tr>`;
+      });
+      bodyHtml += `</tbody></table></div>`;
+      return;
+    }
+
+    // kind === 'padrao'
+    const entries = sec.entries || [];
+    const hasAtende = entries.some(e => e.atende && e.atende.trim() !== '');
+
+    bodyHtml += `<div class="table-wrapper col-full" style="width: 100%;">`;
     bodyHtml += `<table><thead>`;
-    
+
     const colSpan = hasAtende ? 3 : 2;
     bodyHtml += `<tr><th colspan="${colSpan}" class="table-title">${escapeHTML(sec.title).toUpperCase()}</th></tr>`;
-    
-    // Cabeçalhos das Colunas
+
     bodyHtml += `<tr>`;
     bodyHtml += `<th class="col-header" style="width: 90px; max-width:90px;">DATA/HORAS</th>`;
     bodyHtml += `<th class="col-header">LOCALIDADE</th>`;
     if(hasAtende) bodyHtml += `<th class="col-header">ATENDE</th>`;
     bodyHtml += `</tr></thead><tbody>`;
-    
-    if(sec.entries.length === 0) {
+
+    if(entries.length === 0) {
       bodyHtml += `<tr><td colspan="${colSpan}" style="padding:10px; color:#666;">(Nenhuma linha adicionada)</td></tr>`;
     }
-    
-    sec.entries.forEach(e => {
+
+    entries.forEach(e => {
       bodyHtml += `<tr>`;
       const diaSemana = getWeekdayAbbr(e.data);
-      
+
       bodyHtml += `<td style="width: 82px; max-width:82px; white-space: nowrap;">`;
       bodyHtml += `${fmtDate(e.data)} <span style="text-transform:lowercase; margin:0 2px;">${diaSemana}</span> ${escapeHTML(e.hora)}`;
       bodyHtml += `</td>`;
-      
+
       bodyHtml += `<td>${escapeHTML(e.local)}</td>`;
-      
+
       if(hasAtende) {
         bodyHtml += `<td>${escapeHTML(e.atende)}</td>`;
       }
       bodyHtml += `</tr>`;
     });
-    
+
     bodyHtml += `</tbody></table></div>`;
   });
-  
+
   bodyHtml += `</div>`; // Fim sections-container
 
-  if (STATE.cargosNovos.length > 0) {
-    bodyHtml += `<div class="table-wrapper col-full" style="width:100%;"><table><thead>`;
-    bodyHtml += `<tr><th colspan="2" class="table-title">NOVOS CARGOS</th></tr>`;
-    bodyHtml += `<tr><th class="col-header" style="text-align:left;">LOCALIDADE</th><th class="col-header" style="text-align:left;">FUNÇÃO</th></tr>`;
-    bodyHtml += `</thead><tbody>`;
-    STATE.cargosNovos.forEach(c => {
-      bodyHtml += `<tr><td style="text-align:left;">${escapeHTML(c.localidade)}</td><td style="text-align:left;">${escapeHTML(c.funcao)}</td></tr>`;
-    });
-    bodyHtml += `</tbody></table></div>`;
-  }
-
-  if (m.irmandade && m.irmandade.trim() !== '') {
-    bodyHtml += `<div class="irmandade-box">
-      <div class="irmandade-titulo">INFORMAÇÃO À IRMANDADE</div>
-      <div class="irmandade-texto">${escapeHTML(m.irmandade).replace(/\n/g, '<br>')}</div>
-    </div>`;
-  }
-
-  sortSantaCeiaDates();
   let santaCeiaHtml = `<div class="table-wrapper col-full" style="width:100%;"><table><thead>`;
   santaCeiaHtml += `<tr><th colspan="5" class="table-title">SANTA CEIA DO SENHOR</th></tr>`;
   santaCeiaHtml += `<tr>`;
@@ -595,15 +527,18 @@ function buildDocumentHTML() {
   santaCeiaHtml += `<th class="col-header" style="text-align:left;">Localidade</th>`;
   santaCeiaHtml += `<th class="col-header" style="text-align:left;">Atende</th>`;
   santaCeiaHtml += `</tr></thead><tbody>`;
-  if (STATE.santaCeia.entries.length === 0) {
+  const santaCeiaEntries = [];
+  santaCeiaSections.forEach(sec => { (sec.entries || []).forEach(e => santaCeiaEntries.push(e)); });
+  santaCeiaEntries.sort((a, b) => (a.data || "9999-12-31").localeCompare(b.data || "9999-12-31"));
+  if (santaCeiaEntries.length === 0) {
     santaCeiaHtml += `<tr><td colspan="5" style="padding:10px; color:#666;">(Nenhuma linha adicionada)</td></tr>`;
   }
-  STATE.santaCeia.entries.forEach(e => {
+  santaCeiaEntries.forEach(e => {
     santaCeiaHtml += `<tr>`;
     santaCeiaHtml += `<td>${fmtDate(e.data)}</td>`;
     santaCeiaHtml += `<td style="text-transform:lowercase;">${getWeekdayAbbr(e.data)}</td>`;
     santaCeiaHtml += `<td>${escapeHTML(e.hora)}</td>`;
-    santaCeiaHtml += `<td style="text-align:left;">${escapeHTML(e.localidade)}</td>`;
+    santaCeiaHtml += `<td style="text-align:left;">${escapeHTML(e.local)}</td>`;
     santaCeiaHtml += `<td style="text-align:left;">${escapeHTML(e.atende)}</td>`;
     santaCeiaHtml += `</tr>`;
   });
@@ -702,8 +637,7 @@ function buildDocumentHTML() {
     }
     
     /* Regra de Alternância de Cores exata do PDF */
-    tbody tr:nth-child(odd) td { background-color: #e8e8e8 !important; }
-    tbody tr:nth-child(even) td { background-color: #ffffff !important; }
+    tbody tr td { background-color: #ffffff; }
 
     @media print {
       * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
@@ -799,11 +733,6 @@ function loadData() {
     const raw = localStorage.getItem('ccb_lista_pitanga_state');
     if(raw) STATE = JSON.parse(raw);
   } catch(e) {}
-  if (!STATE.cargosNovos) STATE.cargosNovos = [];
-  if (!STATE.meta.irmandade && STATE.meta.irmandade !== '') {
-    STATE.meta.irmandade = "Reiterando nosso compromisso com a cara irmandade, lembramos que o Conselho dos Anciães mais Antigos, sempre zelando pela constância e firmeza de todos na fé em Cristo Jesus nosso Senhor, tem feito publicar em nosso site, cartas, avisos e circulares, orientativos a quem quer que seja, com o objetivo de instruir sobre assuntos da atualidade, à luz da palavra de Deus.\n\nConselho dos Anciães mais Antigos";
-  }
-  if (!STATE.santaCeia) STATE.santaCeia = { entries: [] };
   sortStateDates();
 }
 
@@ -831,12 +760,9 @@ function resetAll() {
     meta: {
       titulo: "LISTA DE SERVIÇOS E DIVERSOS",
       subtitulo: "Rua Henrique Michalak, 180 - Pitanga - PR",
-      periodo: "",
-      irmandade: "Reiterando nosso compromisso com a cara irmandade, lembramos que o Conselho dos Anciães mais Antigos, sempre zelando pela constância e firmeza de todos na fé em Cristo Jesus nosso Senhor, tem feito publicar em nosso site, cartas, avisos e circulares, orientativos a quem quer que seja, com o objetivo de instruir sobre assuntos da atualidade, à luz da palavra de Deus.\n\nConselho dos Anciães mais Antigos"
+      periodo: ""
     },
-    sections: [],
-    cargosNovos: [],
-    santaCeia: { entries: [] }
+    sections: []
   };
   init(); saveData();
 }
@@ -845,10 +771,8 @@ function init() {
   document.getElementById('meta_titulo').value = STATE.meta.titulo || '';
   document.getElementById('meta_subtitulo').value = STATE.meta.subtitulo || '';
   document.getElementById('meta_periodo').value = STATE.meta.periodo || '';
-  document.getElementById('meta_irmandade').value = STATE.meta.irmandade || '';
+  renderAddButtons();
   renderSections();
-  renderCargosNovos();
-  renderSantaCeia();
   updatePreview();
 }
 

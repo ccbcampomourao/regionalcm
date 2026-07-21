@@ -178,8 +178,11 @@ const SECTION_TYPES = {
   culto_jovens_menores: { label: "Culto com a Participação de Jovens e Menores", kind: "padrao" },
   coletas: { label: "Coletas para Reforço do Caixa", kind: "padrao" },
   agenda_musical: { label: "Agenda Musical / Teste Musical", kind: "padrao" },
-  agenda_reunioes: { label: "Agenda de Reuniões", kind: "duplo", cols: ["Reunião", "Convocados"] },
-  avisos: { label: "Aviso / Conselho para a Irmandade", kind: "texto" },
+  reunioes_goioere: { label: "Reuniões em Goioerê", kind: "duplo", cols: ["Reunião", "Convocados"] },
+  reunioes_campomourao: { label: "Reuniões em Campo Mourão", kind: "duplo", cols: ["Reunião", "Convocados"] },
+  pauta_ministerio: { label: "Pauta para o Ministério", kind: "texto" },
+  topicos_ensinamentos: { label: "Tópicos de Ensinamentos para a Irmandade", kind: "texto" },
+  conselhos_irmandade: { label: "Conselhos para a Irmandade", kind: "texto" },
   livre: { label: "Tabela livre (nome personalizado)", kind: "padrao", customTitle: true }
 };
 
@@ -206,7 +209,7 @@ function addSectionOfType(typeKey) {
   if (def.customTitle) {
     title = prompt('Nome da tabela:', 'NOVA TABELA') || 'NOVA TABELA';
   }
-  const sec = { typeKey, title, width: "full", isOpen: true };
+  const sec = { typeKey, title, width: def.defaultWidth || "full", isOpen: true };
   if (def.kind === 'texto') {
     sec.texto = "";
   } else {
@@ -285,14 +288,7 @@ function renderSections() {
     titleInput.type = 'text'; titleInput.value = sec.title; titleInput.style.fontWeight = 'bold';
     titleInput.oninput = (e) => { sec.title = e.target.value; updatePreview(); saveData(); };
     
-    const widthSelect = document.createElement('select');
-    widthSelect.style.width = '140px';
-    widthSelect.innerHTML = `<option value="full" ${sec.width==='full'?'selected':''}>Inteira (100%)</option>
-                             <option value="half" ${sec.width==='half'?'selected':''}>Metade (50%)</option>`;
-    widthSelect.onchange = (e) => { sec.width = e.target.value; updatePreview(); saveData(); };
-    
     titleInputs.appendChild(titleInput);
-    titleInputs.appendChild(widthSelect);
     
     // Controles Reordenação/Exclusão
     const controls = document.createElement('div');
@@ -453,7 +449,6 @@ function buildDocumentHTML() {
   sortStateDates();
 
   let bodyHtml = `<div class="sections-container">`;
-  let isLeftCol = true;
 
   STATE.sections.forEach(sec => {
     const def = SECTION_TYPES[sec.typeKey];
@@ -489,18 +484,7 @@ function buildDocumentHTML() {
     const entries = sec.entries || [];
     const hasAtende = entries.some(e => e.atende && e.atende.trim() !== '');
 
-    let colClass = 'col-full';
-    let widthStyle = 'width: 100%;';
-
-    if(sec.width === 'half') {
-      widthStyle = 'width: 49.50%;';
-      colClass = isLeftCol ? 'col-left' : 'col-right';
-      isLeftCol = !isLeftCol;
-    } else {
-      isLeftCol = true;
-    }
-
-    bodyHtml += `<div class="table-wrapper ${colClass}" style="${widthStyle}">`;
+    bodyHtml += `<div class="table-wrapper col-full" style="width: 100%;">`;
     bodyHtml += `<table><thead>`;
 
     const colSpan = hasAtende ? 3 : 2;
@@ -573,14 +557,16 @@ function buildDocumentHTML() {
     .irmandade-titulo { text-align: center; font-weight: bold; font-size: 11px; margin-bottom: 8px; }
     .irmandade-texto { font-size: 10.5px; text-align: justify; line-height: 1.4; }
 
-    /* Container Flexível: se uma for 49%, a próxima 49% fica do lado! */
+    /* Duas colunas automáticas, igual a Ubiratá: o conteúdo flui sozinho,
+       nunca uma tabela ocupa a folha inteira. */
     .sections-container {
-      display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; align-content: flex-start;
-      margin-bottom: 20px;
+      column-count: 2;
+      column-gap: 7mm;
+      column-fill: auto;
     }
 
     /* Espaçamento original entre as tabelas (igual ao PDF) */
-    .table-wrapper { margin-bottom: 8px; page-break-inside: avoid; }
+    .table-wrapper { margin-bottom: 8px; break-inside: avoid; page-break-inside: avoid; }
     
     /* Grade completa e bordas idênticas ao modelo da CCB */
     table { width: 100%; border-collapse: collapse; border: 1px solid #262626; }
@@ -591,19 +577,6 @@ function buildDocumentHTML() {
       vertical-align: middle; 
       font-weight: bold;
     }
-    
-    /* TABELAS INTEIRAS: Tira a linha do canto esquerdo e do canto direito */
-    .col-full table { border-left: none; border-right: none; }
-    .col-full th:first-child, .col-full td:first-child { border-left: none; }
-    .col-full th:last-child, .col-full td:last-child { border-right: none; }
-
-    /* TABELAS ESQUERDA (Metade): Tira APENAS a linha do canto esquerdo */
-    .col-left table { border-left: none; }
-    .col-left th:first-child, .col-left td:first-child { border-left: none; }
-
-    /* TABELAS DIREITA (Metade): Tira APENAS a linha do canto direito */
-    .col-right table { border-right: none; }
-    .col-right th:last-child, .col-right td:last-child { border-right: none; }
     
     th.table-title { background: #fff !important; font-size: 12px; text-align: center; }
     th.col-header { background: #fff !important; font-size: 10px; }
@@ -619,10 +592,6 @@ function buildDocumentHTML() {
     tbody td:nth-child(1), tbody td:nth-child(3) {
       text-align: center;
     }
-    
-    /* Regra de Alternância de Cores exata do PDF */
-    tbody tr:nth-child(odd) td { background-color: #e8e8e8 !important; }
-    tbody tr:nth-child(even) td { background-color: #ffffff !important; }
 
     @media print {
       * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }

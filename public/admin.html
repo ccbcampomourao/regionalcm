@@ -200,13 +200,22 @@ async function salvar(email, lists, role, btn) {
   const tableMsg = document.getElementById('tableMsg');
   btn.disabled = true;
   try {
-    const res = await fetch('/api/admin-update', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + adminToken },
-      body: JSON.stringify({ email, lists, role })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Erro ao salvar');
+    const [resLista, resRole] = await Promise.all([
+      fetch('/api/admin-assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + adminToken },
+        body: JSON.stringify({ email, lists })
+      }),
+      fetch('/api/admin-set-role', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + adminToken },
+        body: JSON.stringify({ email, role })
+      })
+    ]);
+    const dataLista = await resLista.json();
+    const dataRole = await resRole.json();
+    if (!resLista.ok) throw new Error(dataLista.error || 'Erro ao salvar listas');
+    if (!resRole.ok) throw new Error(dataRole.error || 'Erro ao salvar papel');
 
     tableMsg.textContent = `${email} atualizado com sucesso.`;
     tableMsg.className = 'msg ok';
