@@ -519,40 +519,48 @@ function buildDocumentHTML() {
 
   bodyHtml += `</div>`; // Fim sections-container
 
-  let santaCeiaHtml = `<div class="table-wrapper col-full" style="width:100%;"><table><thead>`;
-  santaCeiaHtml += `<tr><th colspan="5" class="table-title">SANTA CEIA DO SENHOR</th></tr>`;
-  santaCeiaHtml += `<tr>`;
-  santaCeiaHtml += `<th class="col-header" style="width:60px;">Data</th>`;
-  santaCeiaHtml += `<th class="col-header" style="width:50px;">D. Sema</th>`;
-  santaCeiaHtml += `<th class="col-header" style="width:55px;">Hora</th>`;
-  santaCeiaHtml += `<th class="col-header" style="text-align:left;">Localidade</th>`;
-  santaCeiaHtml += `<th class="col-header" style="text-align:left;">Atende</th>`;
-  santaCeiaHtml += `</tr></thead><tbody>`;
-  const santaCeiaEntries = [];
-  santaCeiaSections.forEach(sec => { (sec.entries || []).forEach(e => santaCeiaEntries.push(e)); });
-  santaCeiaEntries.sort((a, b) => (a.data || "9999-12-31").localeCompare(b.data || "9999-12-31"));
-  if (santaCeiaEntries.length === 0) {
-    santaCeiaHtml += `<tr><td colspan="5" style="padding:10px; color:#666;">(Nenhuma linha adicionada)</td></tr>`;
-  }
-  santaCeiaEntries.forEach(e => {
+  // A página de Santa Ceia (verso) só existe quando o usuário adicionou pelo menos uma tabela desse tipo
+  const temSantaCeia = santaCeiaSections.length > 0;
+
+  let santaCeiaHtml = '';
+  if (temSantaCeia) {
+    santaCeiaHtml = `<div class="table-wrapper col-full" style="width:100%;"><table><thead>`;
+    santaCeiaHtml += `<tr><th colspan="5" class="table-title">SANTA CEIA DO SENHOR</th></tr>`;
     santaCeiaHtml += `<tr>`;
-    santaCeiaHtml += `<td>${fmtDate(e.data)}</td>`;
-    santaCeiaHtml += `<td style="text-transform:lowercase;">${getWeekdayAbbr(e.data)}</td>`;
-    santaCeiaHtml += `<td>${escapeHTML(e.hora)}</td>`;
-    santaCeiaHtml += `<td style="text-align:left;">${escapeHTML(e.local)}</td>`;
-    santaCeiaHtml += `<td style="text-align:left;">${escapeHTML(e.atende)}</td>`;
-    santaCeiaHtml += `</tr>`;
-  });
-  santaCeiaHtml += `</tbody></table></div>`;
+    santaCeiaHtml += `<th class="col-header" style="width:60px;">Data</th>`;
+    santaCeiaHtml += `<th class="col-header" style="width:50px;">D. Sema</th>`;
+    santaCeiaHtml += `<th class="col-header" style="width:55px;">Hora</th>`;
+    santaCeiaHtml += `<th class="col-header" style="text-align:left;">Localidade</th>`;
+    santaCeiaHtml += `<th class="col-header" style="text-align:left;">Atende</th>`;
+    santaCeiaHtml += `</tr></thead><tbody>`;
+    const santaCeiaEntries = [];
+    santaCeiaSections.forEach(sec => { (sec.entries || []).forEach(e => santaCeiaEntries.push(e)); });
+    santaCeiaEntries.sort((a, b) => (a.data || "9999-12-31").localeCompare(b.data || "9999-12-31"));
+    if (santaCeiaEntries.length === 0) {
+      santaCeiaHtml += `<tr><td colspan="5" style="padding:10px; color:#666;">(Nenhuma linha adicionada)</td></tr>`;
+    }
+    santaCeiaEntries.forEach(e => {
+      santaCeiaHtml += `<tr>`;
+      santaCeiaHtml += `<td>${fmtDate(e.data)}</td>`;
+      santaCeiaHtml += `<td style="text-transform:lowercase;">${getWeekdayAbbr(e.data)}</td>`;
+      santaCeiaHtml += `<td>${escapeHTML(e.hora)}</td>`;
+      santaCeiaHtml += `<td style="text-align:left;">${escapeHTML(e.local)}</td>`;
+      santaCeiaHtml += `<td style="text-align:left;">${escapeHTML(e.atende)}</td>`;
+      santaCeiaHtml += `</tr>`;
+    });
+    santaCeiaHtml += `</tbody></table></div>`;
+  }
 
   const dataExtenso = fmtDataExtenso(m.periodo);
   const rodapeDireita = 'Pitanga' + (dataExtenso ? (', ' + dataExtenso) : '');
+  const paginaFrenteClasse = temSantaCeia ? 'list-wrapper' : 'list-wrapper page-final';
+  const rodapeEsquerdoFrente = temSantaCeia ? `<div class="fixed-footer-left">Lista da Santa Ceia no Verso</div>` : '';
 
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escapeHTML(m.titulo)}</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght=400;700&display=swap');
     
-    @page { size: auto; margin: 0; }
+    @page { size: A4; margin: 0; }
     html, body { margin: 0; padding: 0; box-sizing: border-box; }
     
     body { 
@@ -562,9 +570,8 @@ function buildDocumentHTML() {
       margin: 0 auto;
     }
 
-    /* Linha flexível externa que envolve o conteúdo de cada página */
+    /* Bloco que envolve o conteúdo de cada página (sem borda: apenas as tabelas têm borda) */
     .list-wrapper {
-      border: 1px solid #262626;
       margin: 2mm;
       min-height: 273mm;
       box-sizing: border-box;
@@ -572,6 +579,8 @@ function buildDocumentHTML() {
       page-break-after: always;
     }
     .list-wrapper.page-final { page-break-after: auto; }
+    /* Permite que o conteúdo de uma página se estenda por quantas páginas forem necessárias */
+    .sections-container { page-break-inside: auto; }
     
     .doc-header { position: relative; text-align: center;  }
     .logo-img { position: absolute; left: 5px ; width: 130px; height: auto; }
@@ -645,7 +654,7 @@ function buildDocumentHTML() {
     }
   </style></head>
   <body>
-    <div class="list-wrapper">
+    <div class="${paginaFrenteClasse}">
       <div class="doc-header">
         <img src="${LOGO_CCB_BASE64}" class="logo-img">
         <div class="org">CONGREGAÇÃO CRISTÃ NO BRASIL</div>
@@ -656,10 +665,11 @@ function buildDocumentHTML() {
       
       ${bodyHtml}
       
-      <div class="fixed-footer-left">Lista da Santa Ceia no Verso</div>
+      ${rodapeEsquerdoFrente}
       <div class="fixed-footer-right">${escapeHTML(rodapeDireita)}</div>
     </div>
 
+    ${temSantaCeia ? `
     <div class="list-wrapper page-final">
       <div class="doc-header">
         <img src="${LOGO_CCB_BASE64}" class="logo-img">
@@ -676,7 +686,7 @@ function buildDocumentHTML() {
         <br>
         <div><b>Oração na Santa Ceia Para o Calice</b> = "Senhor abençoe este Calice que vamos beber, que é a <b>COMUNHÃO</b> do <b>SANGUE</b> do teu filho, Nosso Senhor Jesus.</div>
       </div>
-    </div>
+    </div>` : ''}
   </body></html>`;
 }
 
