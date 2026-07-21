@@ -491,11 +491,7 @@ function buildDocumentHTML() {
     const colSpan = hasAtende ? 3 : 2;
     bodyHtml += `<tr><th colspan="${colSpan}" class="table-title">${escapeHTML(sec.title).toUpperCase()}</th></tr>`;
 
-    bodyHtml += `<tr>`;
-    bodyHtml += `<th class="col-header" style="width: 90px; max-width:90px;">DATA/HORAS</th>`;
-    bodyHtml += `<th class="col-header">LOCALIDADE</th>`;
-    if(hasAtende) bodyHtml += `<th class="col-header">ATENDE</th>`;
-    bodyHtml += `</tr></thead><tbody>`;
+    bodyHtml += `</thead><tbody>`;
 
     if(entries.length === 0) {
       bodyHtml += `<tr><td colspan="${colSpan}" style="padding:10px; color:#666;">(Nenhuma linha adicionada)</td></tr>`;
@@ -503,10 +499,12 @@ function buildDocumentHTML() {
 
     entries.forEach(e => {
       bodyHtml += `<tr>`;
-      const diaSemana = getWeekdayAbbr(e.data);
 
-      bodyHtml += `<td style="width: 82px; max-width:82px; white-space: nowrap;">`;
-      bodyHtml += `${fmtDate(e.data)} <span style="text-transform:lowercase; margin:0 2px;">${diaSemana}</span> ${escapeHTML(e.hora)}`;
+      bodyHtml += `<td style="width: 82px; max-width:82px; white-space: nowrap; padding:0;">`;
+      bodyHtml += `<div style="display:flex; align-items:center; justify-content:center;">`;
+      bodyHtml += `<div style="border-right:1px solid #262626; padding:2px 4px;">${fmtDate(e.data)}</div>`;
+      bodyHtml += `<div style="padding:2px 4px;">${escapeHTML(e.hora)}</div>`;
+      bodyHtml += `</div>`;
       bodyHtml += `</td>`;
 
       bodyHtml += `<td>${escapeHTML(e.local)}</td>`;
@@ -601,7 +599,6 @@ function buildDocumentHTML() {
   <body>
     <div class="list-wrapper">
       <div class="doc-header">
-        <img src="${LOGO_CCB_BASE64}" class="logo-img">
         <div class="org">CONGREGAÇÃO CRISTÃ NO BRASIL</div>
         <div class="ttl">${escapeHTML(m.titulo)}</div>
         <div class="subttl">${escapeHTML(m.subtitulo)}${m.periodo ? ' – ' + escapeHTML(m.periodo) : ''}</div>
