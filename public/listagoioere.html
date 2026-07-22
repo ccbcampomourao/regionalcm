@@ -628,10 +628,22 @@ function buildDocumentHTML() {
       margin: 0 auto;
     }
 
-    /* Linha flexível externa que envolve o conteúdo (página única, cresce se precisar) */
-    .list-wrapper {
+    /* Moldura fixa que corresponde exatamente à área de impressão (margens de 2mm da folha) */
+    .page-border {
+      position: fixed;
+      top: 2mm;
+      left: 2mm;
+      right: 2mm;
+      bottom: 2mm;
       border: 1px solid #262626;
-      margin: 2mm;
+      pointer-events: none;
+      z-index: 9999;
+      box-sizing: border-box;
+    }
+
+    /* Área de conteúdo: mesmo espaçamento da moldura, mas sem desenhar a borda (ela já vem do .page-border) */
+    .list-wrapper {
+      padding: 2mm;
       min-height: 273mm;
       box-sizing: border-box;
       position: relative;
@@ -673,7 +685,7 @@ function buildDocumentHTML() {
     }
 
     th { font-weight: bold; }
-    td { font-weight: normal; font-size: 12px; }
+    td { font-weight: normal; font-size: 10px; }
     
     th.table-title { background: #e0e0e0 !important; font-size: 12px; text-align: center; }
     th.col-header { background: #fff !important; font-size: 10px; }
@@ -683,6 +695,7 @@ function buildDocumentHTML() {
     }
   </style></head>
   <body>
+    <div class="page-border"></div>
     <div class="list-wrapper">
       <div class="doc-header">
         <div class="org">CONGREGAÇÃO CRISTÃ NO BRASIL</div>
