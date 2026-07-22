@@ -216,7 +216,7 @@ function addSectionOfType(typeKey) {
 function sortStateDates() {
   STATE.sections.forEach(section => {
     const def = SECTION_TYPES[section.typeKey];
-    const isDated = def && (def.kind === 'hora' || def.kind === 'col3' || def.kind === 'col4' || def.kind === 'col5');
+    const isDated = def && (def.kind === 'hora' || def.kind === 'col3' || def.kind === 'col4' || def.kind === 'col5' || def.kind === 'livre_data');
     if (isDated && section.entries && section.entries.length > 0) {
       section.entries.sort((a, b) => {
         const dateA = a.data || "9999-12-31";
@@ -329,7 +329,6 @@ function renderSections() {
       body.appendChild(ta);
     } else if (kind === 'livre_data') {
       if (!sec.entries) sec.entries = [];
-      const cols = ['Data - Hora', 'Local', 'Convocados'];
       const list = document.createElement('div');
       list.className = 'listgroup';
       if (!sec.entries.length) {
@@ -338,21 +337,24 @@ function renderSections() {
       sec.entries.forEach((ent, eIdx) => {
         const row = document.createElement('div');
         row.className = 'listitem';
-        const colA = document.createElement('input'); colA.type = 'text'; colA.placeholder = cols[0]; colA.value = ent.colA || '';
-        colA.oninput = (e) => { ent.colA = e.target.value; updatePreview(); saveData(); };
-        const colLocal = document.createElement('input'); colLocal.type = 'text'; colLocal.placeholder = cols[1]; colLocal.value = ent.colLocal || '';
+        const colData = document.createElement('input'); colData.type = 'date'; colData.value = ent.data || ''; colData.style.flex = '0 0 130px';
+        colData.oninput = (e) => { ent.data = e.target.value; updatePreview(); saveData(); };
+        colData.onblur = () => { renderSections(); updatePreview(); saveData(); };
+        const colHora = document.createElement('input'); colHora.type = 'time'; colHora.value = ent.hora || ''; colHora.style.flex = '0 0 90px';
+        colHora.oninput = (e) => { ent.hora = e.target.value; updatePreview(); saveData(); };
+        const colLocal = document.createElement('input'); colLocal.type = 'text'; colLocal.placeholder = 'Local'; colLocal.value = ent.colLocal || '';
         colLocal.oninput = (e) => { ent.colLocal = e.target.value; updatePreview(); saveData(); };
-        const colB = document.createElement('input'); colB.type = 'text'; colB.placeholder = cols[2]; colB.value = ent.colB || '';
+        const colB = document.createElement('input'); colB.type = 'text'; colB.placeholder = 'Convocados'; colB.value = ent.colB || '';
         colB.oninput = (e) => { ent.colB = e.target.value; updatePreview(); saveData(); };
         const del = document.createElement('button'); del.className = 'danger'; del.textContent = '✕';
         del.onclick = () => { sec.entries.splice(eIdx, 1); renderSections(); updatePreview(); saveData(); };
-        row.appendChild(colA); row.appendChild(colLocal); row.appendChild(colB); row.appendChild(del);
+        row.appendChild(colData); row.appendChild(colHora); row.appendChild(colLocal); row.appendChild(colB); row.appendChild(del);
         list.appendChild(row);
       });
       body.appendChild(list);
 
       const addLivreDataBtn = document.createElement('button'); addLivreDataBtn.textContent = '+ Adicionar Linha'; addLivreDataBtn.style.marginTop = '8px';
-      addLivreDataBtn.onclick = () => { sec.entries.push({ colA: '', colLocal: '', colB: '' }); renderSections(); updatePreview(); saveData(); };
+      addLivreDataBtn.onclick = () => { sec.entries.push({ data: '', hora: '', colLocal: '', colB: '' }); renderSections(); updatePreview(); saveData(); };
       body.appendChild(addLivreDataBtn);
     } else if (kind === 'col3' || kind === 'col4' || kind === 'col5') {
       if (!sec.entries) sec.entries = [];
@@ -538,8 +540,9 @@ function buildDocumentHTML() {
         bodyHtml += `<tr><td style="padding:10px; color:#666;">(Nenhuma linha adicionada)</td></tr>`;
       }
       entries.forEach(c => {
+        const dataHora = [fmtDate(c.data), escapeHTML(c.hora)].filter(v => v && v !== '-').join(' ');
         bodyHtml += `<tr><td style="text-align:left;">`;
-        bodyHtml += `<div><span style="text-decoration:underline;">${escapeHTML(c.colA)}</span>${c.colLocal && c.colLocal.trim() !== '' ? ' - ' + escapeHTML(c.colLocal) : ''}</div>`;
+        bodyHtml += `<div><span style="text-decoration:underline;">${dataHora}</span>${c.colLocal && c.colLocal.trim() !== '' ? ' - ' + escapeHTML(c.colLocal) : ''}</div>`;
         if (c.colB && c.colB.trim() !== '') {
           bodyHtml += `<div><span style="font-weight:bold;">CONVOCADOS: </span><span style="font-weight:normal;">${escapeHTML(c.colB)}</span></div>`;
         }
