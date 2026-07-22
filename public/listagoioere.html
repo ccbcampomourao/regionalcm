@@ -673,44 +673,29 @@ function buildDocumentHTML() {
        nunca uma tabela ocupa a folha inteira.
        flex:1 dá altura definida ao container, permitindo que column-fill:auto
        realmente quebre para a 2ª coluna em vez de crescer infinitamente na 1ª. */
-    .sections-container{
-    position:relative;
-    column-count:2;
-    column-gap:7mm;
-}
-.sections-container::after{
-    content:"";
-    position:absolute;
+    .sections-container {
+    column-count: 2;
+    column-gap: 7mm;
+    column-fill: auto;
 
-    top:0;
-    bottom:0;
-
-    left:50%;
-    transform:translateX(-3.5mm);
-
-    width:1px;
-    background:#262626;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
 }
 
     /* Espaçamento original entre as tabelas (igual ao PDF) */
     .table-wrapper { margin-bottom: 8px; break-inside: avoid; page-break-inside: avoid; }
     
     /* Grade completa e bordas idênticas ao modelo da CCB */
-    table {
-    width: 100%;
-    border-collapse: collapse;
-    border: none;
-}
+    table { width: 100%; border-collapse: collapse; border: 1px solid #262626; border-left: none; }
 
+    th:first-child, td:first-child { border-left: none; }
     
-    
-    th,
-    td{
-    border-top:1px solid #262626;
-    border-bottom:1px solid #262626;
-    border-left:none;
-    border-right:none;
-  }
+    th, td { 
+      border: 1px solid #262626; 
+      text-align: center; 
+      vertical-align: middle; 
+    }
 
     th { font-weight: bold; }
     td { font-weight: normal; font-size: 12px; }
