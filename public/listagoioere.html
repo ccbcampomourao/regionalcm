@@ -103,7 +103,7 @@
   .add-section-types button{ font-size:12px; }
   
   /* ======== PREVIEW PÁGINA ÚNICA ======== */
-  #previewHost { flex: 1.3; position: sticky; top: 16px; height: calc(100vh - 32px); display: flex; flex-direction: column; min-width: 450px;}
+  #previewHost { flex: 1.3; position: absolute; top: 16px; height: calc(100vh - 32px); display: flex; flex-direction: column; min-width: 450px;}
   #previewScaleWrapper { flex: 1; overflow-y: auto; background: #525659; border: 1px solid var(--line); border-radius: 8px; padding: 10px 0; }
   #iframeSizer { display: flex; justify-content: center; overflow: hidden; width:100%; }
   #previewFrame { width: 210mm; min-height: 297mm; border: none; background: #fff; transform-origin: top center; box-shadow: 0 4px 12px rgba(0,0,0,0.25); flex-shrink: 0; }
@@ -639,7 +639,6 @@ function buildDocumentHTML() {
     .list-wrapper {
       position: relative;
       margin: 5mm;
-      padding: 5mm;
       min-height: 273mm;
       box-sizing: border-box;
       display: flex;
