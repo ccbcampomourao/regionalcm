@@ -216,7 +216,7 @@ function addSectionOfType(typeKey) {
 function sortStateDates() {
   STATE.sections.forEach(section => {
     const def = SECTION_TYPES[section.typeKey];
-    const isDated = def && (def.kind === 'hora' || def.kind === 'col3' || def.kind === 'col4');
+    const isDated = def && (def.kind === 'hora' || def.kind === 'col3' || def.kind === 'col4' || def.kind === 'col5');
     if (isDated && section.entries && section.entries.length > 0) {
       section.entries.sort((a, b) => {
         const dateA = a.data || "9999-12-31";
@@ -352,7 +352,7 @@ function renderSections() {
       const addLivreDataBtn = document.createElement('button'); addLivreDataBtn.textContent = '+ Adicionar Linha'; addLivreDataBtn.style.marginTop = '8px';
       addLivreDataBtn.onclick = () => { sec.entries.push({ colA: '', colB: '' }); renderSections(); updatePreview(); saveData(); };
       body.appendChild(addLivreDataBtn);
-    } else if (kind === 'col3' || kind === 'col4') {
+    } else if (kind === 'col3' || kind === 'col4' || kind === 'col5') {
       if (!sec.entries) sec.entries = [];
       const fields = kind === 'col3'
         ? [
@@ -360,13 +360,21 @@ function renderSections() {
             { label: 'Localidade', key: 'local', type: 'text', pl: 'Ex: TAPEJARA' },
             { label: 'Atende', key: 'atende', type: 'text', pl: '' }
           ]
-        : [
+        : kind === 'col4'
+        ? [
             { label: 'Data', key: 'data', type: 'date', pl: '' },
             { label: 'Localidade', key: 'local', type: 'text', pl: 'Ex: TAPEJARA' },
             { label: 'Coluna 3', key: 'col3', type: 'text', pl: '' },
             { label: 'Coluna 4', key: 'col4', type: 'text', pl: '' }
+          ]
+        : [
+            { label: 'Data', key: 'data', type: 'date', pl: '' },
+            { label: 'Hora (Ex: 19:30)', key: 'hora', type: 'time', pl: '19:30' },
+            { label: 'Localidade', key: 'local', type: 'text', pl: 'Ex: TAPEJARA' },
+            { label: 'Coluna 3', key: 'col3', type: 'text', pl: '' },
+            { label: 'Coluna 4', key: 'col4', type: 'text', pl: '' }
           ];
-      const gridCols = kind === 'col3' ? '1fr 2fr 2fr' : '1fr 2fr 2fr 2fr';
+      const gridCols = kind === 'col3' ? '1fr 2fr 2fr' : kind === 'col4' ? '1fr 2fr 2fr 2fr' : '1fr 1fr 2fr 2fr 2fr';
 
       sec.entries.forEach((ent, eIdx) => {
         const eDiv = document.createElement('div');
@@ -402,7 +410,11 @@ function renderSections() {
 
       const addColBtn = document.createElement('button'); addColBtn.textContent = '+ Adicionar Linha';
       addColBtn.onclick = () => {
-        sec.entries.push(kind === 'col3' ? { data: '', local: '', atende: '' } : { data: '', local: '', col3: '', col4: '' });
+        sec.entries.push(
+          kind === 'col3' ? { data: '', local: '', atende: '' } :
+          kind === 'col4' ? { data: '', local: '', col3: '', col4: '' } :
+          { data: '', hora: '', local: '', col3: '', col4: '' }
+        );
         renderSections(); updatePreview(); saveData();
       };
       body.appendChild(addColBtn);
@@ -535,9 +547,9 @@ function buildDocumentHTML() {
       return;
     }
 
-    if (kind === 'col3' || kind === 'col4') {
+    if (kind === 'col3' || kind === 'col4' || kind === 'col5') {
       const entries = sec.entries || [];
-      const colCount = kind === 'col3' ? 3 : 4;
+      const colCount = kind === 'col3' ? 3 : kind === 'col4' ? 4 : 5;
 
       bodyHtml += `<div class="table-wrapper col-full" style="width:100%;"><table><thead>`;
       bodyHtml += `<tr><th colspan="${colCount}" class="table-title">${escapeHTML(sec.title).toUpperCase()}</th></tr>`;
@@ -550,6 +562,9 @@ function buildDocumentHTML() {
       entries.forEach(e => {
         bodyHtml += `<tr>`;
         bodyHtml += `<td style="white-space: nowrap;">${fmtDate(e.data)}</td>`;
+        if (kind === 'col5') {
+          bodyHtml += `<td style="width: 41px; max-width:41px; white-space: nowrap;">${escapeHTML(e.hora)}</td>`;
+        }
         bodyHtml += `<td style="white-space: nowrap;">${escapeHTML(e.local)}</td>`;
         if (kind === 'col3') {
           bodyHtml += `<td>${escapeHTML(e.atende)}</td>`;
