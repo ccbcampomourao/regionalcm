@@ -721,7 +721,7 @@ function buildDocumentHTML() {
 }
 
 /* ================= ENGINE DA PREVIEW ================= */
-function updatePreview() {
+function renderPreview() {
   const html = buildDocumentHTML();
   const frame = document.getElementById('previewFrame');
   const doc = frame.contentDocument;
@@ -739,18 +739,7 @@ function updatePreview() {
     
     // Atualiza o conteúdo das tabelas e textos no <body>
     doc.body.innerHTML = newDoc.body.innerHTML;
-
-    // CORREÇÃO: atualizar o conteúdo via innerHTML (em vez de recarregar o
-    // documento inteiro) faz o Chromium "esquecer" de recalcular a quebra
-    // das colunas (column-count). O resultado é tudo empilhado na 1ª coluna
-    // no preview, mas certo na impressão (que sempre recarrega o documento
-    // do zero). Forçamos o recálculo alternando o column-count do container.
-    doc.querySelectorAll('.sections-container').forEach(el => {
-      el.style.columnCount = '1';
-      void el.offsetHeight; // força reflow
-      el.style.columnCount = '2';
-    });
-
+    
     scalePreview();
   } else {
     // Executado apenas na primeira vez que a página carrega
@@ -765,11 +754,19 @@ function scalePreview() {
   const iframe = document.getElementById('previewFrame');
   if (!wrapper || !sizer || !iframe) return;
   
-  iframe.style.transform = 'scale(1)'; 
-  const scale = Math.min(1, wrapper.clientWidth / 794);
+  // Removido o 'scale(1)' que causava pequenos trancos/pulos visuais durante a digitação
+  const iframeWidthPx = 794; 
+  const iframeHeightPx = 1123;
+  
+  const containerWidth = wrapper.clientWidth;
+  let scale = containerWidth / iframeWidthPx;
+  if (scale > 1) scale = 1; 
+  if (scale < 0.2) scale = 0.2;
+  
   iframe.style.transform = `scale(${scale})`;
-  sizer.style.height = `${iframe.contentWindow.document.body.scrollHeight * scale}px`;
+  sizer.style.height = `${iframeHeightPx * scale}px`;
 }
+
 
 /* ================= FUNÇÕES DE APOIO ================= */
 function gerarPDF() {
