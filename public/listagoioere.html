@@ -645,8 +645,8 @@ function buildDocumentHTML() {
        para nunca sumir na impressão/PDF, mesmo se a página crescer. */
     .list-wrapper {
     position: relative;
-    height: 283mm;
-    
+    height: 285mm;
+    min-height: 285mm;
     padding: 5mm;
     overflow: hidden;
 }
@@ -673,7 +673,7 @@ function buildDocumentHTML() {
        às vezes empurra todo o conteúdo para uma 2ª página em branco. */
     .sections-container {
     position: absolute;
-    top: 22mm;
+    top: 20mm;
     left: 5mm;
     right: 5mm;
     bottom: 15mm;
