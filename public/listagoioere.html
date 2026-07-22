@@ -329,7 +329,7 @@ function renderSections() {
       body.appendChild(ta);
     } else if (kind === 'livre_data') {
       if (!sec.entries) sec.entries = [];
-      const cols = ['Data - Hora', 'Convocados'];
+      const cols = ['Data - Hora', 'Local', 'Convocados'];
       const list = document.createElement('div');
       list.className = 'listgroup';
       if (!sec.entries.length) {
@@ -340,17 +340,19 @@ function renderSections() {
         row.className = 'listitem';
         const colA = document.createElement('input'); colA.type = 'text'; colA.placeholder = cols[0]; colA.value = ent.colA || '';
         colA.oninput = (e) => { ent.colA = e.target.value; updatePreview(); saveData(); };
-        const colB = document.createElement('input'); colB.type = 'text'; colB.placeholder = cols[1]; colB.value = ent.colB || '';
+        const colLocal = document.createElement('input'); colLocal.type = 'text'; colLocal.placeholder = cols[1]; colLocal.value = ent.colLocal || '';
+        colLocal.oninput = (e) => { ent.colLocal = e.target.value; updatePreview(); saveData(); };
+        const colB = document.createElement('input'); colB.type = 'text'; colB.placeholder = cols[2]; colB.value = ent.colB || '';
         colB.oninput = (e) => { ent.colB = e.target.value; updatePreview(); saveData(); };
         const del = document.createElement('button'); del.className = 'danger'; del.textContent = '✕';
         del.onclick = () => { sec.entries.splice(eIdx, 1); renderSections(); updatePreview(); saveData(); };
-        row.appendChild(colA); row.appendChild(colB); row.appendChild(del);
+        row.appendChild(colA); row.appendChild(colLocal); row.appendChild(colB); row.appendChild(del);
         list.appendChild(row);
       });
       body.appendChild(list);
 
       const addLivreDataBtn = document.createElement('button'); addLivreDataBtn.textContent = '+ Adicionar Linha'; addLivreDataBtn.style.marginTop = '8px';
-      addLivreDataBtn.onclick = () => { sec.entries.push({ colA: '', colB: '' }); renderSections(); updatePreview(); saveData(); };
+      addLivreDataBtn.onclick = () => { sec.entries.push({ colA: '', colLocal: '', colB: '' }); renderSections(); updatePreview(); saveData(); };
       body.appendChild(addLivreDataBtn);
     } else if (kind === 'col3' || kind === 'col4' || kind === 'col5') {
       if (!sec.entries) sec.entries = [];
@@ -537,7 +539,7 @@ function buildDocumentHTML() {
       }
       entries.forEach(c => {
         bodyHtml += `<tr><td style="text-align:left;">`;
-        bodyHtml += `<div style="text-decoration:underline;">${escapeHTML(c.colA)}</div>`;
+        bodyHtml += `<div><span style="text-decoration:underline;">${escapeHTML(c.colA)}</span>${c.colLocal && c.colLocal.trim() !== '' ? ' - ' + escapeHTML(c.colLocal) : ''}</div>`;
         if (c.colB && c.colB.trim() !== '') {
           bodyHtml += `<div><span style="font-weight:bold;">CONVOCADOS: </span><span style="font-weight:normal;">${escapeHTML(c.colB)}</span></div>`;
         }
@@ -628,25 +630,25 @@ function buildDocumentHTML() {
       margin: 0 auto;
     }
 
-    /* Moldura fixa que corresponde exatamente à área de impressão (margens de 2mm da folha) */
-    .page-border {
-      position: fixed;
-      top: 5mm;
-      left: 5mm;
-      right: 5mm;
-      bottom: 5mm;
-      border: 1px solid #262626;
-      pointer-events: none;
-      z-index: 9999;
-      box-sizing: border-box;
-    }
-
-    /* Área de conteúdo: mesmo espaçamento da moldura, mas sem desenhar a borda (ela já vem do .page-border) */
+    /* Moldura que corresponde exatamente à área de impressão (margem de 5mm da folha).
+       Usa position:absolute presa ao próprio bloco de conteúdo (em vez de fixed),
+       para nunca sumir na impressão/PDF, mesmo se a página crescer. */
     .list-wrapper {
+      position: relative;
+      margin: 5mm;
       padding: 5mm;
       min-height: 273mm;
       box-sizing: border-box;
-      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .page-border {
+      position: absolute;
+      inset: 0;
+      border: 1px solid #262626;
+      pointer-events: none;
+      box-sizing: border-box;
     }
     
     .doc-header { position: relative; text-align: center;  }
@@ -663,11 +665,14 @@ function buildDocumentHTML() {
     .irmandade-texto { font-size: 10.5px; text-align: justify; line-height: 1.4; }
 
     /* Duas colunas automáticas, igual a Ubiratá: o conteúdo flui sozinho,
-       nunca uma tabela ocupa a folha inteira. */
+       nunca uma tabela ocupa a folha inteira.
+       flex:1 dá altura definida ao container, permitindo que column-fill:auto
+       realmente quebre para a 2ª coluna em vez de crescer infinitamente na 1ª. */
     .sections-container {
       column-count: 2;
       column-gap: 7mm;
       column-fill: auto;
+      flex: 1 1 auto;
     }
 
     /* Espaçamento original entre as tabelas (igual ao PDF) */
@@ -695,8 +700,8 @@ function buildDocumentHTML() {
     }
   </style></head>
   <body>
-    <div class="page-border"></div>
     <div class="list-wrapper">
+      <div class="page-border"></div>
       <div class="doc-header">
         <div class="org">CONGREGAÇÃO CRISTÃ NO BRASIL</div>
         <div class="ttl">${escapeHTML(m.titulo)}</div>
