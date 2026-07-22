@@ -767,71 +767,58 @@ function scalePreview() {
   sizer.style.height = `${iframeHeightPx * scale}px`;
 }
 
-
-/* ================= FUNÇÕES DE APOIO ================= */
 function gerarPDF() {
+  saveState();
   const html = buildDocumentHTML();
   const w = window.open('', '_blank');
   w.document.open(); w.document.write(html); w.document.close();
   setTimeout(() => { w.focus(); w.print(); }, 400);
 }
 
-function saveData() { localStorage.setItem('ccb_lista_goioere_state', JSON.stringify(STATE)); }
-function loadData() {
-  try {
-    const raw = localStorage.getItem('ccb_lista_goioere_state');
-    if(raw) STATE = JSON.parse(raw);
-  } catch(e) {}
-  sortStateDates();
+function exportJSON() {
+  saveState();
+  const blob = new Blob([JSON.stringify(STATE, null, 2)], {type: 'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'lista_simples.json';
+  a.click();
 }
-
-function saveState() { saveData(); }
 
 function loadStateFromJSON(text) {
-  try { STATE = JSON.parse(text); init(); return true; } catch(e) { alert('Arquivo inválido.'); return false; }
-}
-
-function exportJSON() {
-  const blob = new Blob([JSON.stringify(STATE, null, 2)], {type: 'application/json'});
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'lista_ccb_goioere.json'; a.click();
+  try {
+    STATE = JSON.parse(text);
+    if(!STATE.meta.fonte) STATE.meta.fonte = 11;
+    updateMetaInputs();
+    renderSections(); renderPreview(); saveState();
+    return true;
+  } catch(e) { alert('Arquivo inválido.'); return false; }
 }
 
 function importJSON(ev) {
   const file = ev.target.files[0];
-  if(!file) return;
+  if (!file) return;
   const reader = new FileReader();
   reader.onload = () => { loadStateFromJSON(reader.result); };
   reader.readAsText(file);
 }
 
 function resetAll() {
-  STATE = {
-    meta: {
-      titulo: "ADM - GOIOERÊ – PR",
-      subtitulo: "Lista de Serviços da Obra de Deus",
-      periodo: "",
-      rodape: ""
-    },
-    sections: []
-  };
-  init(); saveData();
-}
-
-function init() {
-  document.getElementById('meta_titulo').value = STATE.meta.titulo || '';
-  document.getElementById('meta_subtitulo').value = STATE.meta.subtitulo || '';
-  document.getElementById('meta_periodo').value = STATE.meta.periodo || '';
-  document.getElementById('meta_rodape').value = STATE.meta.rodape || '';
-  renderAddButtons();
-  renderSections();
-  updatePreview();
+  STATE = { meta: { titulo: "CONGREGAÇÃO CRISTÃ NO BRASIL", subtitulo: "LISTA DE SERVIÇOS - UBIRATÃ", data: "", colunas: "2", fonte: 11 }, sections: [] };
+  localStorage.removeItem('ccb_lista_simples_state');
+  updateMetaInputs();
+  renderSections(); renderPreview();
 }
 
 window.onload = () => {
-  loadData();
-  init();
+  loadState();
+  renderSections();
   window.addEventListener('resize', scalePreview);
-  setTimeout(scalePreview, 300);
+  
+  document.getElementById('meta_titulo').addEventListener('input', () => { saveState(); renderPreview(); });
+  document.getElementById('meta_subtitulo').addEventListener('input', () => { saveState(); renderPreview(); });
+  document.getElementById('meta_data').addEventListener('input', () => { saveState(); renderPreview(); });
+  
+  renderPreview();
 };
 </script>
 <script>
