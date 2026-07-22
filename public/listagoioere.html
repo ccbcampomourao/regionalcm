@@ -663,17 +663,25 @@ return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escapeHTML(m.t
 
     /* COLUNAS SIMPLIFICADAS */
     .sections-container {
-      column-count: 2;
-      column-gap: 5mm;
-      width: 100%;
-    }
+  column-count: 2;
+  column-gap: 5mm;
+  width: 100%;
+  display: block;
+}
 
     /* Impede que as tabelas sejam "cortadas" ao meio entre uma coluna e outra */
     .table-wrapper, table, .irmandade-box { 
-      break-inside: avoid !important; 
-      page-break-inside: avoid !important; 
-      margin-bottom: 8px;
-    }
+  /* Proíbe a tabela de ser cortada ao meio */
+  break-inside: avoid !important; 
+  page-break-inside: avoid !important; 
+  
+  /* Garante que o navegador trate a tabela como um tijolo sólido */
+  display: inline-block; 
+  width: 100%; 
+  
+  /* Mantém um espaço saudável entre uma tabela e a próxima */
+  margin-bottom: 10px; 
+}
     
     table { width: 100%; border-collapse: collapse; border: 1px solid #262626; border-left: none; }
 
