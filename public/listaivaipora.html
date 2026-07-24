@@ -443,6 +443,15 @@ function buildDocumentHTML() {
 
   let bodyHtml = `<div class="sections-container">`;
 
+  bodyHtml += `<div class="bloco doc-header-bloco">
+    <div class="doc-header">
+      <div class="org">CONGREGAÇÃO CRISTÃ NO BRASIL</div>
+      <div class="endereco">${escapeHTML(m.endereco || '')}</div>
+      <div class="ttl">${escapeHTML(m.titulo)}${m.data ? ' - ' + fmtDateFull(m.data) : ''}</div>
+    </div>
+    <div class="divider"></div>
+  </div>`;
+
   STATE.sections.forEach(sec => {
     const def = SECTION_TYPES[sec.typeKey];
     const kind = def ? def.kind : 'lista';
@@ -580,13 +589,6 @@ function buildDocumentHTML() {
   <body>
     <div class="list-wrapper">
       <div class="page-border"></div>
-      <div class="doc-header">
-        <div class="org">CONGREGAÇÃO CRISTÃ NO BRASIL</div>
-        <div class="endereco">${escapeHTML(m.endereco || '')}</div>
-        <div class="ttl">${escapeHTML(m.titulo)}${m.data ? ' - ' + fmtDateFull(m.data) : ''}</div>
-      </div>
-      <div class="divider"></div>
-
       ${bodyHtml}
     </div>
   </body></html>`;
