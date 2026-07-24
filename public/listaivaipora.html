@@ -521,6 +521,7 @@ function buildDocumentHTML() {
   sortStateDates();
 
   let bodyHtml = `<div class="sections-container">`;
+  bodyHtml += `<div class="col-divider"></div>`;
 
   bodyHtml += `<div class="bloco doc-header-bloco">
     <div class="doc-header">
@@ -680,16 +681,28 @@ function buildDocumentHTML() {
     .divider { margin: 6px 0 8px 0; }
 
     /* Duas colunas com linha divisória central, altura definida via flex
-       para o column-fill:auto realmente quebrar para a 2ª coluna. */
+       para o column-fill:auto realmente quebrar para a 2ª coluna.
+       Obs: usamos uma div própria (.col-divider) para a linha central em vez de
+       column-rule, porque column-rule não é confiável na impressão/PDF do Chrome. */
     .sections-container {
+      position: relative;
       column-count: 2;
-      column-gap: mm;
+      column-gap: 7mm;
       column-fill: auto;
-      column-rule: 1px solid #262626;
       flex: 1;
       min-height: 0;
       overflow: hidden;
-	  
+    }
+
+    .col-divider {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      width: 1px;
+      background: #262626;
+      transform: translateX(-50%);
+      pointer-events: none;
     }
 
     .bloco { margin-bottom: 10px; break-inside: avoid; page-break-inside: avoid; }
