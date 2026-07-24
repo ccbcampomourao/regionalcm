@@ -165,6 +165,8 @@ let STATE = {
 
 const SECTION_TYPES = {
   lista: { label: "Lista (Data - Hora - Texto)", kind: "lista", customTitle: true },
+  lista4: { label: "Lista (Data - Hora - Local - Atende)", kind: "lista4", customTitle: true },
+  tabelaLista: { label: "Tabela Lista (Data - Hora - Local - Atende)", kind: "tabelaLista", customTitle: true },
   tabela: { label: "Tabela (Localidade / Data / Horário / Atendentes)", kind: "tabela4", customTitle: true },
   texto: { label: "Texto / Observação", kind: "texto", customTitle: true }
 };
@@ -205,7 +207,7 @@ function addSectionOfType(typeKey) {
 function sortStateDates() {
   STATE.sections.forEach(section => {
     const def = SECTION_TYPES[section.typeKey];
-    const isDated = def && def.kind === 'lista';
+    const isDated = def && (def.kind === 'lista' || def.kind === 'lista4' || def.kind === 'tabelaLista');
     if (isDated && section.entries && section.entries.length > 0) {
       section.entries.sort((a, b) => {
         const dateA = a.data || "9999-12-31";
@@ -364,6 +366,51 @@ function renderSections() {
       const addBtn = document.createElement('button'); addBtn.textContent = '+ Adicionar Linha'; addBtn.style.marginTop = '4px';
       addBtn.onclick = () => { sec.entries.push({ local: '', data: '', horario: '', atendentes: '' }); renderSections(); updatePreview(); saveData(); };
       body.appendChild(addBtn);
+    } else if (kind === 'lista4' || kind === 'tabelaLista') {
+      if (!sec.entries) sec.entries = [];
+      sec.entries.forEach((ent, eIdx) => {
+        const eDiv = document.createElement('div');
+        eDiv.className = 'entry';
+
+        const rmEnt = document.createElement('button'); rmEnt.className = 'remove-btn'; rmEnt.textContent = '✕ Remover Linha';
+        rmEnt.onclick = () => { sec.entries.splice(eIdx, 1); renderSections(); updatePreview(); saveData(); };
+        eDiv.appendChild(rmEnt);
+
+        const grid = document.createElement('div');
+        grid.className = 'row-grid'; grid.style.gridTemplateColumns = '1fr 1fr 1.4fr 1.4fr'; grid.style.marginTop = '12px'; grid.style.marginBottom = '0';
+
+        const fData = document.createElement('div');
+        fData.innerHTML = '<label>Data</label>';
+        const iData = document.createElement('input'); iData.type = 'date'; iData.value = ent.data || '';
+        iData.oninput = (e) => { ent.data = e.target.value; updatePreview(); saveData(); };
+        iData.onblur = () => { renderSections(); updatePreview(); saveData(); };
+        fData.appendChild(iData); grid.appendChild(fData);
+
+        const fHora = document.createElement('div');
+        fHora.innerHTML = '<label>Hora</label>';
+        const iHora = document.createElement('input'); iHora.type = 'time'; iHora.value = ent.hora || '';
+        iHora.oninput = (e) => { ent.hora = e.target.value; updatePreview(); saveData(); };
+        fHora.appendChild(iHora); grid.appendChild(fHora);
+
+        const fLocal = document.createElement('div');
+        fLocal.innerHTML = '<label>Local</label>';
+        const iLocal = document.createElement('input'); iLocal.type = 'text'; iLocal.value = ent.local || '';
+        iLocal.oninput = (e) => { ent.local = e.target.value; updatePreview(); saveData(); };
+        fLocal.appendChild(iLocal); grid.appendChild(fLocal);
+
+        const fAtende = document.createElement('div');
+        fAtende.innerHTML = '<label>Atende</label>';
+        const iAtende = document.createElement('input'); iAtende.type = 'text'; iAtende.value = ent.atende || '';
+        iAtende.oninput = (e) => { ent.atende = e.target.value; updatePreview(); saveData(); };
+        fAtende.appendChild(iAtende); grid.appendChild(fAtende);
+
+        eDiv.appendChild(grid);
+        body.appendChild(eDiv);
+      });
+
+      const addBtn4 = document.createElement('button'); addBtn4.textContent = '+ Adicionar Linha'; addBtn4.style.marginTop = '4px';
+      addBtn4.onclick = () => { sec.entries.push({ data: '', hora: '', local: '', atende: '' }); renderSections(); updatePreview(); saveData(); };
+      body.appendChild(addBtn4);
     } else {
       // kind === 'lista'
       if (!sec.entries) sec.entries = [];
@@ -481,6 +528,51 @@ function buildDocumentHTML() {
         bodyHtml += `<td style="white-space:nowrap;">${escapeHTML(e.data)}</td>`;
         bodyHtml += `<td style="white-space:nowrap;">${escapeHTML(e.horario)}</td>`;
         bodyHtml += `<td style="text-align:left; white-space:pre-line;">${escapeHTML(e.atendentes)}</td>`;
+        bodyHtml += `</tr>`;
+      });
+      bodyHtml += `</tbody></table></div>`;
+      return;
+    }
+
+    if (kind === 'lista4') {
+      const entries = sec.entries || [];
+      bodyHtml += `<div class="bloco">`;
+      bodyHtml += `<div class="sec-title">${escapeHTML(sec.title).toUpperCase()}</div>`;
+      if (entries.length === 0) {
+        bodyHtml += `<div style="padding:2px 0; color:#666;">(Nenhuma linha adicionada)</div>`;
+      }
+      entries.forEach(e => {
+        const dataTxt = fmtDateFull(e.data);
+        const horaTxt = e.hora ? escapeHTML(e.hora) + 'h' : '';
+        const localTxt = escapeHTML(e.local || '');
+        const atendeTxt = escapeHTML(e.atende || '');
+        bodyHtml += `<div class="lista-row">`;
+        if (dataTxt) bodyHtml += `<span class="l-data">${dataTxt}</span><span class="l-leader"></span>`;
+        if (horaTxt) bodyHtml += `<span class="l-hora">${horaTxt}</span><span class="l-leader"></span>`;
+        if (localTxt) bodyHtml += `<span class="l-local">${localTxt}</span><span class="l-leader"></span>`;
+        bodyHtml += `${atendeTxt}`;
+        bodyHtml += `</div>`;
+      });
+      bodyHtml += `</div>`;
+      return;
+    }
+
+    if (kind === 'tabelaLista') {
+      const entries = sec.entries || [];
+      bodyHtml += `<div class="bloco">`;
+      bodyHtml += `<div class="sec-title">${escapeHTML(sec.title).toUpperCase()}</div>`;
+      bodyHtml += `<table class="grid-table"><thead><tr>
+        <th>Data</th><th>Hora</th><th>Local</th><th>Atende</th>
+      </tr></thead><tbody>`;
+      if (entries.length === 0) {
+        bodyHtml += `<tr><td colspan="4" style="padding:6px; color:#666;">(Nenhuma linha adicionada)</td></tr>`;
+      }
+      entries.forEach(e => {
+        bodyHtml += `<tr>`;
+        bodyHtml += `<td style="white-space:nowrap;">${fmtDateFull(e.data)}</td>`;
+        bodyHtml += `<td style="white-space:nowrap;">${e.hora ? escapeHTML(e.hora) + 'h' : ''}</td>`;
+        bodyHtml += `<td>${escapeHTML(e.local)}</td>`;
+        bodyHtml += `<td>${escapeHTML(e.atende)}</td>`;
         bodyHtml += `</tr>`;
       });
       bodyHtml += `</tbody></table></div>`;
