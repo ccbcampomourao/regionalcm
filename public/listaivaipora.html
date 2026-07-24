@@ -580,9 +580,9 @@ function buildDocumentHTML() {
         const localTxt = escapeHTML(e.local || '');
         const atendeTxt = escapeHTML(e.atende || '');
         bodyHtml += `<div class="lista-row">`;
-        if (dataTxt) bodyHtml += `<span class="l-data">${dataTxt}</span><span class="l-leader"></span>`;
-        if (horaTxt) bodyHtml += `<span class="l-hora">${horaTxt}</span><span class="l-leader"></span>`;
-        if (localTxt) bodyHtml += `<span class="l-local">${localTxt}</span><span class="l-leader"></span>`;
+        bodyHtml += `<span class="l-cell l-data-cell"><span class="l-txt">${dataTxt}</span><span class="l-fill"></span></span>`;
+        bodyHtml += `<span class="l-cell l-hora-cell"><span class="l-txt">${horaTxt}</span><span class="l-fill"></span></span>`;
+        bodyHtml += `<span class="l-cell l-local-cell"><span class="l-txt">${localTxt}</span><span class="l-fill"></span></span>`;
         bodyHtml += `${atendeTxt}`;
         bodyHtml += `</div>`;
       });
@@ -624,8 +624,8 @@ function buildDocumentHTML() {
       const horaTxt = e.hora ? escapeHTML(e.hora) + 'h' : '';
       const texto = escapeHTML(e.texto || '').replace(/\n/g, ' ');
       bodyHtml += `<div class="lista-row">`;
-      if (dataTxt) bodyHtml += `<span class="l-data">${dataTxt}</span><span class="l-leader"></span>`;
-      if (horaTxt) bodyHtml += `<span class="l-hora">${horaTxt}</span><span class="l-leader"></span>`;
+      bodyHtml += `<span class="l-cell l-data-cell"><span class="l-txt">${dataTxt}</span><span class="l-fill"></span></span>`;
+      bodyHtml += `<span class="l-cell l-hora-cell"><span class="l-txt">${horaTxt}</span><span class="l-fill"></span></span>`;
       bodyHtml += `${texto}`;
       bodyHtml += `</div>`;
     });
@@ -710,8 +710,13 @@ function buildDocumentHTML() {
     .sec-title { font-weight: bold; font-size: 11.5px; margin-bottom: 4px; text-decoration: underline; }
 
     .lista-row { font-size: 10.5px; line-height: 1.5; text-align: justify; margin-bottom: 1px; }
-    .l-data, .l-hora { font-weight: bold; white-space: nowrap; }
-    .l-leader { display: inline-block; width: 22px; border-bottom: 1px dotted #000; margin: 0 3px 2px; }
+    .l-cell { display: inline-flex; align-items: baseline; vertical-align: baseline; }
+    .l-txt { white-space: nowrap; flex: 0 0 auto; }
+    .l-fill { flex: 1 1 auto; border-bottom: 1px dotted #000; margin: 0 3px 2px; min-width: 3px; }
+    .l-data-cell { width: 24mm; }
+    .l-hora-cell { width: 15mm; }
+    .l-local-cell { width: 36mm; }
+    .l-data .l-txt, .l-hora .l-txt { font-weight: bold; }
 
     .texto-obs { font-size: 10.5px; font-weight: bold; text-align: justify; line-height: 1.4; }
 
