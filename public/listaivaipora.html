@@ -468,18 +468,36 @@ function renderSections() {
   });
 }
 
-/* Deixa a 1ª letra de cada palavra maiúscula e o resto minúsculo,
-   exceto os conectivos (e, a, de, da, o), que ficam sempre minúsculos
-   (menos quando são a 1ª palavra do texto ou de uma nova linha). */
-const CONECTIVOS_MINUSCULOS = new Set(['e', 'a', 'de', 'da', 'o']);
+/* Deixa a 1ª letra de cada palavra maiúscula e o resto minúsculo.
+   Exceções:
+   - conectivos (e, a, o, de, da, do, em, no, na, com, para, etc.) ficam sempre
+     minúsculos, menos quando são a 1ª palavra do texto, de uma nova linha,
+     ou vêm logo depois de "/" "(" ")".
+   - palavras com mais de 1 letra maiúscula (siglas/abreviações, ex: CCB, PIX, SP)
+     são mantidas exatamente como foram digitadas.
+   - "/" "(" ")" são tratados como separadores de palavra, sem precisar digitar espaço. */
+const CONECTIVOS_MINUSCULOS = new Set([
+  'e', 'a', 'o', 'as', 'os', 'de', 'da', 'do', 'das', 'dos',
+  'em', 'no', 'na', 'nos', 'nas', 'um', 'uma', 'uns', 'umas',
+  'com', 'por', 'para', 'à', 'às', 'ao', 'aos', 'ou', 'que'
+]);
 function capitalizarTexto(str) {
   if (!str) return str;
-  const tokens = str.split(/(\s+)/);
+  const tokens = str.split(/(\s+|[/()])/);
   let novoInicio = true;
   return tokens.map(tok => {
     if (tok === '') return tok;
     if (/^\s+$/.test(tok)) {
       if (tok.indexOf('\n') !== -1) novoInicio = true;
+      return tok;
+    }
+    if (tok === '/' || tok === '(' || tok === ')') {
+      return tok;
+    }
+    const maiusculas = (tok.match(/[A-ZÀ-Ý]/g) || []).length;
+    if (maiusculas > 1) {
+      // parece sigla/abreviação (ex: CCB, PIX, SP) - mantém como digitado
+      novoInicio = false;
       return tok;
     }
     const lower = tok.toLowerCase();
