@@ -657,9 +657,10 @@ function buildDocumentHTML() {
        para nunca sumir na impressão/PDF, mesmo se a página crescer. */
     .list-wrapper {
       position: relative;
-      height: 290mm;
-      min-height: 290mm;
+      height: 285mm;
+      min-height: 285mm;
       padding: 5mm;
+      box-sizing: border-box;
       display: flex;
       flex-direction: column;
       overflow: hidden;
