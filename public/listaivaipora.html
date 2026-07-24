@@ -126,10 +126,10 @@
     </div>
 
     <div class="row-grid" style="grid-template-columns: 1fr 1fr;">
-      <div><label>Endereço da Igreja</label><input type="text" id="meta_endereco" placeholder="Av. Paraná, 535 – Centro" oninput="updateMeta('endereco', this.value)"></div>
+      <div><label>Endereço da Igreja</label><input type="text" id="meta_endereco" placeholder="Av. Paraná, 535 – Centro" oninput="updateMeta('endereco', this.value)" onblur="this.value = capitalizarTexto(this.value); updateMeta('endereco', this.value);"></div>
       <div><label>Data da Lista</label><input type="date" id="meta_data" oninput="updateMeta('data', this.value)"></div>
       <div><label>Título (Ex: LISTA DE SERVIÇOS)</label><input type="text" id="meta_titulo" oninput="updateMeta('titulo', this.value)"></div>
-      <div><label>Rodapé (Ex: Ivaiporã, 06 de Julho de 2026.)</label><input type="text" id="meta_rodape" oninput="updateMeta('rodape', this.value)"></div>
+      <div><label>Rodapé (Ex: Ivaiporã, 06 de Julho de 2026.)</label><input type="text" id="meta_rodape" oninput="updateMeta('rodape', this.value)" onblur="this.value = capitalizarTexto(this.value); updateMeta('rodape', this.value);"></div>
     </div>
 
     <div style="margin-bottom: 12px; padding-top: 10px; border-top: 1px solid var(--line);">
@@ -317,6 +317,7 @@ function renderSections() {
       ta.style.cssText = 'width:100%; min-height:100px; border:1.5px solid var(--line); border-radius:8px; padding:8px; font-size:13px;';
       ta.value = sec.texto || '';
       ta.oninput = (e) => { sec.texto = e.target.value; updatePreview(); saveData(); };
+      ta.onblur = (e) => { sec.texto = capitalizarTexto(e.target.value); e.target.value = sec.texto; updatePreview(); saveData(); };
       body.appendChild(ta);
     } else if (kind === 'tabela4') {
       if (!sec.entries) sec.entries = [];
@@ -335,6 +336,7 @@ function renderSections() {
         fLocal.innerHTML = '<label>Localidade</label>';
         const iLocal = document.createElement('input'); iLocal.type = 'text'; iLocal.value = ent.local || '';
         iLocal.oninput = (e) => { ent.local = e.target.value; updatePreview(); saveData(); };
+        iLocal.onblur = (e) => { ent.local = capitalizarTexto(e.target.value); e.target.value = ent.local; updatePreview(); saveData(); };
         fLocal.appendChild(iLocal); grid.appendChild(fLocal);
 
         const fData = document.createElement('div');
@@ -357,6 +359,7 @@ function renderSections() {
         taAtende.style.cssText = 'width:100%; min-height:60px; border:1.5px solid var(--line); border-radius:8px; padding:7px 9px; font-size:13px;';
         taAtende.value = ent.atendentes || '';
         taAtende.oninput = (e) => { ent.atendentes = e.target.value; updatePreview(); saveData(); };
+        taAtende.onblur = (e) => { ent.atendentes = capitalizarTexto(e.target.value); e.target.value = ent.atendentes; updatePreview(); saveData(); };
         fAtende.appendChild(taAtende);
         eDiv.appendChild(fAtende);
 
@@ -396,12 +399,14 @@ function renderSections() {
         fLocal.innerHTML = '<label>Local</label>';
         const iLocal = document.createElement('input'); iLocal.type = 'text'; iLocal.value = ent.local || '';
         iLocal.oninput = (e) => { ent.local = e.target.value; updatePreview(); saveData(); };
+        iLocal.onblur = (e) => { ent.local = capitalizarTexto(e.target.value); e.target.value = ent.local; updatePreview(); saveData(); };
         fLocal.appendChild(iLocal); grid.appendChild(fLocal);
 
         const fAtende = document.createElement('div');
         fAtende.innerHTML = '<label>Atende</label>';
         const iAtende = document.createElement('input'); iAtende.type = 'text'; iAtende.value = ent.atende || '';
         iAtende.oninput = (e) => { ent.atende = e.target.value; updatePreview(); saveData(); };
+        iAtende.onblur = (e) => { ent.atende = capitalizarTexto(e.target.value); e.target.value = ent.atende; updatePreview(); saveData(); };
         fAtende.appendChild(iAtende); grid.appendChild(fAtende);
 
         eDiv.appendChild(grid);
@@ -446,6 +451,7 @@ function renderSections() {
         taTexto.style.cssText = 'width:100%; min-height:60px; border:1.5px solid var(--line); border-radius:8px; padding:7px 9px; font-size:13px;';
         taTexto.value = ent.texto || '';
         taTexto.oninput = (e) => { ent.texto = e.target.value; updatePreview(); saveData(); };
+        taTexto.onblur = (e) => { ent.texto = capitalizarTexto(e.target.value); e.target.value = ent.texto; updatePreview(); saveData(); };
         fTexto.appendChild(taTexto);
         eDiv.appendChild(fTexto);
 
@@ -460,6 +466,32 @@ function renderSections() {
     secDiv.appendChild(body);
     container.appendChild(secDiv);
   });
+}
+
+/* Deixa a 1ª letra de cada palavra maiúscula e o resto minúsculo,
+   exceto os conectivos (e, a, de, da, o), que ficam sempre minúsculos
+   (menos quando são a 1ª palavra do texto ou de uma nova linha). */
+const CONECTIVOS_MINUSCULOS = new Set(['e', 'a', 'de', 'da', 'o']);
+function capitalizarTexto(str) {
+  if (!str) return str;
+  const tokens = str.split(/(\s+)/);
+  let novoInicio = true;
+  return tokens.map(tok => {
+    if (tok === '') return tok;
+    if (/^\s+$/.test(tok)) {
+      if (tok.indexOf('\n') !== -1) novoInicio = true;
+      return tok;
+    }
+    const lower = tok.toLowerCase();
+    let out;
+    if (!novoInicio && CONECTIVOS_MINUSCULOS.has(lower)) {
+      out = lower;
+    } else {
+      out = lower.charAt(0).toUpperCase() + lower.slice(1);
+    }
+    novoInicio = false;
+    return out;
+  }).join('');
 }
 
 function fmtDateFull(d){
