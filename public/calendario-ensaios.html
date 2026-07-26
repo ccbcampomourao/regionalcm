@@ -161,13 +161,13 @@
 
 <script>
 const DIAS_SEMANA = [
-  { valor: 0, nome: 'Domingo', genero: 'o' },
-  { valor: 1, nome: 'Segunda-feira', genero: 'a' },
-  { valor: 2, nome: 'Terça-feira', genero: 'a' },
-  { valor: 3, nome: 'Quarta-feira', genero: 'a' },
-  { valor: 4, nome: 'Quinta-feira', genero: 'a' },
-  { valor: 5, nome: 'Sexta-feira', genero: 'a' },
-  { valor: 6, nome: 'Sábado', genero: 'o' }
+  { valor: 0, nome: 'Domingo', genero: 'º' },
+  { valor: 1, nome: 'Segunda-feira', genero: 'ª' },
+  { valor: 2, nome: 'Terça-feira', genero: 'ª' },
+  { valor: 3, nome: 'Quarta-feira', genero: 'ª' },
+  { valor: 4, nome: 'Quinta-feira', genero: 'ª' },
+  { valor: 5, nome: 'Sexta-feira', genero: 'ª' },
+  { valor: 6, nome: 'Sábado', genero: 'º' }
 ];
 const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 const MESES_EXTENSO = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
@@ -526,7 +526,7 @@ function buildDocumentHTML() {
     table.cal-table th.th-nome { width: 52mm; }
     table.cal-table td.col-nome { text-align: center; font-weight: bold; white-space: nowrap; }
     table.cal-table td.col-x { color: #999; }
-    table.cal-table td.regra-row { text-align: left; background: #d9d9d9; color: #444; font-weight: bold; font-size: 8.5px; letter-spacing: .02em; padding: 2px 4px; }
+    table.cal-table td.regra-row { text-align: center; background: #d9d9d9; color: #000; font-weight: bold; font-size: 10px; letter-spacing: .02em; padding: 2px 4px; }
     .grupo-tabela { margin-bottom: 4mm; break-inside: avoid; page-break-inside: avoid; }
     .grupo-tabela:last-child { margin-bottom: 0; }
 
