@@ -119,7 +119,10 @@
       <div><label>Região/Subtítulo</label><input type="text" id="meta_subtitulo" placeholder="CAMPO MOURÃO - PR" oninput="updateMeta('subtitulo', this.value)"></div>
       <div><label>Ano</label><input type="number" id="meta_ano" placeholder="2026" oninput="updateMeta('ano', this.value)"></div>
     </div>
-    <div class="row-grid" style="grid-template-columns: 1fr 2fr;">
+    <div class="row-grid" style="grid-template-columns: 1.4fr 1fr 2fr;">
+      <div><label>Mês inicial (para atualizações no meio do ano)</label>
+        <select id="meta_mesInicial" onchange="updateMeta('mesInicial', this.value)"></select>
+      </div>
       <div><label>Horário padrão</label><input type="text" id="meta_horarioPadrao" placeholder="19:30" oninput="updateMeta('horarioPadrao', this.value)"></div>
       <div><label>Atualizado em (rodapé)</label><input type="text" id="meta_atualizado" placeholder="julho/2026" oninput="updateMeta('atualizado', this.value)"></div>
     </div>
@@ -145,13 +148,13 @@
 
 <script>
 const DIAS_SEMANA = [
-  { valor: 0, nome: 'Domingo', genero: 'º' },
-  { valor: 1, nome: 'Segunda-feira', genero: 'ª' },
-  { valor: 2, nome: 'Terça-feira', genero: 'ª' },
-  { valor: 3, nome: 'Quarta-feira', genero: 'ª' },
-  { valor: 4, nome: 'Quinta-feira', genero: 'ª' },
-  { valor: 5, nome: 'Sexta-feira', genero: 'ª' },
-  { valor: 6, nome: 'Sábado', genero: 'º' }
+  { valor: 0, nome: 'Domingo', genero: 'o' },
+  { valor: 1, nome: 'Segunda-feira', genero: 'a' },
+  { valor: 2, nome: 'Terça-feira', genero: 'a' },
+  { valor: 3, nome: 'Quarta-feira', genero: 'a' },
+  { valor: 4, nome: 'Quinta-feira', genero: 'a' },
+  { valor: 5, nome: 'Sexta-feira', genero: 'a' },
+  { valor: 6, nome: 'Sábado', genero: 'o' }
 ];
 const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 const MESES_EXTENSO = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
@@ -159,8 +162,9 @@ const MESES_EXTENSO = ['janeiro','fevereiro','março','abril','maio','junho','ju
 let STATE = {
   meta: {
     titulo: "CALENDÁRIO DOS ENSAIOS LOCAIS",
-    subtitulo: "CAMPO MOURÃO",
-    ano: "2026",
+    subtitulo: "",
+    ano: "",
+    mesInicial: 1,
     horarioPadrao: "19:30",
     atualizado: ""
   },
@@ -293,14 +297,24 @@ function mesAplica(periodicidade, mes) {
   return true;
 }
 
-function calcularLinha(loc, ano) {
-  const meses = [];
-  for (let mes = 1; mes <= 12; mes++) {
-    if (!mesAplica(loc.periodicidade, mes)) { meses.push('X'); continue; }
-    const dia = nthWeekdayOfMonth(ano, mes, loc.diaSemana, loc.ordinal);
-    meses.push(dia === null ? 'X' : String(dia));
+/* Gera a sequência de 12 meses a partir do mês inicial escolhido.
+   Quando passa de dezembro, "vira" para o ano seguinte (anoOffset = 1). */
+/* Gera a sequência de meses do mês inicial escolhido até dezembro do
+   mesmo ano (não avança para o ano seguinte). */
+function sequenciaMeses(mesInicial) {
+  const seq = [];
+  for (let mes = mesInicial; mes <= 12; mes++) {
+    seq.push({ mes, anoOffset: 0 });
   }
-  return meses;
+  return seq;
+}
+
+function calcularLinha(loc, ano, seqMeses) {
+  return seqMeses.map(({ mes, anoOffset }) => {
+    if (!mesAplica(loc.periodicidade, mes)) return 'X';
+    const dia = nthWeekdayOfMonth(ano + anoOffset, mes, loc.diaSemana, loc.ordinal);
+    return dia === null ? 'X' : String(dia);
+  });
 }
 
 function escapeHTML(str) {
@@ -311,6 +325,9 @@ function buildDocumentHTML() {
   const m = STATE.meta;
   const ano = parseInt(m.ano, 10) || new Date().getFullYear();
   const horarioPadrao = (m.horarioPadrao || '19:30').trim();
+  const mesInicial = Number(m.mesInicial) || 1;
+  const seqMeses = sequenciaMeses(mesInicial);
+  const colTotal = seqMeses.length + 1;
 
   // Agrupa as localidades pela regra (dia da semana + ordinal), na ordem
   // Domingo..Sábado e, dentro do dia, 1ª..5ª - igual ao modelo do PDF.
@@ -331,10 +348,10 @@ function buildDocumentHTML() {
   chavesOrdenadas.forEach(chave => {
     const [diaSemana, ordinal] = chave.split('-').map(Number);
     const rotuloRegra = `${ordinalTexto(ordinal, diaSemana)} ${DIAS_SEMANA.find(d => d.valor === diaSemana).nome}`.toUpperCase();
-    linhasHtml += `<tr><td colspan="13" class="regra-row">${escapeHTML(rotuloRegra)}</td></tr>`;
+    linhasHtml += `<tr><td colspan="${colTotal}" class="regra-row">${escapeHTML(rotuloRegra)}</td></tr>`;
 
     grupos.get(chave).forEach(loc => {
-      const meses = calcularLinha(loc, ano);
+      const meses = calcularLinha(loc, ano, seqMeses);
       const horarioLoc = (loc.horario || '').trim();
       const nomeExibido = horarioLoc && horarioLoc !== horarioPadrao
         ? `${escapeHTML(loc.nome)} (${escapeHTML(horarioLoc)}h)`
@@ -348,7 +365,7 @@ function buildDocumentHTML() {
   });
 
   if (STATE.localidades.length === 0) {
-    linhasHtml = `<tr><td colspan="13" style="padding:10px; color:#666;">(Nenhuma localidade adicionada)</td></tr>`;
+    linhasHtml = `<tr><td colspan="${colTotal}" style="padding:10px; color:#666;">(Nenhuma localidade adicionada)</td></tr>`;
   }
 
   // Observação fixa sobre o horário padrão, mostrada no topo. As exceções de horário
@@ -401,7 +418,7 @@ function buildDocumentHTML() {
     table.cal-table th.th-nome { width: 52mm; }
     table.cal-table td.col-nome { text-align: center; font-weight: bold; white-space: nowrap; }
     table.cal-table td.col-x { color: #999; }
-    table.cal-table td.regra-row { text-align: center; background: #d9d9d9; color: #000; font-weight: bold; font-size: 10px; letter-spacing: .02em; padding: 2px 4px; }
+    table.cal-table td.regra-row { text-align: left; background: #d9d9d9; color: #444; font-weight: bold; font-size: 8.5px; letter-spacing: .02em; padding: 2px 4px; }
 
     .rodape { text-align: right; margin-top: 6px; font-size: 9px; font-style: italic; }
 
@@ -419,7 +436,7 @@ function buildDocumentHTML() {
       <div class="obs-topo">${obsHorario}</div>
 
       <table class="cal-table">
-        <thead><tr><th class="th-nome">Localidade</th>${MESES.map(mes => `<th>${mes}</th>`).join('')}</tr></thead>
+        <thead><tr><th class="th-nome">Localidade</th>${seqMeses.map(({ mes, anoOffset }) => `<th>${MESES[mes - 1]}${anoOffset ? '/' + String(ano + anoOffset).slice(2) : ''}</th>`).join('')}</tr></thead>
         <tbody>${linhasHtml}</tbody>
       </table>
 
@@ -506,6 +523,7 @@ function resetAll() {
       titulo: "CALENDÁRIO DOS ENSAIOS LOCAIS",
       subtitulo: "",
       ano: "",
+      mesInicial: 1,
       horarioPadrao: "19:30",
       atualizado: ""
     },
@@ -520,6 +538,17 @@ function init() {
   document.getElementById('meta_ano').value = STATE.meta.ano || '';
   document.getElementById('meta_horarioPadrao').value = STATE.meta.horarioPadrao || '19:30';
   document.getElementById('meta_atualizado').value = STATE.meta.atualizado || '';
+
+  const selMes = document.getElementById('meta_mesInicial');
+  selMes.innerHTML = '';
+  MESES_EXTENSO.forEach((nome, idx) => {
+    const opt = document.createElement('option');
+    opt.value = idx + 1;
+    opt.textContent = nome.charAt(0).toUpperCase() + nome.slice(1);
+    if (Number(STATE.meta.mesInicial || 1) === idx + 1) opt.selected = true;
+    selMes.appendChild(opt);
+  });
+
   renderLocalidades();
   updatePreview();
 }
