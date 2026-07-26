@@ -409,7 +409,7 @@ function escapeHTML(str) {
   return String(str || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-function celulasMesAgrupadas(meses) {
+function celulasMesAgrupadas(meses, rowspan) {
   let html = '';
   let i = 0;
   while (i < meses.length) {
@@ -417,7 +417,10 @@ function celulasMesAgrupadas(meses) {
     while (j + 1 < meses.length && meses[j + 1] === meses[i]) j++;
     const span = j - i + 1;
     const v = meses[i];
-    html += `<td${span > 1 ? ` colspan="${span}"` : ''} class="${v === 'X' ? 'col-x' : ''}">${v}</td>`;
+    const attrs = [];
+    if (span > 1) attrs.push(`colspan="${span}"`);
+    if (rowspan && rowspan > 1) attrs.push(`rowspan="${rowspan}"`);
+    html += `<td${attrs.length ? ' ' + attrs.join(' ') : ''} class="${v === 'X' ? 'col-x' : ''}">${v}</td>`;
     i = j + 1;
   }
   return html;
@@ -444,14 +447,23 @@ function buildDocumentHTML() {
     const rotuloRegra = rotuloSecao(secao).toUpperCase();
     let linhasGrupo = `<tr><td colspan="${colTotal}" class="regra-row">${escapeHTML(rotuloRegra)}</td></tr>`;
 
-    secao.localidades.forEach(loc => {
-      const meses = calcularLinha(secao, ano, seqMeses);
+    // Todas as localidades de uma mesma seção seguem a mesma regra (mesmo
+    // dia calculado em cada mês). Por isso as células dos meses são
+    // calculadas uma única vez e mescladas verticalmente (rowspan) ao longo
+    // de todas as linhas de localidade da seção, em vez de repetir o mesmo
+    // número em cada linha.
+    const meses = calcularLinha(secao, ano, seqMeses);
+    const totalLocaisSecao = secao.localidades.length;
+
+    secao.localidades.forEach((loc, lIdx) => {
       const horarioLoc = (loc.horario || '').trim();
       const nomeExibido = horarioLoc && horarioLoc !== horarioPadrao
         ? `${escapeHTML(loc.nome)} (${escapeHTML(horarioLoc)}h)`
         : escapeHTML(loc.nome);
       linhasGrupo += `<tr><td class="col-nome">${nomeExibido}</td>`;
-      linhasGrupo += celulasMesAgrupadas(meses);
+      if (lIdx === 0) {
+        linhasGrupo += celulasMesAgrupadas(meses, totalLocaisSecao);
+      }
       linhasGrupo += `</tr>`;
     });
 
