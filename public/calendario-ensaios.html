@@ -87,6 +87,19 @@
   .remove-btn { position: absolute; top: 6px; right: 6px; padding: 2px 8px; font-size: 11px; font-weight: bold; background: #fff; color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; cursor: pointer;}
   .regra-preview { font-size: 11.5px; color: var(--brass); font-weight: 700; margin-top: 6px; }
 
+  .section { border: 1px solid var(--line); border-radius: 12px; margin-bottom: 14px; background: #fff; overflow:hidden; transition: 0.2s; }
+  .section.over { border: 2px dashed var(--brass); opacity: 0.7; }
+  .drag-handle { cursor: grab; font-size: 18px; color: #9a9284; padding-right: 8px; user-select: none; }
+  .drag-handle:active { cursor: grabbing; }
+  .section-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #f6f2e7; flex-wrap: wrap; gap: 8px;}
+  .section-body { padding: 12px; display: none; }
+  .section.open .section-body { display: block; }
+  .toggle-chevron { cursor: pointer; font-size: 13px; color: var(--primary-2); user-select: none; padding: 2px 6px; border-radius: 6px; transition: transform 0.15s; }
+  .toggle-chevron:hover { background: rgba(169,125,61,.15); }
+  .section.open .toggle-chevron { transform: rotate(90deg); }
+  .localidade-item { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+  .localidade-item input { flex: 1; }
+
   /* ======== PREVIEW PÁGINA ÚNICA (paisagem) ======== */
   #previewHost { flex: 1.5; position: sticky; top: 16px; height: calc(100vh - 32px); display: flex; flex-direction: column; min-width: 480px;}
   #previewScaleWrapper { flex: 1; overflow-y: auto; background: #525659; border: 1px solid var(--line); border-radius: 8px; padding: 10px 0; }
@@ -120,7 +133,7 @@
       <div><label>Ano</label><input type="number" id="meta_ano" placeholder="2026" oninput="updateMeta('ano', this.value)"></div>
     </div>
     <div class="row-grid" style="grid-template-columns: 1.4fr 1fr 2fr;">
-      <div><label>Mês inicial</label>
+      <div><label>Mês inicial (para atualizações no meio do ano)</label>
         <select id="meta_mesInicial" onchange="updateMeta('mesInicial', this.value)"></select>
       </div>
       <div><label>Horário padrão</label><input type="text" id="meta_horarioPadrao" placeholder="19:30" oninput="updateMeta('horarioPadrao', this.value)"></div>
@@ -128,10 +141,10 @@
     </div>
 
     <div style="margin-bottom: 10px; padding-top: 6px; border-top: 1px solid var(--line);">
-      <button onclick="addLocalidade()">+ Adicionar Localidade</button>
+      <button onclick="addSecao()">+ Adicionar Seção (regra do dia)</button>
     </div>
 
-    <div id="localidadesContainer"></div>
+    <div id="secoesContainer"></div>
   </div>
 
   <div class="panel" id="previewHost">
@@ -148,13 +161,13 @@
 
 <script>
 const DIAS_SEMANA = [
-  { valor: 0, nome: 'Domingo', genero: 'º' },
-  { valor: 1, nome: 'Segunda-feira', genero: 'ª' },
-  { valor: 2, nome: 'Terça-feira', genero: 'ª' },
-  { valor: 3, nome: 'Quarta-feira', genero: 'ª' },
-  { valor: 4, nome: 'Quinta-feira', genero: 'ª' },
-  { valor: 5, nome: 'Sexta-feira', genero: 'ª' },
-  { valor: 6, nome: 'Sábado', genero: 'º' }
+  { valor: 0, nome: 'Domingo', genero: 'o' },
+  { valor: 1, nome: 'Segunda-feira', genero: 'a' },
+  { valor: 2, nome: 'Terça-feira', genero: 'a' },
+  { valor: 3, nome: 'Quarta-feira', genero: 'a' },
+  { valor: 4, nome: 'Quinta-feira', genero: 'a' },
+  { valor: 5, nome: 'Sexta-feira', genero: 'a' },
+  { valor: 6, nome: 'Sábado', genero: 'o' }
 ];
 const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 const MESES_EXTENSO = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
@@ -168,7 +181,7 @@ let STATE = {
     horarioPadrao: "19:30",
     atualizado: ""
   },
-  localidades: []
+  secoes: []
 };
 
 function updateMeta(key, val) {
@@ -177,9 +190,9 @@ function updateMeta(key, val) {
   saveData();
 }
 
-function addLocalidade() {
-  STATE.localidades.push({ nome: '', horario: '', ordinal: 1, diaSemana: 1, periodicidade: 'todos' });
-  renderLocalidades(); updatePreview(); saveData();
+function addSecao() {
+  STATE.secoes.push({ ordinal: 1, diaSemana: 1, periodicidade: 'todos', isOpen: true, localidades: [] });
+  renderSecoes(); updatePreview(); saveData();
 }
 
 function ordinalTexto(ordinal, diaSemanaValor) {
@@ -187,96 +200,159 @@ function ordinalTexto(ordinal, diaSemanaValor) {
   return `${ordinal}${dia.genero}`;
 }
 
-function renderLocalidades() {
-  const container = document.getElementById('localidadesContainer');
+function rotuloSecao(secao) {
+  const dia = DIAS_SEMANA.find(d => d.valor === Number(secao.diaSemana)) || DIAS_SEMANA[1];
+  return `${ordinalTexto(secao.ordinal, secao.diaSemana)} ${dia.nome}`;
+}
+
+let dragSrcEl = null;
+
+function renderSecoes() {
+  const container = document.getElementById('secoesContainer');
   container.innerHTML = '';
 
-  STATE.localidades.forEach((loc, idx) => {
-    const eDiv = document.createElement('div');
-    eDiv.className = 'entry';
+  STATE.secoes.forEach((secao, sIdx) => {
+    if (typeof secao.isOpen === 'undefined') secao.isOpen = true;
+    if (!secao.localidades) secao.localidades = [];
 
-    const rmBtn = document.createElement('button'); rmBtn.className = 'remove-btn'; rmBtn.textContent = '✕ Remover';
-    rmBtn.onclick = () => { STATE.localidades.splice(idx, 1); renderLocalidades(); updatePreview(); saveData(); };
-    eDiv.appendChild(rmBtn);
+    const secDiv = document.createElement('div');
+    secDiv.className = secao.isOpen ? 'section open' : 'section';
+    secDiv.draggable = true;
+    secDiv.dataset.index = sIdx;
+
+    secDiv.addEventListener('dragstart', function (e) {
+      dragSrcEl = this;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/html', this.innerHTML);
+      this.style.opacity = '0.4';
+    });
+    secDiv.addEventListener('dragover', function (e) {
+      if (e.preventDefault) e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      return false;
+    });
+    secDiv.addEventListener('dragenter', function () { this.classList.add('over'); });
+    secDiv.addEventListener('dragleave', function () { this.classList.remove('over'); });
+    secDiv.addEventListener('drop', function (e) {
+      if (e.stopPropagation) e.stopPropagation();
+      if (dragSrcEl !== this) {
+        const fromIdx = parseInt(dragSrcEl.dataset.index);
+        const toIdx = parseInt(this.dataset.index);
+        const moved = STATE.secoes.splice(fromIdx, 1)[0];
+        STATE.secoes.splice(toIdx, 0, moved);
+        renderSecoes(); updatePreview(); saveData();
+      }
+      return false;
+    });
+    secDiv.addEventListener('dragend', function () {
+      this.style.opacity = '1';
+      document.querySelectorAll('.section').forEach(el => el.classList.remove('over'));
+    });
+
+    // Cabeçalho da seção
+    const head = document.createElement('div');
+    head.className = 'section-head';
+
+    const titleWrap = document.createElement('div');
+    titleWrap.style.cssText = 'display:flex; gap:8px; align-items:center; flex:1;';
+    titleWrap.innerHTML = `<span class="drag-handle" title="Arraste para reordenar">☰</span><b id="rotulo-secao-${sIdx}">${sIdx + 1}. ${rotuloSecao(secao).toUpperCase()}</b>`;
+
+    const controls = document.createElement('div');
+    controls.style.cssText = 'display:flex; gap:4px; align-items:center;';
+
+    const toggleBtn = document.createElement('span');
+    toggleBtn.className = 'toggle-chevron';
+    toggleBtn.textContent = '▸';
+    toggleBtn.title = 'Mostrar/ocultar';
+    toggleBtn.onclick = () => { secao.isOpen = !secao.isOpen; renderSecoes(); saveData(); };
+    controls.appendChild(toggleBtn);
+
+    const rmBtn = document.createElement('button'); rmBtn.className = 'danger'; rmBtn.textContent = 'Excluir Seção';
+    rmBtn.onclick = () => { if (confirm('Excluir esta seção e suas localidades?')) { STATE.secoes.splice(sIdx, 1); renderSecoes(); updatePreview(); saveData(); } };
+    controls.appendChild(rmBtn);
+
+    head.appendChild(titleWrap);
+    head.appendChild(controls);
+    secDiv.appendChild(head);
+
+    // Corpo da seção
+    const body = document.createElement('div');
+    body.className = 'section-body';
 
     const grid = document.createElement('div');
-    grid.className = 'row-grid'; grid.style.gridTemplateColumns = '2fr 1fr'; grid.style.marginTop = '12px'; grid.style.marginBottom = '8px';
+    grid.className = 'row-grid'; grid.style.gridTemplateColumns = '1fr 1.4fr 1.2fr'; grid.style.marginBottom = '10px';
 
-    const fNome = document.createElement('div');
-    fNome.innerHTML = '<label>Localidade</label>';
-    const iNome = document.createElement('input'); iNome.type = 'text'; iNome.placeholder = 'Ex: Campo Mourão - Central'; iNome.value = loc.nome || '';
-    iNome.oninput = (e) => { loc.nome = e.target.value; updatePreview(); saveData(); };
-    fNome.appendChild(iNome); grid.appendChild(fNome);
-
-    const fHorario = document.createElement('div');
-    fHorario.innerHTML = '<label>Horário (deixe vazio p/ usar o padrão)</label>';
-    const iHorario = document.createElement('input'); iHorario.type = 'text'; iHorario.placeholder = STATE.meta.horarioPadrao || '19:30'; iHorario.value = loc.horario || '';
-    iHorario.oninput = (e) => { loc.horario = e.target.value; updatePreview(); saveData(); };
-    fHorario.appendChild(iHorario); grid.appendChild(fHorario);
-
-    eDiv.appendChild(grid);
-
-    const grid2 = document.createElement('div');
-    grid2.className = 'row-grid'; grid2.style.gridTemplateColumns = '1fr 1.4fr 1.2fr'; grid2.style.marginBottom = '0';
+    const atualizarRotulo = () => {
+      const el = document.getElementById(`rotulo-secao-${sIdx}`);
+      if (el) el.textContent = `${sIdx + 1}. ${rotuloSecao(secao).toUpperCase()}`;
+    };
 
     const fOrdinal = document.createElement('div');
     fOrdinal.innerHTML = '<label>Qual (ordem no mês)</label>';
     const sOrdinal = document.createElement('select');
     [1,2,3,4,5].forEach(n => {
-      const opt = document.createElement('option'); opt.value = n; opt.textContent = ordinalTexto(n, loc.diaSemana);
-      if (Number(loc.ordinal) === n) opt.selected = true;
+      const opt = document.createElement('option'); opt.value = n; opt.textContent = ordinalTexto(n, secao.diaSemana);
+      if (Number(secao.ordinal) === n) opt.selected = true;
       sOrdinal.appendChild(opt);
     });
-    sOrdinal.onchange = (e) => { loc.ordinal = Number(e.target.value); atualizarPreviewRegra(idx); updatePreview(); saveData(); };
-    fOrdinal.appendChild(sOrdinal); grid2.appendChild(fOrdinal);
+    sOrdinal.onchange = (e) => { secao.ordinal = Number(e.target.value); atualizarRotulo(); updatePreview(); saveData(); };
+    fOrdinal.appendChild(sOrdinal); grid.appendChild(fOrdinal);
 
     const fDia = document.createElement('div');
     fDia.innerHTML = '<label>Dia da semana</label>';
     const sDia = document.createElement('select');
     DIAS_SEMANA.forEach(d => {
       const opt = document.createElement('option'); opt.value = d.valor; opt.textContent = d.nome;
-      if (Number(loc.diaSemana) === d.valor) opt.selected = true;
+      if (Number(secao.diaSemana) === d.valor) opt.selected = true;
       sDia.appendChild(opt);
     });
     sDia.onchange = (e) => {
-      loc.diaSemana = Number(e.target.value);
-      // Atualiza os rótulos do select de ordinal (feminino/masculino) e o texto de prévia.
-      Array.from(sOrdinal.options).forEach(opt => { opt.textContent = ordinalTexto(opt.value, loc.diaSemana); });
-      atualizarPreviewRegra(idx);
+      secao.diaSemana = Number(e.target.value);
+      Array.from(sOrdinal.options).forEach(opt => { opt.textContent = ordinalTexto(opt.value, secao.diaSemana); });
+      atualizarRotulo();
       updatePreview(); saveData();
     };
-    fDia.appendChild(sDia); grid2.appendChild(fDia);
+    fDia.appendChild(sDia); grid.appendChild(fDia);
 
     const fPeriodicidade = document.createElement('div');
     fPeriodicidade.innerHTML = '<label>Periodicidade</label>';
     const sPeriodicidade = document.createElement('select');
     [['todos','Todos os meses'], ['impares','Meses ímpares (Jan, Mar, Mai...)'], ['pares','Meses pares (Fev, Abr, Jun...)']].forEach(([val, label]) => {
       const opt = document.createElement('option'); opt.value = val; opt.textContent = label;
-      if ((loc.periodicidade || 'todos') === val) opt.selected = true;
+      if ((secao.periodicidade || 'todos') === val) opt.selected = true;
       sPeriodicidade.appendChild(opt);
     });
-    sPeriodicidade.onchange = (e) => { loc.periodicidade = e.target.value; updatePreview(); saveData(); };
-    fPeriodicidade.appendChild(sPeriodicidade); grid2.appendChild(fPeriodicidade);
+    sPeriodicidade.onchange = (e) => { secao.periodicidade = e.target.value; updatePreview(); saveData(); };
+    fPeriodicidade.appendChild(sPeriodicidade); grid.appendChild(fPeriodicidade);
 
-    eDiv.appendChild(grid2);
+    body.appendChild(grid);
 
-    const previewRegra = document.createElement('div');
-    previewRegra.className = 'regra-preview';
-    previewRegra.id = `regra-preview-${idx}`;
-    previewRegra.textContent = `Regra: ${ordinalTexto(loc.ordinal, loc.diaSemana)} ${DIAS_SEMANA.find(d => d.valor === Number(loc.diaSemana)).nome.toLowerCase()}`;
-    eDiv.appendChild(previewRegra);
+    const listaLocalidades = document.createElement('div');
+    secao.localidades.forEach((loc, lIdx) => {
+      const item = document.createElement('div');
+      item.className = 'localidade-item';
 
-    container.appendChild(eDiv);
+      const iNome = document.createElement('input'); iNome.type = 'text'; iNome.placeholder = 'Ex: Campo Mourão - Central'; iNome.value = loc.nome || '';
+      iNome.oninput = (e) => { loc.nome = e.target.value; updatePreview(); saveData(); };
+
+      const iHorario = document.createElement('input'); iHorario.type = 'text'; iHorario.placeholder = STATE.meta.horarioPadrao || '19:30'; iHorario.style.flex = '0 0 90px'; iHorario.value = loc.horario || '';
+      iHorario.oninput = (e) => { loc.horario = e.target.value; updatePreview(); saveData(); };
+
+      const rm = document.createElement('button'); rm.className = 'danger'; rm.textContent = '✕';
+      rm.onclick = () => { secao.localidades.splice(lIdx, 1); renderSecoes(); updatePreview(); saveData(); };
+
+      item.appendChild(iNome); item.appendChild(iHorario); item.appendChild(rm);
+      listaLocalidades.appendChild(item);
+    });
+    body.appendChild(listaLocalidades);
+
+    const addLocBtn = document.createElement('button'); addLocBtn.textContent = '+ Adicionar Localidade'; addLocBtn.style.marginTop = '4px';
+    addLocBtn.onclick = () => { secao.localidades.push({ nome: '', horario: '' }); renderSecoes(); updatePreview(); saveData(); };
+    body.appendChild(addLocBtn);
+
+    secDiv.appendChild(body);
+    container.appendChild(secDiv);
   });
-}
-
-function atualizarPreviewRegra(idx) {
-  const loc = STATE.localidades[idx];
-  const el = document.getElementById(`regra-preview-${idx}`);
-  if (el && loc) {
-    const dia = DIAS_SEMANA.find(d => d.valor === Number(loc.diaSemana));
-    el.textContent = `Regra: ${ordinalTexto(loc.ordinal, loc.diaSemana)} ${dia.nome.toLowerCase()}`;
-  }
 }
 
 /* Calcula o dia do mês (1-31) da Nª ocorrência de um dia da semana no mês/ano dados.
@@ -309,10 +385,10 @@ function sequenciaMeses(mesInicial) {
   return seq;
 }
 
-function calcularLinha(loc, ano, seqMeses) {
+function calcularLinha(regra, ano, seqMeses) {
   return seqMeses.map(({ mes, anoOffset }) => {
-    if (!mesAplica(loc.periodicidade, mes)) return 'X';
-    const dia = nthWeekdayOfMonth(ano + anoOffset, mes, loc.diaSemana, loc.ordinal);
+    if (!mesAplica(regra.periodicidade, mes)) return 'X';
+    const dia = nthWeekdayOfMonth(ano + anoOffset, mes, regra.diaSemana, regra.ordinal);
     return dia === null ? 'X' : String(dia);
   });
 }
@@ -329,29 +405,17 @@ function buildDocumentHTML() {
   const seqMeses = sequenciaMeses(mesInicial);
   const colTotal = seqMeses.length + 1;
 
-  // Agrupa as localidades pela regra (dia da semana + ordinal), na ordem
-  // Domingo..Sábado e, dentro do dia, 1ª..5ª - igual ao modelo do PDF.
-  const grupos = new Map();
-  STATE.localidades.forEach(loc => {
-    const chave = `${loc.diaSemana}-${loc.ordinal}`;
-    if (!grupos.has(chave)) grupos.set(chave, []);
-    grupos.get(chave).push(loc);
-  });
-  const chavesOrdenadas = Array.from(grupos.keys()).sort((a, b) => {
-    const [diaA, ordA] = a.split('-').map(Number);
-    const [diaB, ordB] = b.split('-').map(Number);
-    if (diaA !== diaB) return diaA - diaB;
-    return ordA - ordB;
-  });
-
+  // Cada seção já representa um grupo (uma regra: ordinal + dia da semana +
+  // periodicidade). A ordem exibida é a mesma em que as seções aparecem no painel.
   let linhasHtml = '';
-  chavesOrdenadas.forEach(chave => {
-    const [diaSemana, ordinal] = chave.split('-').map(Number);
-    const rotuloRegra = `${ordinalTexto(ordinal, diaSemana)} ${DIAS_SEMANA.find(d => d.valor === diaSemana).nome}`.toUpperCase();
+  STATE.secoes.forEach(secao => {
+    if (!secao.localidades || secao.localidades.length === 0) return;
+
+    const rotuloRegra = rotuloSecao(secao).toUpperCase();
     linhasHtml += `<tr><td colspan="${colTotal}" class="regra-row">${escapeHTML(rotuloRegra)}</td></tr>`;
 
-    grupos.get(chave).forEach(loc => {
-      const meses = calcularLinha(loc, ano, seqMeses);
+    secao.localidades.forEach(loc => {
+      const meses = calcularLinha(secao, ano, seqMeses);
       const horarioLoc = (loc.horario || '').trim();
       const nomeExibido = horarioLoc && horarioLoc !== horarioPadrao
         ? `${escapeHTML(loc.nome)} (${escapeHTML(horarioLoc)}h)`
@@ -364,7 +428,8 @@ function buildDocumentHTML() {
     });
   });
 
-  if (STATE.localidades.length === 0) {
+  const totalLocalidades = STATE.secoes.reduce((acc, s) => acc + (s.localidades ? s.localidades.length : 0), 0);
+  if (totalLocalidades === 0) {
     linhasHtml = `<tr><td colspan="${colTotal}" style="padding:10px; color:#666;">(Nenhuma localidade adicionada)</td></tr>`;
   }
 
@@ -406,7 +471,7 @@ function buildDocumentHTML() {
       box-sizing: border-box;
     }
 
-   .doc-header { text-align: center; margin-bottom: 4px; }
+    .doc-header { text-align: center; margin-bottom: 4px; }
     .doc-header .ttl { font-weight: bold; font-size: 13px; }
     .doc-header .subttl { font-weight: bold; font-size: 11px; margin-top: 2px; }
 
@@ -418,7 +483,7 @@ function buildDocumentHTML() {
     table.cal-table th.th-nome { width: 52mm; }
     table.cal-table td.col-nome { text-align: center; font-weight: bold; white-space: nowrap; }
     table.cal-table td.col-x { color: #999; }
-    table.cal-table td.regra-row { text-align: center; background: #d9d9d9; color: #000; font-weight: bold; font-size: 10px; letter-spacing: .02em; padding: 2px 4px; }
+    table.cal-table td.regra-row { text-align: left; background: #d9d9d9; color: #444; font-weight: bold; font-size: 8.5px; letter-spacing: .02em; padding: 2px 4px; }
 
     .rodape { text-align: right; margin-top: 6px; font-size: 9px; font-style: italic; }
 
@@ -527,7 +592,7 @@ function resetAll() {
       horarioPadrao: "19:30",
       atualizado: ""
     },
-    localidades: []
+    secoes: []
   };
   init(); saveData();
 }
@@ -549,7 +614,7 @@ function init() {
     selMes.appendChild(opt);
   });
 
-  renderLocalidades();
+  renderSecoes();
   updatePreview();
 }
 
