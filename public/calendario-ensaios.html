@@ -197,6 +197,7 @@ function addSecao() {
 
 function ordinalTexto(ordinal, diaSemanaValor) {
   const dia = DIAS_SEMANA.find(d => d.valor === Number(diaSemanaValor)) || DIAS_SEMANA[1];
+  if (ordinal === 'ultima') return dia.genero === 'o' ? 'Último' : 'Última';
   return `${ordinal}${dia.genero}`;
 }
 
@@ -290,12 +291,12 @@ function renderSecoes() {
     const fOrdinal = document.createElement('div');
     fOrdinal.innerHTML = '<label>Qual (ordem no mês)</label>';
     const sOrdinal = document.createElement('select');
-    [1,2,3,4,5].forEach(n => {
+    [1,2,3,4,5,'ultima'].forEach(n => {
       const opt = document.createElement('option'); opt.value = n; opt.textContent = ordinalTexto(n, secao.diaSemana);
-      if (Number(secao.ordinal) === n) opt.selected = true;
+      if (String(secao.ordinal) === String(n)) opt.selected = true;
       sOrdinal.appendChild(opt);
     });
-    sOrdinal.onchange = (e) => { secao.ordinal = Number(e.target.value); atualizarRotulo(); updatePreview(); saveData(); };
+    sOrdinal.onchange = (e) => { secao.ordinal = e.target.value === 'ultima' ? 'ultima' : Number(e.target.value); atualizarRotulo(); updatePreview(); saveData(); };
     fOrdinal.appendChild(sOrdinal); grid.appendChild(fOrdinal);
 
     const fDia = document.createElement('div');
@@ -367,6 +368,15 @@ function nthWeekdayOfMonth(ano, mes, diaSemana, n) {
   return dia;
 }
 
+/* Calcula o dia da ÚLTIMA ocorrência de um dia da semana no mês/ano dados
+   (ex: última quinta-feira do mês, exista ou não uma 5ª semana). */
+function lastWeekdayOfMonth(ano, mes, diaSemana) {
+  const ultimoDia = new Date(ano, mes, 0).getDate();
+  const ultimoDiaSemana = new Date(ano, mes - 1, ultimoDia).getDay();
+  const diff = (ultimoDiaSemana - Number(diaSemana) + 7) % 7;
+  return ultimoDia - diff;
+}
+
 function mesAplica(periodicidade, mes) {
   if (periodicidade === 'pares') return mes % 2 === 0;
   if (periodicidade === 'impares') return mes % 2 !== 0;
@@ -388,8 +398,10 @@ function sequenciaMeses(mesInicial) {
 function calcularLinha(regra, ano, seqMeses) {
   return seqMeses.map(({ mes, anoOffset }) => {
     if (!mesAplica(regra.periodicidade, mes)) return 'X';
-    const dia = nthWeekdayOfMonth(ano + anoOffset, mes, regra.diaSemana, regra.ordinal);
-    return dia === null ? 'X' : String(dia);
+    const dia = regra.ordinal === 'ultima'
+      ? lastWeekdayOfMonth(ano + anoOffset, mes, regra.diaSemana)
+      : nthWeekdayOfMonth(ano + anoOffset, mes, regra.diaSemana, regra.ordinal);
+    return (dia === null || typeof dia === 'undefined') ? 'X' : String(dia);
   });
 }
 
@@ -405,14 +417,18 @@ function buildDocumentHTML() {
   const seqMeses = sequenciaMeses(mesInicial);
   const colTotal = seqMeses.length + 1;
 
+  const cabecalhoMeses = seqMeses.map(({ mes, anoOffset }) => `<th>${MESES[mes - 1]}${anoOffset ? '/' + String(ano + anoOffset).slice(2) : ''}</th>`).join('');
+  const theadHtml = `<thead><tr><th class="th-nome">Localidade</th>${cabecalhoMeses}</tr></thead>`;
+
   // Cada seção já representa um grupo (uma regra: ordinal + dia da semana +
-  // periodicidade). A ordem exibida é a mesma em que as seções aparecem no painel.
-  let linhasHtml = '';
+  // periodicidade). Cada uma vira sua própria mini-tabela (com cabeçalho
+  // repetido), para dar um espaço de verdade entre um grupo e outro.
+  let tabelasHtml = '';
   STATE.secoes.forEach(secao => {
     if (!secao.localidades || secao.localidades.length === 0) return;
 
     const rotuloRegra = rotuloSecao(secao).toUpperCase();
-    linhasHtml += `<tr><td colspan="${colTotal}" class="regra-row">${escapeHTML(rotuloRegra)}</td></tr>`;
+    let linhasGrupo = `<tr><td colspan="${colTotal}" class="regra-row">${escapeHTML(rotuloRegra)}</td></tr>`;
 
     secao.localidades.forEach(loc => {
       const meses = calcularLinha(secao, ano, seqMeses);
@@ -420,17 +436,19 @@ function buildDocumentHTML() {
       const nomeExibido = horarioLoc && horarioLoc !== horarioPadrao
         ? `${escapeHTML(loc.nome)} (${escapeHTML(horarioLoc)}h)`
         : escapeHTML(loc.nome);
-      linhasHtml += `<tr><td class="col-nome">${nomeExibido}</td>`;
+      linhasGrupo += `<tr><td class="col-nome">${nomeExibido}</td>`;
       meses.forEach(v => {
-        linhasHtml += `<td class="${v === 'X' ? 'col-x' : ''}">${v}</td>`;
+        linhasGrupo += `<td class="${v === 'X' ? 'col-x' : ''}">${v}</td>`;
       });
-      linhasHtml += `</tr>`;
+      linhasGrupo += `</tr>`;
     });
+
+    tabelasHtml += `<div class="grupo-tabela"><table class="cal-table">${theadHtml}<tbody>${linhasGrupo}</tbody></table></div>`;
   });
 
   const totalLocalidades = STATE.secoes.reduce((acc, s) => acc + (s.localidades ? s.localidades.length : 0), 0);
   if (totalLocalidades === 0) {
-    linhasHtml = `<tr><td colspan="${colTotal}" style="padding:10px; color:#666;">(Nenhuma localidade adicionada)</td></tr>`;
+    tabelasHtml = `<table class="cal-table">${theadHtml}<tbody><tr><td colspan="${colTotal}" style="padding:10px; color:#666;">(Nenhuma localidade adicionada)</td></tr></tbody></table>`;
   }
 
   // Observação fixa sobre o horário padrão, mostrada no topo. As exceções de horário
@@ -477,13 +495,16 @@ function buildDocumentHTML() {
 
     .obs-topo { font-size: 9px; font-weight: bold; text-align: center; margin-bottom: 8px; }
 
-    table.cal-table { width: 100%; table-layout: fixed; border-collapse: collapse; border: 1px solid #262626; flex: 1; }
+    table.cal-table { width: 100%; table-layout: fixed; border-collapse: collapse; border: 1px solid #262626; }
+    .tabelas-wrapper { flex: 1; min-height: 0; overflow: hidden; }
     table.cal-table th, table.cal-table td { border: 1px solid #262626; padding: 2px 3px; text-align: center; vertical-align: middle; overflow-wrap: break-word; }
     table.cal-table th { font-weight: bold; background: #eee; font-size: 9px; }
     table.cal-table th.th-nome { width: 52mm; }
     table.cal-table td.col-nome { text-align: center; font-weight: bold; white-space: nowrap; }
     table.cal-table td.col-x { color: #999; }
     table.cal-table td.regra-row { text-align: left; background: #d9d9d9; color: #444; font-weight: bold; font-size: 8.5px; letter-spacing: .02em; padding: 2px 4px; }
+    .grupo-tabela { margin-bottom: 4mm; break-inside: avoid; page-break-inside: avoid; }
+    .grupo-tabela:last-child { margin-bottom: 0; }
 
     .rodape { text-align: right; margin-top: 6px; font-size: 9px; font-style: italic; }
 
@@ -500,10 +521,7 @@ function buildDocumentHTML() {
 
       <div class="obs-topo">${obsHorario}</div>
 
-      <table class="cal-table">
-        <thead><tr><th class="th-nome">Localidade</th>${seqMeses.map(({ mes, anoOffset }) => `<th>${MESES[mes - 1]}${anoOffset ? '/' + String(ano + anoOffset).slice(2) : ''}</th>`).join('')}</tr></thead>
-        <tbody>${linhasHtml}</tbody>
-      </table>
+      <div class="tabelas-wrapper">${tabelasHtml}</div>
 
       <div class="rodape">${m.atualizado ? 'Atualizado ' + escapeHTML(m.atualizado) : ''}</div>
     </div>
