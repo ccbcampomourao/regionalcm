@@ -312,18 +312,39 @@ function buildDocumentHTML() {
   const ano = parseInt(m.ano, 10) || new Date().getFullYear();
   const horarioPadrao = (m.horarioPadrao || '19:30').trim();
 
-  let linhasHtml = '';
+  // Agrupa as localidades pela regra (dia da semana + ordinal), na ordem
+  // Domingo..Sábado e, dentro do dia, 1ª..5ª - igual ao modelo do PDF.
+  const grupos = new Map();
   STATE.localidades.forEach(loc => {
-    const meses = calcularLinha(loc, ano);
-    const horarioLoc = (loc.horario || '').trim();
-    const nomeExibido = horarioLoc && horarioLoc !== horarioPadrao
-      ? `${escapeHTML(loc.nome)} (${escapeHTML(horarioLoc)}h)`
-      : escapeHTML(loc.nome);
-    linhasHtml += `<tr><td class="col-nome">${nomeExibido}</td>`;
-    meses.forEach(v => {
-      linhasHtml += `<td class="${v === 'X' ? 'col-x' : ''}">${v}</td>`;
+    const chave = `${loc.diaSemana}-${loc.ordinal}`;
+    if (!grupos.has(chave)) grupos.set(chave, []);
+    grupos.get(chave).push(loc);
+  });
+  const chavesOrdenadas = Array.from(grupos.keys()).sort((a, b) => {
+    const [diaA, ordA] = a.split('-').map(Number);
+    const [diaB, ordB] = b.split('-').map(Number);
+    if (diaA !== diaB) return diaA - diaB;
+    return ordA - ordB;
+  });
+
+  let linhasHtml = '';
+  chavesOrdenadas.forEach(chave => {
+    const [diaSemana, ordinal] = chave.split('-').map(Number);
+    const rotuloRegra = `${ordinalTexto(ordinal, diaSemana)} ${DIAS_SEMANA.find(d => d.valor === diaSemana).nome}`.toUpperCase();
+    linhasHtml += `<tr><td colspan="13" class="regra-row">${escapeHTML(rotuloRegra)}</td></tr>`;
+
+    grupos.get(chave).forEach(loc => {
+      const meses = calcularLinha(loc, ano);
+      const horarioLoc = (loc.horario || '').trim();
+      const nomeExibido = horarioLoc && horarioLoc !== horarioPadrao
+        ? `${escapeHTML(loc.nome)} (${escapeHTML(horarioLoc)}h)`
+        : escapeHTML(loc.nome);
+      linhasHtml += `<tr><td class="col-nome">${nomeExibido}</td>`;
+      meses.forEach(v => {
+        linhasHtml += `<td class="${v === 'X' ? 'col-x' : ''}">${v}</td>`;
+      });
+      linhasHtml += `</tr>`;
     });
-    linhasHtml += `</tr>`;
   });
 
   if (STATE.localidades.length === 0) {
@@ -381,6 +402,7 @@ function buildDocumentHTML() {
     table.cal-table th { font-weight: bold; background: #eee; font-size: 10.5px; }
     table.cal-table td.col-nome { text-align: left; font-weight: bold; white-space: nowrap; }
     table.cal-table td.col-x { color: #999; }
+    table.cal-table td.regra-row { text-align: left; background: #d9d9d9; color: #444; font-weight: bold; font-size: 9.5px; letter-spacing: .02em; padding: 2px 5px; }
 
     .rodape { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 6px; font-size: 9.5px; }
     .rodape .obs { max-width: 80%; }
