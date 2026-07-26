@@ -416,6 +416,16 @@ const SECTION_TYPES = {
       {key:"atende", label:"Atende (opcional)", type:"list", itemLabel:"Obreiro"}
     ]
   },
+	reuniaopiedade: {
+    label: "Reunião de Ensinamento da Piedade",
+    columns: ["Data","Hora","Local","Atende"],
+    fields: [
+      {key:"data", label:"Data", type:"date"},
+      {key:"hora", label:"Hora", type:"time"},
+      {key:"local", label:"Local", type:"text"},
+      {key:"atende", label:"Atende (opcional)", type:"list", itemLabel:"Obreiro"}
+    ]
+  },
   avisos: {
     label: "Avisos Diversos",
     isFreeText: true
