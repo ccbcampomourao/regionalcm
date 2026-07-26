@@ -161,13 +161,13 @@
 
 <script>
 const DIAS_SEMANA = [
-  { valor: 0, nome: 'Domingo', genero: 'º' },
-  { valor: 1, nome: 'Segunda-feira', genero: 'ª' },
-  { valor: 2, nome: 'Terça-feira', genero: 'ª' },
-  { valor: 3, nome: 'Quarta-feira', genero: 'ª' },
-  { valor: 4, nome: 'Quinta-feira', genero: 'ª' },
-  { valor: 5, nome: 'Sexta-feira', genero: 'ª' },
-  { valor: 6, nome: 'Sábado', genero: 'º' }
+  { valor: 0, nome: 'Domingo', genero: 'o' },
+  { valor: 1, nome: 'Segunda-feira', genero: 'a' },
+  { valor: 2, nome: 'Terça-feira', genero: 'a' },
+  { valor: 3, nome: 'Quarta-feira', genero: 'a' },
+  { valor: 4, nome: 'Quinta-feira', genero: 'a' },
+  { valor: 5, nome: 'Sexta-feira', genero: 'a' },
+  { valor: 6, nome: 'Sábado', genero: 'o' }
 ];
 const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 const MESES_EXTENSO = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
@@ -409,6 +409,20 @@ function escapeHTML(str) {
   return String(str || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+function celulasMesAgrupadas(meses) {
+  let html = '';
+  let i = 0;
+  while (i < meses.length) {
+    let j = i;
+    while (j + 1 < meses.length && meses[j + 1] === meses[i]) j++;
+    const span = j - i + 1;
+    const v = meses[i];
+    html += `<td${span > 1 ? ` colspan="${span}"` : ''} class="${v === 'X' ? 'col-x' : ''}">${v}</td>`;
+    i = j + 1;
+  }
+  return html;
+}
+
 function buildDocumentHTML() {
   const m = STATE.meta;
   const ano = parseInt(m.ano, 10) || new Date().getFullYear();
@@ -437,9 +451,7 @@ function buildDocumentHTML() {
         ? `${escapeHTML(loc.nome)} (${escapeHTML(horarioLoc)}h)`
         : escapeHTML(loc.nome);
       linhasGrupo += `<tr><td class="col-nome">${nomeExibido}</td>`;
-      meses.forEach(v => {
-        linhasGrupo += `<td class="${v === 'X' ? 'col-x' : ''}">${v}</td>`;
-      });
+      linhasGrupo += celulasMesAgrupadas(meses);
       linhasGrupo += `</tr>`;
     });
 
