@@ -407,19 +407,55 @@ function escapeHTML(str) {
   return String(str || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-function celulasMesAgrupadas(meses, rowspan) {
+/* Recebe uma matriz [localidade][mes] = valor (string do dia ou 'X') e
+   devolve um "plano" de células: para cada posição, ou null (célula já
+   coberta por uma mesclagem anterior, não deve gerar <td>) ou um objeto
+   {val, colspan, rowspan} descrevendo o bloco retangular a desenhar ali.
+   Isso permite mesclar tanto na horizontal (meses seguidos com o mesmo
+   dia) quanto na vertical (localidades diferentes que caem no mesmo dia
+   naquele(s) mês(es)) - inclusive quando as localidades têm periodicidades
+   diferentes (ímpares/pares) e só coincidem em alguns meses específicos. */
+function planoCelulasMescladas(grid) {
+  const numLinhas = grid.length;
+  const numCols = numLinhas ? grid[0].length : 0;
+  const coberto = Array.from({ length: numLinhas }, () => new Array(numCols).fill(false));
+  const plano = Array.from({ length: numLinhas }, () => new Array(numCols).fill(null));
+
+  for (let r = 0; r < numLinhas; r++) {
+    for (let c = 0; c < numCols; c++) {
+      if (coberto[r][c]) continue;
+      const val = grid[r][c];
+
+      let colspan = 1;
+      while (c + colspan < numCols && !coberto[r][c + colspan] && grid[r][c + colspan] === val) colspan++;
+
+      let rowspan = 1;
+      linhaLoop:
+      while (r + rowspan < numLinhas) {
+        for (let cc = c; cc < c + colspan; cc++) {
+          if (coberto[r + rowspan][cc] || grid[r + rowspan][cc] !== val) break linhaLoop;
+        }
+        rowspan++;
+      }
+
+      for (let rr = r; rr < r + rowspan; rr++) {
+        for (let cc = c; cc < c + colspan; cc++) coberto[rr][cc] = true;
+      }
+      plano[r][c] = { val, colspan, rowspan };
+    }
+  }
+  return plano;
+}
+
+function celulasDaLinhaComPlano(plano, r, numCols) {
   let html = '';
-  let i = 0;
-  while (i < meses.length) {
-    let j = i;
-    while (j + 1 < meses.length && meses[j + 1] === meses[i]) j++;
-    const span = j - i + 1;
-    const v = meses[i];
+  for (let c = 0; c < numCols; c++) {
+    const cell = plano[r][c];
+    if (!cell) continue; // coberto por mesclagem de uma célula anterior
     const attrs = [];
-    if (span > 1) attrs.push(`colspan="${span}"`);
-    if (rowspan && rowspan > 1) attrs.push(`rowspan="${rowspan}"`);
-    html += `<td${attrs.length ? ' ' + attrs.join(' ') : ''} class="${v === 'X' ? 'col-x' : ''}">${v}</td>`;
-    i = j + 1;
+    if (cell.colspan > 1) attrs.push(`colspan="${cell.colspan}"`);
+    if (cell.rowspan > 1) attrs.push(`rowspan="${cell.rowspan}"`);
+    html += `<td${attrs.length ? ' ' + attrs.join(' ') : ''} class="${cell.val === 'X' ? 'col-x' : ''}">${cell.val}</td>`;
   }
   return html;
 }
@@ -436,11 +472,12 @@ function buildDocumentHTML() {
   const theadHtml = `<thead><tr><th class="th-nome">Localidade</th>${cabecalhoMeses}</tr></thead>`;
 
   // Cada seção representa uma regra de "qual dia da semana" (ex: 3ª terça-
-  // feira). A periodicidade (todos/ímpares/pares), porém, agora é escolhida
-  // por localidade, então cada linha pode ter um resultado de dias
-  // diferente. Linhas consecutivas que resultam exatamente nos mesmos dias
-  // em todos os meses são mescladas verticalmente (rowspan); as demais
-  // ficam com sua própria célula de dias.
+  // feira). A periodicidade (todos/ímpares/pares) é escolhida por
+  // localidade, então cada linha pode ter um resultado de dias diferente.
+  // As células dos meses são mescladas célula a célula: sempre que o
+  // mesmo dia se repetir entre localidades vizinhas (mesmo que uma seja
+  // ímpar e outra par) e/ou entre meses seguidos, a mesclagem acontece -
+  // mesmo que o resto da linha não coincida.
   let tabelasHtml = '';
   STATE.secoes.forEach(secao => {
     if (!secao.localidades || secao.localidades.length === 0) return;
@@ -448,30 +485,20 @@ function buildDocumentHTML() {
     const rotuloRegra = rotuloSecao(secao).toUpperCase();
     let linhasGrupo = `<tr><td colspan="${colTotal}" class="regra-row">${escapeHTML(rotuloRegra)}</td></tr>`;
 
-    const mesesPorLocalidade = secao.localidades.map(loc =>
+    const grid = secao.localidades.map(loc =>
       calcularLinha({ ordinal: secao.ordinal, diaSemana: secao.diaSemana, periodicidade: loc.periodicidade || 'todos' }, ano, seqMeses)
     );
+    const plano = planoCelulasMescladas(grid);
 
-    let i = 0;
-    while (i < secao.localidades.length) {
-      let j = i;
-      while (j + 1 < secao.localidades.length && mesesPorLocalidade[j + 1].join('|') === mesesPorLocalidade[i].join('|')) j++;
-      const tamanhoGrupo = j - i + 1;
-
-      for (let k = i; k <= j; k++) {
-        const loc = secao.localidades[k];
-        const horarioLoc = (loc.horario || '').trim();
-        const nomeExibido = horarioLoc && horarioLoc !== horarioPadrao
-          ? `${escapeHTML(loc.nome)} (${escapeHTML(horarioLoc)}h)`
-          : escapeHTML(loc.nome);
-        linhasGrupo += `<tr><td class="col-nome">${nomeExibido}</td>`;
-        if (k === i) {
-          linhasGrupo += celulasMesAgrupadas(mesesPorLocalidade[i], tamanhoGrupo);
-        }
-        linhasGrupo += `</tr>`;
-      }
-      i = j + 1;
-    }
+    secao.localidades.forEach((loc, r) => {
+      const horarioLoc = (loc.horario || '').trim();
+      const nomeExibido = horarioLoc && horarioLoc !== horarioPadrao
+        ? `${escapeHTML(loc.nome)} (${escapeHTML(horarioLoc)}h)`
+        : escapeHTML(loc.nome);
+      linhasGrupo += `<tr><td class="col-nome">${nomeExibido}</td>`;
+      linhasGrupo += celulasDaLinhaComPlano(plano, r, seqMeses.length);
+      linhasGrupo += `</tr>`;
+    });
 
     tabelasHtml += `<div class="grupo-tabela"><table class="cal-table">${theadHtml}<tbody>${linhasGrupo}</tbody></table></div>`;
   });
