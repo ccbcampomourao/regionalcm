@@ -191,7 +191,7 @@ function updateMeta(key, val) {
 }
 
 function addSecao() {
-  STATE.secoes.push({ ordinal: 1, diaSemana: 1, periodicidade: 'todos', isOpen: true, localidades: [] });
+  STATE.secoes.push({ ordinal: 1, diaSemana: 1, isOpen: true, localidades: [] });
   renderSecoes(); updatePreview(); saveData();
 }
 
@@ -281,7 +281,7 @@ function renderSecoes() {
     body.className = 'section-body';
 
     const grid = document.createElement('div');
-    grid.className = 'row-grid'; grid.style.gridTemplateColumns = '1fr 1.4fr 1.2fr'; grid.style.marginBottom = '10px';
+    grid.className = 'row-grid'; grid.style.gridTemplateColumns = '1fr 1.4fr'; grid.style.marginBottom = '10px';
 
     const atualizarRotulo = () => {
       const el = document.getElementById(`rotulo-secao-${sIdx}`);
@@ -315,17 +315,6 @@ function renderSecoes() {
     };
     fDia.appendChild(sDia); grid.appendChild(fDia);
 
-    const fPeriodicidade = document.createElement('div');
-    fPeriodicidade.innerHTML = '<label>Periodicidade</label>';
-    const sPeriodicidade = document.createElement('select');
-    [['todos','Todos os meses'], ['impares','Meses ímpares (Jan, Mar, Mai...)'], ['pares','Meses pares (Fev, Abr, Jun...)']].forEach(([val, label]) => {
-      const opt = document.createElement('option'); opt.value = val; opt.textContent = label;
-      if ((secao.periodicidade || 'todos') === val) opt.selected = true;
-      sPeriodicidade.appendChild(opt);
-    });
-    sPeriodicidade.onchange = (e) => { secao.periodicidade = e.target.value; updatePreview(); saveData(); };
-    fPeriodicidade.appendChild(sPeriodicidade); grid.appendChild(fPeriodicidade);
-
     body.appendChild(grid);
 
     const listaLocalidades = document.createElement('div');
@@ -339,16 +328,25 @@ function renderSecoes() {
       const iHorario = document.createElement('input'); iHorario.type = 'text'; iHorario.placeholder = STATE.meta.horarioPadrao || '19:30'; iHorario.style.flex = '0 0 90px'; iHorario.value = loc.horario || '';
       iHorario.oninput = (e) => { loc.horario = e.target.value; updatePreview(); saveData(); };
 
+      const sPeriodicidade = document.createElement('select');
+      sPeriodicidade.style.flex = '0 0 118px';
+      [['todos','Todos os meses'], ['impares','Ímpares'], ['pares','Pares']].forEach(([val, label]) => {
+        const opt = document.createElement('option'); opt.value = val; opt.textContent = label;
+        if ((loc.periodicidade || 'todos') === val) opt.selected = true;
+        sPeriodicidade.appendChild(opt);
+      });
+      sPeriodicidade.onchange = (e) => { loc.periodicidade = e.target.value; updatePreview(); saveData(); };
+
       const rm = document.createElement('button'); rm.className = 'danger'; rm.textContent = '✕';
       rm.onclick = () => { secao.localidades.splice(lIdx, 1); renderSecoes(); updatePreview(); saveData(); };
 
-      item.appendChild(iNome); item.appendChild(iHorario); item.appendChild(rm);
+      item.appendChild(iNome); item.appendChild(iHorario); item.appendChild(sPeriodicidade); item.appendChild(rm);
       listaLocalidades.appendChild(item);
     });
     body.appendChild(listaLocalidades);
 
     const addLocBtn = document.createElement('button'); addLocBtn.textContent = '+ Adicionar Localidade'; addLocBtn.style.marginTop = '4px';
-    addLocBtn.onclick = () => { secao.localidades.push({ nome: '', horario: '' }); renderSecoes(); updatePreview(); saveData(); };
+    addLocBtn.onclick = () => { secao.localidades.push({ nome: '', horario: '', periodicidade: 'todos' }); renderSecoes(); updatePreview(); saveData(); };
     body.appendChild(addLocBtn);
 
     secDiv.appendChild(body);
@@ -437,9 +435,12 @@ function buildDocumentHTML() {
   const cabecalhoMeses = seqMeses.map(({ mes, anoOffset }) => `<th>${MESES[mes - 1]}${anoOffset ? '/' + String(ano + anoOffset).slice(2) : ''}</th>`).join('');
   const theadHtml = `<thead><tr><th class="th-nome">Localidade</th>${cabecalhoMeses}</tr></thead>`;
 
-  // Cada seção já representa um grupo (uma regra: ordinal + dia da semana +
-  // periodicidade). Cada uma vira sua própria mini-tabela (com cabeçalho
-  // repetido), para dar um espaço de verdade entre um grupo e outro.
+  // Cada seção representa uma regra de "qual dia da semana" (ex: 3ª terça-
+  // feira). A periodicidade (todos/ímpares/pares), porém, agora é escolhida
+  // por localidade, então cada linha pode ter um resultado de dias
+  // diferente. Linhas consecutivas que resultam exatamente nos mesmos dias
+  // em todos os meses são mescladas verticalmente (rowspan); as demais
+  // ficam com sua própria célula de dias.
   let tabelasHtml = '';
   STATE.secoes.forEach(secao => {
     if (!secao.localidades || secao.localidades.length === 0) return;
@@ -447,25 +448,30 @@ function buildDocumentHTML() {
     const rotuloRegra = rotuloSecao(secao).toUpperCase();
     let linhasGrupo = `<tr><td colspan="${colTotal}" class="regra-row">${escapeHTML(rotuloRegra)}</td></tr>`;
 
-    // Todas as localidades de uma mesma seção seguem a mesma regra (mesmo
-    // dia calculado em cada mês). Por isso as células dos meses são
-    // calculadas uma única vez e mescladas verticalmente (rowspan) ao longo
-    // de todas as linhas de localidade da seção, em vez de repetir o mesmo
-    // número em cada linha.
-    const meses = calcularLinha(secao, ano, seqMeses);
-    const totalLocaisSecao = secao.localidades.length;
+    const mesesPorLocalidade = secao.localidades.map(loc =>
+      calcularLinha({ ordinal: secao.ordinal, diaSemana: secao.diaSemana, periodicidade: loc.periodicidade || 'todos' }, ano, seqMeses)
+    );
 
-    secao.localidades.forEach((loc, lIdx) => {
-      const horarioLoc = (loc.horario || '').trim();
-      const nomeExibido = horarioLoc && horarioLoc !== horarioPadrao
-        ? `${escapeHTML(loc.nome)} (${escapeHTML(horarioLoc)}h)`
-        : escapeHTML(loc.nome);
-      linhasGrupo += `<tr><td class="col-nome">${nomeExibido}</td>`;
-      if (lIdx === 0) {
-        linhasGrupo += celulasMesAgrupadas(meses, totalLocaisSecao);
+    let i = 0;
+    while (i < secao.localidades.length) {
+      let j = i;
+      while (j + 1 < secao.localidades.length && mesesPorLocalidade[j + 1].join('|') === mesesPorLocalidade[i].join('|')) j++;
+      const tamanhoGrupo = j - i + 1;
+
+      for (let k = i; k <= j; k++) {
+        const loc = secao.localidades[k];
+        const horarioLoc = (loc.horario || '').trim();
+        const nomeExibido = horarioLoc && horarioLoc !== horarioPadrao
+          ? `${escapeHTML(loc.nome)} (${escapeHTML(horarioLoc)}h)`
+          : escapeHTML(loc.nome);
+        linhasGrupo += `<tr><td class="col-nome">${nomeExibido}</td>`;
+        if (k === i) {
+          linhasGrupo += celulasMesAgrupadas(mesesPorLocalidade[i], tamanhoGrupo);
+        }
+        linhasGrupo += `</tr>`;
       }
-      linhasGrupo += `</tr>`;
-    });
+      i = j + 1;
+    }
 
     tabelasHtml += `<div class="grupo-tabela"><table class="cal-table">${theadHtml}<tbody>${linhasGrupo}</tbody></table></div>`;
   });
