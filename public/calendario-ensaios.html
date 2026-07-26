@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<script>
+(function () {
+  document.documentElement.style.visibility = 'hidden';
+  var token = localStorage.getItem('session_token');
+  if (!token) { window.location.replace('/login.html'); return; }
+  fetch('/api/verify-session', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: token, list: 'calendario' })
+  }).then(function (r) { return r.json(); }).then(function (data) {
+    if (data && data.ok) {
+      document.documentElement.style.visibility = 'visible';
+      var lists = Array.isArray(data.lists) ? data.lists : [];
+      function montarBarraTopo() {
+        var bar = document.createElement('div');
+        bar.style.cssText = 'position:fixed; top:12px; right:12px; z-index:99999; display:flex; gap:8px;';
+
+        if (data.role === 'admin' || lists.length > 1) {
+          var backBtn = document.createElement('a');
+          backBtn.href = data.role === 'admin' ? '/admin-listas.html' : '/minhas-listas.html';
+          backBtn.textContent = '← Voltar';
+          backBtn.style.cssText = 'background:#fff; color:#1b2a41; text-decoration:none; padding:8px 16px; border-radius:9px; font-size:13px; font-weight:600; font-family:Inter, Arial, Helvetica, sans-serif; border:1.5px solid #e4dcc9; box-shadow:0 4px 10px -4px rgba(27,42,65,.3);';
+          bar.appendChild(backBtn);
+        }
+
+        var sairBtn = document.createElement('a');
+        sairBtn.href = '#';
+        sairBtn.textContent = 'Sair';
+        sairBtn.style.cssText = 'background:linear-gradient(180deg,#2c3f5c,#1b2a41); color:#fdfbf6; text-decoration:none; padding:8px 16px; border-radius:9px; font-size:13px; font-weight:600; font-family:Inter, Arial, Helvetica, sans-serif; box-shadow:0 6px 16px -6px rgba(27,42,65,.5);';
+        sairBtn.onclick = function (e) {
+          e.preventDefault();
+          localStorage.removeItem('session_token');
+          window.location.href = '/login.html';
+        };
+        bar.appendChild(sairBtn);
+
+        document.body.appendChild(bar);
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', montarBarraTopo);
+      } else {
+        montarBarraTopo();
+      }
+    } else {
+      localStorage.removeItem('session_token');
+      window.location.replace('/login.html');
+    }
+  }).catch(function () {
+    window.location.replace('/login.html');
+  });
+})();
+</script>
+<meta charset="UTF-8">
+<title>Calendário dos Ensaios Locais</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --primary: #1b2a41; --primary-2: #2c3f5c; --brass: #a97d3d; --brass-lt: #c99a55; --accent: #b04b3c; --bg: #f5f1e8; --line: #e4dcc9; }
+  * { box-sizing: border-box; font-family: 'Inter', Arial, sans-serif; }
+  body { margin: 0; background: var(--bg); color: #24304a; }
+  header { background: linear-gradient(180deg, var(--primary-2), var(--primary)); color: #fdfbf6; padding: 16px 22px; box-shadow: 0 2px 12px rgba(27,42,65,.15); }
+  header h1 { margin: 0; font-size: 19px; font-family: 'Fraunces', Georgia, serif; font-weight: 600; letter-spacing: .01em; }
+  header p { margin: 4px 0 0; font-size: 13px; opacity: 0.85; }
+  .wrap { display: flex; gap: 16px; padding: 16px; align-items: flex-start; }
+  .panel { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 16px; flex: 1; min-width: 340px; box-shadow: 0 1px 2px rgba(27,42,65,.04), 0 10px 30px -14px rgba(27,42,65,.18); }
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+
+  button { cursor: pointer; font-weight: 600; border: 1.5px solid var(--line); background: #fff; color: var(--primary); padding: 8px 13px; border-radius: 9px; font-size: 13px; transition: 0.15s;}
+  button:hover { border-color: var(--brass-lt); }
+  button.danger { color: var(--accent); border-color: var(--accent); }
+  button.primary { background: linear-gradient(180deg, var(--primary-2), var(--primary)); color: #fdfbf6; border-color: var(--primary); box-shadow: 0 6px 14px -8px rgba(27,42,65,.5); }
+
+  input[type=text], input[type=number], select, textarea {
+    border: 1.5px solid var(--line); border-radius: 8px; padding: 7px 9px; font-size: 13px; width: 100%;
+  }
+  input:focus, select:focus, textarea:focus{ outline:none; border-color:var(--brass); box-shadow:0 0 0 3px rgba(169,125,61,.15); }
+  label { font-size: 12px; font-weight: 700; color: var(--primary-2); display: block; margin-bottom: 2px; }
+
+  .row-grid { display: grid; gap: 8px; grid-template-columns: repeat(4, 1fr); margin-bottom: 12px; }
+
+  .entry { border: 1px dashed var(--line); border-radius: 8px; padding: 10px; margin-bottom: 10px; position: relative; background: #fafaf5; }
+  .remove-btn { position: absolute; top: 6px; right: 6px; padding: 2px 8px; font-size: 11px; font-weight: bold; background: #fff; color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; cursor: pointer;}
+  .regra-preview { font-size: 11.5px; color: var(--brass); font-weight: 700; margin-top: 6px; }
+
+  /* ======== PREVIEW PÁGINA ÚNICA (paisagem) ======== */
+  #previewHost { flex: 1.5; position: sticky; top: 16px; height: calc(100vh - 32px); display: flex; flex-direction: column; min-width: 480px;}
+  #previewScaleWrapper { flex: 1; overflow-y: auto; background: #525659; border: 1px solid var(--line); border-radius: 8px; padding: 10px 0; }
+  #iframeSizer { display: flex; justify-content: center; overflow: hidden; width:100%; }
+  #previewFrame { width: 297mm; min-height: 210mm; border: none; background: #fff; transform-origin: top center; box-shadow: 0 4px 12px rgba(0,0,0,0.25); flex-shrink: 0; }
+
+  @media (max-width:980px){ .wrap{flex-direction:column;} #previewHost{position:static; height:auto; min-width:100%;} }
+</style>
+</head>
+<body>
+<header>
+  <h1>Calendário dos Ensaios Locais</h1>
+  <p>Cadastre a localidade e a regra semanal (ex: 3ª terça-feira). As datas de cada mês são calculadas automaticamente.</p>
+</header>
+
+<div class="wrap">
+  <div class="panel" id="formPanel">
+    <div class="toolbar">
+      <button class="primary" onclick="gerarPDF()">🖨️ Imprimir / PDF</button>
+      <button onclick="exportJSON()">⬇️ Salvar Backup (.json)</button>
+      <button onclick="document.getElementById('importInput').click()">⬆️ Carregar Backup</button>
+      <input type="file" id="importInput" accept=".json" style="display:none" onchange="importJSON(event)">
+      <button id="btnListaSalvar" onclick="salvarLista()">☁️ Salvar</button>
+      <button id="btnListaCarregar" onclick="carregarLista()">☁️ Carregar</button>
+      <button class="danger" onclick="if(confirm('Limpar tudo?')) resetAll()">🗑️ Limpar Tudo</button>
+    </div>
+
+    <div class="row-grid" style="grid-template-columns: 2fr 1fr 1fr;">
+      <div><label>Título</label><input type="text" id="meta_titulo" oninput="updateMeta('titulo', this.value)"></div>
+      <div><label>Região/Subtítulo</label><input type="text" id="meta_subtitulo" placeholder="CAMPO MOURÃO - PR" oninput="updateMeta('subtitulo', this.value)"></div>
+      <div><label>Ano</label><input type="number" id="meta_ano" placeholder="2026" oninput="updateMeta('ano', this.value)"></div>
+    </div>
+    <div class="row-grid" style="grid-template-columns: 1fr 2fr;">
+      <div><label>Horário padrão</label><input type="text" id="meta_horarioPadrao" placeholder="19:30" oninput="updateMeta('horarioPadrao', this.value)"></div>
+      <div><label>Atualizado em (rodapé)</label><input type="text" id="meta_atualizado" placeholder="julho/2026" oninput="updateMeta('atualizado', this.value)"></div>
+    </div>
+
+    <div style="margin-bottom: 10px; padding-top: 6px; border-top: 1px solid var(--line);">
+      <button onclick="addLocalidade()">+ Adicionar Localidade</button>
+    </div>
+
+    <div id="localidadesContainer"></div>
+  </div>
+
+  <div class="panel" id="previewHost">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <h3 style="margin:0;color:var(--primary)">Pré-visualização (Folha A4 paisagem)</h3>
+    </div>
+    <div id="previewScaleWrapper">
+      <div id="iframeSizer">
+        <iframe id="previewFrame"></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DIAS_SEMANA = [
+  { valor: 0, nome: 'Domingo', genero: 'o' },
+  { valor: 1, nome: 'Segunda-feira', genero: 'a' },
+  { valor: 2, nome: 'Terça-feira', genero: 'a' },
+  { valor: 3, nome: 'Quarta-feira', genero: 'a' },
+  { valor: 4, nome: 'Quinta-feira', genero: 'a' },
+  { valor: 5, nome: 'Sexta-feira', genero: 'a' },
+  { valor: 6, nome: 'Sábado', genero: 'o' }
+];
+const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+const MESES_EXTENSO = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+
+let STATE = {
+  meta: {
+    titulo: "CALENDÁRIO DOS ENSAIOS LOCAIS",
+    subtitulo: "",
+    ano: "",
+    horarioPadrao: "19:30",
+    atualizado: ""
+  },
+  localidades: []
+};
+
+function updateMeta(key, val) {
+  STATE.meta[key] = val;
+  updatePreview();
+  saveData();
+}
+
+function addLocalidade() {
+  STATE.localidades.push({ nome: '', horario: '', ordinal: 1, diaSemana: 1, periodicidade: 'todos' });
+  renderLocalidades(); updatePreview(); saveData();
+}
+
+function ordinalTexto(ordinal, diaSemanaValor) {
+  const dia = DIAS_SEMANA.find(d => d.valor === Number(diaSemanaValor)) || DIAS_SEMANA[1];
+  return `${ordinal}${dia.genero}`;
+}
+
+function renderLocalidades() {
+  const container = document.getElementById('localidadesContainer');
+  container.innerHTML = '';
+
+  STATE.localidades.forEach((loc, idx) => {
+    const eDiv = document.createElement('div');
+    eDiv.className = 'entry';
+
+    const rmBtn = document.createElement('button'); rmBtn.className = 'remove-btn'; rmBtn.textContent = '✕ Remover';
+    rmBtn.onclick = () => { STATE.localidades.splice(idx, 1); renderLocalidades(); updatePreview(); saveData(); };
+    eDiv.appendChild(rmBtn);
+
+    const grid = document.createElement('div');
+    grid.className = 'row-grid'; grid.style.gridTemplateColumns = '2fr 1fr'; grid.style.marginTop = '12px'; grid.style.marginBottom = '8px';
+
+    const fNome = document.createElement('div');
+    fNome.innerHTML = '<label>Localidade</label>';
+    const iNome = document.createElement('input'); iNome.type = 'text'; iNome.placeholder = 'Ex: Campo Mourão - Central'; iNome.value = loc.nome || '';
+    iNome.oninput = (e) => { loc.nome = e.target.value; updatePreview(); saveData(); };
+    fNome.appendChild(iNome); grid.appendChild(fNome);
+
+    const fHorario = document.createElement('div');
+    fHorario.innerHTML = '<label>Horário (deixe vazio p/ usar o padrão)</label>';
+    const iHorario = document.createElement('input'); iHorario.type = 'text'; iHorario.placeholder = STATE.meta.horarioPadrao || '19:30'; iHorario.value = loc.horario || '';
+    iHorario.oninput = (e) => { loc.horario = e.target.value; updatePreview(); saveData(); };
+    fHorario.appendChild(iHorario); grid.appendChild(fHorario);
+
+    eDiv.appendChild(grid);
+
+    const grid2 = document.createElement('div');
+    grid2.className = 'row-grid'; grid2.style.gridTemplateColumns = '1fr 1.4fr 1.2fr'; grid2.style.marginBottom = '0';
+
+    const fOrdinal = document.createElement('div');
+    fOrdinal.innerHTML = '<label>Qual (ordem no mês)</label>';
+    const sOrdinal = document.createElement('select');
+    [1,2,3,4,5].forEach(n => {
+      const opt = document.createElement('option'); opt.value = n; opt.textContent = ordinalTexto(n, loc.diaSemana);
+      if (Number(loc.ordinal) === n) opt.selected = true;
+      sOrdinal.appendChild(opt);
+    });
+    sOrdinal.onchange = (e) => { loc.ordinal = Number(e.target.value); atualizarPreviewRegra(idx); updatePreview(); saveData(); };
+    fOrdinal.appendChild(sOrdinal); grid2.appendChild(fOrdinal);
+
+    const fDia = document.createElement('div');
+    fDia.innerHTML = '<label>Dia da semana</label>';
+    const sDia = document.createElement('select');
+    DIAS_SEMANA.forEach(d => {
+      const opt = document.createElement('option'); opt.value = d.valor; opt.textContent = d.nome;
+      if (Number(loc.diaSemana) === d.valor) opt.selected = true;
+      sDia.appendChild(opt);
+    });
+    sDia.onchange = (e) => {
+      loc.diaSemana = Number(e.target.value);
+      // Atualiza os rótulos do select de ordinal (feminino/masculino) e o texto de prévia.
+      Array.from(sOrdinal.options).forEach(opt => { opt.textContent = ordinalTexto(opt.value, loc.diaSemana); });
+      atualizarPreviewRegra(idx);
+      updatePreview(); saveData();
+    };
+    fDia.appendChild(sDia); grid2.appendChild(fDia);
+
+    const fPeriodicidade = document.createElement('div');
+    fPeriodicidade.innerHTML = '<label>Periodicidade</label>';
+    const sPeriodicidade = document.createElement('select');
+    [['todos','Todos os meses'], ['impares','Meses ímpares (Jan, Mar, Mai...)'], ['pares','Meses pares (Fev, Abr, Jun...)']].forEach(([val, label]) => {
+      const opt = document.createElement('option'); opt.value = val; opt.textContent = label;
+      if ((loc.periodicidade || 'todos') === val) opt.selected = true;
+      sPeriodicidade.appendChild(opt);
+    });
+    sPeriodicidade.onchange = (e) => { loc.periodicidade = e.target.value; updatePreview(); saveData(); };
+    fPeriodicidade.appendChild(sPeriodicidade); grid2.appendChild(fPeriodicidade);
+
+    eDiv.appendChild(grid2);
+
+    const previewRegra = document.createElement('div');
+    previewRegra.className = 'regra-preview';
+    previewRegra.id = `regra-preview-${idx}`;
+    previewRegra.textContent = `Regra: ${ordinalTexto(loc.ordinal, loc.diaSemana)} ${DIAS_SEMANA.find(d => d.valor === Number(loc.diaSemana)).nome.toLowerCase()}`;
+    eDiv.appendChild(previewRegra);
+
+    container.appendChild(eDiv);
+  });
+}
+
+function atualizarPreviewRegra(idx) {
+  const loc = STATE.localidades[idx];
+  const el = document.getElementById(`regra-preview-${idx}`);
+  if (el && loc) {
+    const dia = DIAS_SEMANA.find(d => d.valor === Number(loc.diaSemana));
+    el.textContent = `Regra: ${ordinalTexto(loc.ordinal, loc.diaSemana)} ${dia.nome.toLowerCase()}`;
+  }
+}
+
+/* Calcula o dia do mês (1-31) da Nª ocorrência de um dia da semana no mês/ano dados.
+   Retorna null se essa ocorrência não existir naquele mês (ex: 5ª sexta-feira). */
+function nthWeekdayOfMonth(ano, mes, diaSemana, n) {
+  const primeiro = new Date(ano, mes - 1, 1);
+  const primeiroDiaSemana = primeiro.getDay();
+  const diff = (Number(diaSemana) - primeiroDiaSemana + 7) % 7;
+  const dia = 1 + diff + (n - 1) * 7;
+  const diasNoMes = new Date(ano, mes, 0).getDate();
+  if (dia > diasNoMes) return null;
+  return dia;
+}
+
+function mesAplica(periodicidade, mes) {
+  if (periodicidade === 'pares') return mes % 2 === 0;
+  if (periodicidade === 'impares') return mes % 2 !== 0;
+  return true;
+}
+
+function calcularLinha(loc, ano) {
+  const meses = [];
+  for (let mes = 1; mes <= 12; mes++) {
+    if (!mesAplica(loc.periodicidade, mes)) { meses.push('X'); continue; }
+    const dia = nthWeekdayOfMonth(ano, mes, loc.diaSemana, loc.ordinal);
+    meses.push(dia === null ? 'X' : String(dia));
+  }
+  return meses;
+}
+
+function escapeHTML(str) {
+  return String(str || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function buildDocumentHTML() {
+  const m = STATE.meta;
+  const ano = parseInt(m.ano, 10) || new Date().getFullYear();
+  const horarioPadrao = (m.horarioPadrao || '19:30').trim();
+
+  let linhasHtml = '';
+  STATE.localidades.forEach(loc => {
+    const meses = calcularLinha(loc, ano);
+    const horarioLoc = (loc.horario || '').trim();
+    const nomeExibido = horarioLoc && horarioLoc !== horarioPadrao
+      ? `${escapeHTML(loc.nome)} (${escapeHTML(horarioLoc)}h)`
+      : escapeHTML(loc.nome);
+    linhasHtml += `<tr><td class="col-nome">${nomeExibido}</td>`;
+    meses.forEach(v => {
+      linhasHtml += `<td class="${v === 'X' ? 'col-x' : ''}">${v}</td>`;
+    });
+    linhasHtml += `</tr>`;
+  });
+
+  if (STATE.localidades.length === 0) {
+    linhasHtml = `<tr><td colspan="13" style="padding:10px; color:#666;">(Nenhuma localidade adicionada)</td></tr>`;
+  }
+
+  // Observação automática sobre horários diferentes do padrão.
+  const excecoes = STATE.localidades.filter(l => (l.horario || '').trim() && l.horario.trim() !== horarioPadrao);
+  let obsHorario = '';
+  if (excecoes.length > 0) {
+    const nomesExcecoes = excecoes.map(l => escapeHTML(l.nome)).join(', ');
+    obsHorario = `Obs. Os ensaios locais são realizados às ${escapeHTML(horarioPadrao)} hs, com exceção das localidades: ${nomesExcecoes}, que são às ${excecoes.map(l => escapeHTML(l.horario)).filter((v, i, a) => a.indexOf(v) === i).join(' / ')} hs.`;
+  }
+
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escapeHTML(m.titulo)}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght=400;700&display=swap');
+
+    @page { size: A4 landscape; margin: 0; }
+    html, body { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Roboto', Arial, sans-serif;
+      color: #000; font-size: 10.5px;
+      width: 297mm;
+      margin: 0 auto;
+    }
+
+    .list-wrapper {
+      position: relative;
+      height: 200mm;
+      min-height: 200mm;
+      padding: 6mm;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .page-border {
+      position: absolute;
+      inset: 0;
+      margin: 5mm;
+      border: 1px solid #262626;
+      pointer-events: none;
+      box-sizing: border-box;
+    }
+
+    .doc-header { text-align: center; margin-bottom: 6px; }
+    .doc-header .ttl { font-weight: bold; font-size: 14px; }
+    .doc-header .subttl { font-weight: bold; font-size: 12px; margin-top: 2px; }
+
+    table.cal-table { width: 100%; border-collapse: collapse; border: 1px solid #262626; flex: 1; }
+    table.cal-table th, table.cal-table td { border: 1px solid #262626; padding: 3px 4px; text-align: center; vertical-align: middle; }
+    table.cal-table th { font-weight: bold; background: #eee; font-size: 10.5px; }
+    table.cal-table td.col-nome { text-align: left; font-weight: bold; white-space: nowrap; }
+    table.cal-table td.col-x { color: #999; }
+
+    .rodape { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 6px; font-size: 9.5px; }
+    .rodape .obs { max-width: 80%; }
+    .rodape .atualizado { font-style: italic; white-space: nowrap; }
+
+    @media print {
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    }
+  </style></head>
+  <body>
+    <div class="list-wrapper">
+      <div class="page-border"></div>
+      <div class="doc-header">
+        <div class="ttl">${escapeHTML(m.titulo)}${m.subtitulo ? ' - ' + escapeHTML(m.subtitulo) : ''} - ${ano}</div>
+      </div>
+
+      <table class="cal-table">
+        <thead><tr><th style="text-align:left;">Localidade</th>${MESES.map(mes => `<th>${mes}</th>`).join('')}</tr></thead>
+        <tbody>${linhasHtml}</tbody>
+      </table>
+
+      <div class="rodape">
+        <div class="obs">${obsHorario}</div>
+        <div class="atualizado">${m.atualizado ? 'Atualizado ' + escapeHTML(m.atualizado) : ''}</div>
+      </div>
+    </div>
+  </body></html>`;
+}
+
+/* ================= ENGINE DA PREVIEW ================= */
+function updatePreview() {
+  const html = buildDocumentHTML();
+  const frame = document.getElementById('previewFrame');
+  const doc = frame.contentDocument;
+
+  if (doc && doc.body && doc.body.innerHTML.trim() !== "") {
+    const parser = new DOMParser();
+    const newDoc = parser.parseFromString(html, 'text/html');
+
+    doc.title = newDoc.title;
+
+    if (doc.head && newDoc.head) {
+      doc.head.innerHTML = newDoc.head.innerHTML;
+    }
+
+    doc.body.innerHTML = newDoc.body.innerHTML;
+
+    scalePreview();
+  } else {
+    frame.srcdoc = html;
+    setTimeout(scalePreview, 100);
+  }
+}
+
+function scalePreview() {
+  const wrapper = document.getElementById('previewScaleWrapper');
+  const sizer = document.getElementById('iframeSizer');
+  const iframe = document.getElementById('previewFrame');
+  if (!wrapper || !sizer || !iframe) return;
+
+  iframe.style.transform = 'scale(1)';
+  const scale = Math.min(1, wrapper.clientWidth / 1123);
+  iframe.style.transform = `scale(${scale})`;
+  sizer.style.height = `${iframe.contentWindow.document.body.scrollHeight * scale}px`;
+}
+
+/* ================= FUNÇÕES DE APOIO ================= */
+function gerarPDF() {
+  const html = buildDocumentHTML();
+  const w = window.open('', '_blank');
+  w.document.open(); w.document.write(html); w.document.close();
+  setTimeout(() => { w.focus(); w.print(); }, 400);
+}
+
+function saveData() { localStorage.setItem('ccb_calendario_ensaios_state', JSON.stringify(STATE)); }
+function loadData() {
+  try {
+    const raw = localStorage.getItem('ccb_calendario_ensaios_state');
+    if(raw) STATE = JSON.parse(raw);
+  } catch(e) {}
+}
+
+function saveState() { saveData(); }
+
+function loadStateFromJSON(text) {
+  try { STATE = JSON.parse(text); init(); return true; } catch(e) { alert('Arquivo inválido.'); return false; }
+}
+
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(STATE, null, 2)], {type: 'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'calendario_ensaios.json'; a.click();
+}
+
+function importJSON(ev) {
+  const file = ev.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => { loadStateFromJSON(reader.result); };
+  reader.readAsText(file);
+}
+
+function resetAll() {
+  STATE = {
+    meta: {
+      titulo: "CALENDÁRIO DOS ENSAIOS LOCAIS",
+      subtitulo: "",
+      ano: "",
+      horarioPadrao: "19:30",
+      atualizado: ""
+    },
+    localidades: []
+  };
+  init(); saveData();
+}
+
+function init() {
+  document.getElementById('meta_titulo').value = STATE.meta.titulo || '';
+  document.getElementById('meta_subtitulo').value = STATE.meta.subtitulo || '';
+  document.getElementById('meta_ano').value = STATE.meta.ano || '';
+  document.getElementById('meta_horarioPadrao').value = STATE.meta.horarioPadrao || '19:30';
+  document.getElementById('meta_atualizado').value = STATE.meta.atualizado || '';
+  renderLocalidades();
+  updatePreview();
+}
+
+window.onload = () => {
+  loadData();
+  init();
+  window.addEventListener('resize', scalePreview);
+  setTimeout(scalePreview, 300);
+};
+</script>
+<script>
+(function () {
+  var REGIAO = 'calendario';
+
+  function tokenAtual() {
+    return localStorage.getItem('session_token');
+  }
+
+  function sugerirNomeArquivo() {
+    var d = new Date().toISOString().slice(0, 10);
+    return REGIAO + '_' + d;
+  }
+
+  window.salvarLista = async function () {
+    var btn = document.getElementById('btnListaSalvar');
+    var nome = prompt('Nome para salvar este calendário:', sugerirNomeArquivo());
+    if (nome === null) return; // cancelou
+    if (btn) { btn.disabled = true; btn.textContent = '☁️ Salvando...'; }
+    try {
+      saveState();
+      var conteudo = JSON.stringify(STATE, null, 2);
+      var res = await fetch('/api/lista-save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: tokenAtual(), regiao: REGIAO, nome: nome, conteudo: conteudo })
+      });
+      var data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro ao salvar');
+      alert('Calendário salvo como: ' + data.nomeArquivo);
+    } catch (e) {
+      alert('Erro ao salvar: ' + e.message);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '☁️ Salvar'; }
+    }
+  };
+
+  window.carregarLista = async function () {
+    var btn = document.getElementById('btnListaCarregar');
+    if (btn) { btn.disabled = true; btn.textContent = '☁️ Carregando...'; }
+    try {
+      var res = await fetch('/api/lista-list', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: tokenAtual(), regiao: REGIAO })
+      });
+      var data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro ao listar arquivos');
+      if (!data.arquivos.length) { alert('Ainda não existe nenhum calendário salvo.'); return; }
+      mostrarSeletorListas(data.arquivos);
+    } catch (e) {
+      alert('Erro ao acessar os calendários salvos: ' + e.message);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '☁️ Carregar'; }
+    }
+  };
+
+  function mostrarSeletorListas(arquivos) {
+    var overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:99999; display:flex; align-items:center; justify-content:center;';
+    var box = document.createElement('div');
+    box.style.cssText = 'background:#fff; border-radius:10px; padding:20px; width:340px; max-height:70vh; overflow:auto; font-family:Arial, Helvetica, sans-serif;';
+    box.innerHTML = '<h3 style="margin:0 0 12px; font-size:16px;">Escolha o arquivo</h3>';
+
+    arquivos.forEach(function (f) {
+      var item = document.createElement('button');
+      item.textContent = f.nome;
+      item.style.cssText = 'display:block; width:100%; text-align:left; padding:9px 10px; margin-bottom:6px; border:1px solid #ccd3da; border-radius:6px; background:#f4f6f8; cursor:pointer; font-size:13px;';
+      item.onclick = async function () {
+        overlay.remove();
+        try {
+          var res = await fetch('/api/lista-load', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: tokenAtual(), regiao: REGIAO, nome: f.nome })
+          });
+          var data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Erro ao carregar');
+          loadStateFromJSON(data.conteudo);
+        } catch (e) {
+          alert('Erro ao carregar arquivo: ' + e.message);
+        }
+      };
+      box.appendChild(item);
+    });
+
+    var cancelar = document.createElement('button');
+    cancelar.textContent = 'Cancelar';
+    cancelar.style.cssText = 'display:block; width:100%; text-align:center; padding:9px 10px; margin-top:6px; border:1px solid #ccd3da; border-radius:6px; background:#fff; cursor:pointer; font-size:13px;';
+    cancelar.onclick = function () { overlay.remove(); };
+    box.appendChild(cancelar);
+
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+  }
+})();
+</script>
+</body>
+</html>
