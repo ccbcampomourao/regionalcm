@@ -91,7 +91,7 @@
   #previewHost { flex: 1.5; position: sticky; top: 16px; height: calc(100vh - 32px); display: flex; flex-direction: column; min-width: 480px;}
   #previewScaleWrapper { flex: 1; overflow-y: auto; background: #525659; border: 1px solid var(--line); border-radius: 8px; padding: 10px 0; }
   #iframeSizer { display: flex; justify-content: center; overflow: hidden; width:100%; }
-  #previewFrame { width: 297mm; min-height: 210mm; border: none; background: #fff; transform-origin: top center; box-shadow: 0 4px 12px rgba(0,0,0,0.25); flex-shrink: 0; }
+  #previewFrame { width: 210mm; min-height: 297mm; border: none; background: #fff; transform-origin: top center; box-shadow: 0 4px 12px rgba(0,0,0,0.25); flex-shrink: 0; }
 
   @media (max-width:980px){ .wrap{flex-direction:column;} #previewHost{position:static; height:auto; min-width:100%;} }
 </style>
@@ -351,32 +351,28 @@ function buildDocumentHTML() {
     linhasHtml = `<tr><td colspan="13" style="padding:10px; color:#666;">(Nenhuma localidade adicionada)</td></tr>`;
   }
 
-  // Observação automática sobre horários diferentes do padrão.
-  const excecoes = STATE.localidades.filter(l => (l.horario || '').trim() && l.horario.trim() !== horarioPadrao);
-  let obsHorario = '';
-  if (excecoes.length > 0) {
-    const nomesExcecoes = excecoes.map(l => escapeHTML(l.nome)).join(', ');
-    obsHorario = `Obs. Os ensaios locais são realizados às ${escapeHTML(horarioPadrao)} hs, com exceção das localidades: ${nomesExcecoes}, que são às ${excecoes.map(l => escapeHTML(l.horario)).filter((v, i, a) => a.indexOf(v) === i).join(' / ')} hs.`;
-  }
+  // Observação fixa sobre o horário padrão, mostrada no topo. As exceções de horário
+  // já aparecem "explícitas" ao lado do nome da localidade (ex: "Roncador (20h)").
+  const obsHorario = `Obs. Os ensaios locais são realizados às ${escapeHTML(horarioPadrao)} hs, com exceção das que estão explícitas.`;
 
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escapeHTML(m.titulo)}</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght=400;700&display=swap');
 
-    @page { size: A4 landscape; margin: 0; }
+    @page { size: A4 portrait; margin: 0; }
     html, body { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
       font-family: 'Roboto', Arial, sans-serif;
-      color: #000; font-size: 10.5px;
-      width: 297mm;
+      color: #000; font-size: 9.5px;
+      width: 210mm;
       margin: 0 auto;
     }
 
     .list-wrapper {
       position: relative;
-      height: 200mm;
-      min-height: 200mm;
+      height: 285mm;
+      min-height: 285mm;
       padding: 6mm;
       box-sizing: border-box;
       display: flex;
@@ -393,20 +389,21 @@ function buildDocumentHTML() {
       box-sizing: border-box;
     }
 
-    .doc-header { text-align: center; margin-bottom: 6px; }
-    .doc-header .ttl { font-weight: bold; font-size: 14px; }
-    .doc-header .subttl { font-weight: bold; font-size: 12px; margin-top: 2px; }
+    .doc-header { text-align: center; margin-bottom: 4px; }
+    .doc-header .ttl { font-weight: bold; font-size: 13px; }
+    .doc-header .subttl { font-weight: bold; font-size: 11px; margin-top: 2px; }
 
-    table.cal-table { width: 100%; border-collapse: collapse; border: 1px solid #262626; flex: 1; }
-    table.cal-table th, table.cal-table td { border: 1px solid #262626; padding: 3px 4px; text-align: center; vertical-align: middle; }
-    table.cal-table th { font-weight: bold; background: #eee; font-size: 10.5px; }
-    table.cal-table td.col-nome { text-align: left; font-weight: bold; white-space: nowrap; }
+    .obs-topo { font-size: 9px; font-weight: bold; text-align: center; margin-bottom: 8px; }
+
+    table.cal-table { width: 100%; table-layout: fixed; border-collapse: collapse; border: 1px solid #262626; flex: 1; }
+    table.cal-table th, table.cal-table td { border: 1px solid #262626; padding: 2px 3px; text-align: center; vertical-align: middle; overflow-wrap: break-word; }
+    table.cal-table th { font-weight: bold; background: #eee; font-size: 9px; }
+    table.cal-table th.th-nome { width: 30mm; }
+    table.cal-table td.col-nome { text-align: left; font-weight: bold; white-space: normal; line-height: 1.15; }
     table.cal-table td.col-x { color: #999; }
-    table.cal-table td.regra-row { text-align: left; background: #d9d9d9; color: #444; font-weight: bold; font-size: 9.5px; letter-spacing: .02em; padding: 2px 5px; }
+    table.cal-table td.regra-row { text-align: left; background: #d9d9d9; color: #444; font-weight: bold; font-size: 8.5px; letter-spacing: .02em; padding: 2px 4px; }
 
-    .rodape { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 6px; font-size: 9.5px; }
-    .rodape .obs { max-width: 80%; }
-    .rodape .atualizado { font-style: italic; white-space: nowrap; }
+    .rodape { text-align: right; margin-top: 6px; font-size: 9px; font-style: italic; }
 
     @media print {
       * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
@@ -419,15 +416,14 @@ function buildDocumentHTML() {
         <div class="ttl">${escapeHTML(m.titulo)}${m.subtitulo ? ' - ' + escapeHTML(m.subtitulo) : ''} - ${ano}</div>
       </div>
 
+      <div class="obs-topo">${obsHorario}</div>
+
       <table class="cal-table">
-        <thead><tr><th style="text-align:left;">Localidade</th>${MESES.map(mes => `<th>${mes}</th>`).join('')}</tr></thead>
+        <thead><tr><th class="th-nome" style="text-align:left;">Localidade</th>${MESES.map(mes => `<th>${mes}</th>`).join('')}</tr></thead>
         <tbody>${linhasHtml}</tbody>
       </table>
 
-      <div class="rodape">
-        <div class="obs">${obsHorario}</div>
-        <div class="atualizado">${m.atualizado ? 'Atualizado ' + escapeHTML(m.atualizado) : ''}</div>
-      </div>
+      <div class="rodape">${m.atualizado ? 'Atualizado ' + escapeHTML(m.atualizado) : ''}</div>
     </div>
   </body></html>`;
 }
@@ -464,7 +460,7 @@ function scalePreview() {
   if (!wrapper || !sizer || !iframe) return;
 
   iframe.style.transform = 'scale(1)';
-  const scale = Math.min(1, wrapper.clientWidth / 1123);
+  const scale = Math.min(1, wrapper.clientWidth / 794);
   iframe.style.transform = `scale(${scale})`;
   sizer.style.height = `${iframe.contentWindow.document.body.scrollHeight * scale}px`;
 }
