@@ -482,7 +482,10 @@ function buildDocumentHTML() {
 STATE.secoes.forEach(secao => {
   if (!secao.localidades || secao.localidades.length === 0) return;
 
-  const rotuloRegra = rotuloSecao(secao).toUpperCase();
+  const rotuloRegra = rotuloSecao(secao).toUpperCase();]
+  const espacador = idx > 0
+    ? `<tr class="espaco-grupo"><td colspan="${colTotal}"></td></tr>`
+    : '';
   let linhasGrupo = `<tr><td colspan="${colTotal}" class="regra-row">${escapeHTML(rotuloRegra)}</td></tr>`;
 
   const grid = secao.localidades.map(loc =>
@@ -562,6 +565,7 @@ if (totalLocalidades === 0) {
     table.cal-table th.th-nome { width: 52mm; }
     table.cal-table td.col-nome { text-align: center; font-weight: bold; white-space: nowrap; }
     table.cal-table td.col-x { color: #999; }
+	table.cal-table tr.espaco-grupo td { border: none; padding: 0; height: 5px; background: #fff; }
     table.cal-table td.regra-row { text-align: center; background: #d9d9d9; color: #000; font-weight: bold; font-size: 10px; letter-spacing: .02em; padding: 0px 4px; }
     .grupo-tabela { margin-bottom: 1mm; break-inside: avoid; page-break-inside: avoid; }
     .grupo-tabela:last-child { margin-bottom: 0; }
