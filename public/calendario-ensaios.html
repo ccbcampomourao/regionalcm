@@ -478,35 +478,38 @@ function buildDocumentHTML() {
   // mesmo dia se repetir entre localidades vizinhas (mesmo que uma seja
   // ímpar e outra par) e/ou entre meses seguidos, a mesclagem acontece -
   // mesmo que o resto da linha não coincida.
-  let tabelasHtml = '';
-  STATE.secoes.forEach(secao => {
-    if (!secao.localidades || secao.localidades.length === 0) return;
+  let tbodyHtml = '';
+STATE.secoes.forEach(secao => {
+  if (!secao.localidades || secao.localidades.length === 0) return;
 
-    const rotuloRegra = rotuloSecao(secao).toUpperCase();
-    let linhasGrupo = `<tr><td colspan="${colTotal}" class="regra-row">${escapeHTML(rotuloRegra)}</td></tr>`;
+  const rotuloRegra = rotuloSecao(secao).toUpperCase();
+  let linhasGrupo = `<tr><td colspan="${colTotal}" class="regra-row">${escapeHTML(rotuloRegra)}</td></tr>`;
 
-    const grid = secao.localidades.map(loc =>
-      calcularLinha({ ordinal: secao.ordinal, diaSemana: secao.diaSemana, periodicidade: loc.periodicidade || 'todos' }, ano, seqMeses)
-    );
-    const plano = planoCelulasMescladas(grid);
+  const grid = secao.localidades.map(loc =>
+    calcularLinha({ ordinal: secao.ordinal, diaSemana: secao.diaSemana, periodicidade: loc.periodicidade || 'todos' }, ano, seqMeses)
+  );
+  const plano = planoCelulasMescladas(grid);
 
-    secao.localidades.forEach((loc, r) => {
-      const horarioLoc = (loc.horario || '').trim();
-      const nomeExibido = horarioLoc && horarioLoc !== horarioPadrao
-        ? `${escapeHTML(loc.nome)} (${escapeHTML(horarioLoc)}h)`
-        : escapeHTML(loc.nome);
-      linhasGrupo += `<tr><td class="col-nome">${nomeExibido}</td>`;
-      linhasGrupo += celulasDaLinhaComPlano(plano, r, seqMeses.length);
-      linhasGrupo += `</tr>`;
-    });
-
-    tabelasHtml += `<div class="grupo-tabela"><table class="cal-table">${theadHtml}<tbody>${linhasGrupo}</tbody></table></div>`;
+  secao.localidades.forEach((loc, r) => {
+    const horarioLoc = (loc.horario || '').trim();
+    const nomeExibido = horarioLoc && horarioLoc !== horarioPadrao
+      ? `${escapeHTML(loc.nome)} (${escapeHTML(horarioLoc)}h)`
+      : escapeHTML(loc.nome);
+    linhasGrupo += `<tr><td class="col-nome">${nomeExibido}</td>`;
+    linhasGrupo += celulasDaLinhaComPlano(plano, r, seqMeses.length);
+    linhasGrupo += `</tr>`;
   });
 
-  const totalLocalidades = STATE.secoes.reduce((acc, s) => acc + (s.localidades ? s.localidades.length : 0), 0);
-  if (totalLocalidades === 0) {
-    tabelasHtml = `<table class="cal-table">${theadHtml}<tbody><tr><td colspan="${colTotal}" style="padding:10px; color:#666;">(Nenhuma localidade adicionada)</td></tr></tbody></table>`;
-  }
+  tbodyHtml += `<tbody class="grupo-tabela">${linhasGrupo}</tbody>`;
+});
+
+const totalLocalidades = STATE.secoes.reduce((acc, s) => acc + (s.localidades ? s.localidades.length : 0), 0);
+let tabelasHtml;
+if (totalLocalidades === 0) {
+  tabelasHtml = `<table class="cal-table">${theadHtml}<tbody><tr><td colspan="${colTotal}" style="padding:10px; color:#666;">(Nenhuma localidade adicionada)</td></tr></tbody></table>`;
+} else {
+  tabelasHtml = `<table class="cal-table">${theadHtml}${tbodyHtml}</table>`;
+}
 
   // Observação fixa sobre o horário padrão, mostrada no topo. As exceções de horário
   // já aparecem "explícitas" ao lado do nome da localidade (ex: "Roncador (20h)").
