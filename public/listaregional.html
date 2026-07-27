@@ -372,6 +372,19 @@ const SECTION_TYPES = {
       {key:"atende", label:"Obreiros que atendem", type:"list", itemLabel:"Obreiro"}
     ]
   },
+	obreiros: {
+    label: "Novos Obreiros",
+    columns: ["Data","Hora","Local","Ministério","Obreiro","Atende"],
+    fields: [
+      {key:"cidade", label:"Cidade", type:"text"},
+      {key:"data", label:"Data", type:"date"},
+      {key:"hora", label:"Hora", type:"time"},
+      {key:"local", label:"Local", type:"text"},
+	  {key:"ministerio", label:"Ministério", type:"text"},
+      {key:"novoobreiro", label:"Novo Obreiro", type:"text"},
+      {key:"atende", label:"Atende", type:"list", itemLabel:"Obreiro"}
+    ]
+  },
   reuniaodiversa: {
     label: "Reuniões Diversas",
     columns: ["Data","Hora","Local","Convocados","Evento"],
