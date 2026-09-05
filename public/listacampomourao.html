@@ -2283,4 +2283,49 @@ window.onload = ()=>{
       if (!data.arquivos.length) { alert('Ainda não existe nenhuma lista salva para ' + REGIAO + '.'); return; }
       mostrarSeletorListas(data.arquivos);
     } catch (e) {
-      alert('Erro ao acessar as listas sa
+   alert('Erro ao acessar as listas salvas: ' + e.message);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '☁️ Carregar'; }
+    }
+  };
+
+  function mostrarSeletorListas(arquivos) {
+    var overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:99999; display:flex; align-items:center; justify-content:center;';
+    var box = document.createElement('div');
+    box.style.cssText = 'background:#fff; border-radius:10px; padding:20px; width:340px; max-height:70vh; overflow:auto; font-family:Arial, Helvetica, sans-serif;';
+    box.innerHTML = '<h3 style="margin:0 0 12px; font-size:16px;">Escolha o arquivo</h3>';
+
+    arquivos.forEach(function (f) {
+      var item = document.createElement('button');
+      item.textContent = f.nome;
+      item.style.cssText = 'display:block; width:100%; text-align:left; padding:9px 10px; margin-bottom:6px; border:1px solid #ccd3da; border-radius:6px; background:#f4f6f8; cursor:pointer; font-size:13px;';
+      item.onclick = async function () {
+        overlay.remove();
+        try {
+          var res = await fetch('/api/lista-load', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: tokenAtual(), regiao: REGIAO, nome: f.nome })
+          });
+          var data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Erro ao carregar');
+          loadStateFromJSON(data.conteudo);
+        } catch (e) {
+          alert('Erro ao carregar arquivo: ' + e.message);
+        }
+      };
+      box.appendChild(item);
+    });
+    var cancelar = document.createElement('button');
+    cancelar.textContent = 'Cancelar';
+    cancelar.style.cssText = 'display:block; width:100%; text-align:center; padding:9px 10px; margin-top:6px; border:1px solid #ccd3da; border-radius:6px; background:#fff; cursor:pointer; font-size:13px;';
+    cancelar.onclick = function () { overlay.remove(); };
+    box.appendChild(cancelar);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+  }
+})();
+</script>
+</body>
+</html
