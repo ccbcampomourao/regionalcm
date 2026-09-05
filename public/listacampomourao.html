@@ -75,9 +75,12 @@
   .panel{background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px; flex:1; min-width:320px; box-shadow:0 1px 2px rgba(27,42,65,.04), 0 10px 30px -14px rgba(27,42,65,.18);}
   .toolbar{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;}
   button{cursor:pointer; font-weight:600; border:1.5px solid var(--line); background:#fff; color:var(--primary); padding:8px 13px; border-radius:9px; font-size:13px; transition:.15s;}
-  button:hover{border-color:var(--brass-lt);}
+  button:hover{border-color:var(--brass-lt); box-shadow:0 3px 10px -4px rgba(27,42,65,.25); transform:translateY(-1px);}
+  button:active{transform:translateY(0);}
   button.danger{background:#fff; color:var(--accent); border-color:var(--accent);}
   button.small{padding:4px 8px; font-size:12px;}
+  button.primary-action{background:linear-gradient(180deg, var(--brass-lt), var(--brass)); color:#fff; border-color:var(--brass);}
+  button.primary-action:hover{box-shadow:0 4px 12px -3px rgba(169,125,61,.5);}
   input[type=text], input[type=date], input[type=time]{
     border:1.5px solid var(--line); border-radius:8px; padding:6px 8px; font-size:14px; width:100%;
   }
@@ -85,22 +88,39 @@
   label{font-size:13px; font-weight:700; color:var(--primary-2); display:block; margin-bottom:2px;}
   .field{margin-bottom:8px;}
   .row-grid{display:grid; gap:8px; grid-template-columns:repeat(3,1fr);}
-  .section{border:1px solid var(--line); border-radius:12px; margin-bottom:14px; overflow:hidden; transition: 0.2s;}
+  .section{border:1px solid var(--line); border-radius:12px; margin-bottom:14px; overflow:hidden; transition: box-shadow .2s, border-color .2s; box-shadow:0 1px 2px rgba(27,42,65,.03);}
+  .section:hover{border-color:var(--brass-lt);}
   .section.over { border: 2px dashed var(--brass); opacity: 0.7; }
-  .section-head{display:flex; justify-content:space-between; align-items:center; padding:10px 12px; background:#f6f2e7; cursor:pointer;}
+  .section-head{display:flex; justify-content:space-between; align-items:center; padding:11px 14px; background:linear-gradient(180deg,#f8f4e9,#f2ecdc); cursor:pointer; user-select:none; transition:background .15s;}
+  .section-head:hover{background:linear-gradient(180deg,#f4eeda,#eee5cc);}
   .section-head h3{margin:0; font-size:14px; color:var(--primary);}
-  .section-body{padding:12px; display:none;}
+  .section-caret{display:inline-block; margin-right:8px; font-size:12px; color:var(--brass); transition:transform .18s; transform:rotate(0deg);}
+  .section.open .section-caret{transform:rotate(90deg);}
+  .section-body{padding:14px; display:none; animation:fadeIn .15s ease;}
   .section.open .section-body{display:block;}
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(-4px);} to{opacity:1; transform:translateY(0);} }
   .drag-handle { cursor:grab; font-size:18px; color:#9a9284; padding-right:8px; user-select:none; }
   .drag-handle:active { cursor:grabbing; }
-  .entry{border:1px dashed var(--line); border-radius:8px; padding:10px; margin-bottom:10px; position:relative; background:#fafaf5;}
-  .entry .remove{position:absolute; top:6px; right:6px;}
-  .entry .move-btn{position:absolute; top:6px; right:42px;}
+
+  .entry{border:1px solid var(--line); border-radius:10px; margin-bottom:10px; background:#fdfcf8; overflow:hidden; transition:box-shadow .15s, border-color .15s;}
+  .entry.open{border-color:var(--brass-lt);}
+  .entry:hover{box-shadow:0 2px 10px -4px rgba(27,42,65,.15);}
+  .entry-head{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 10px; cursor:pointer; background:#f3efe1; user-select:none;}
+  .entry-head:hover{background:#ede6d1;}
+  .entry-head-left{display:flex; align-items:center; gap:9px; min-width:0; flex:1;}
+  .entry-caret{display:inline-block; font-size:11px; color:var(--brass); transition:transform .15s; flex-shrink:0;}
+  .entry.open .entry-caret{transform:rotate(90deg);}
+  .entry-summary-date{font-weight:700; color:#fdfbf6; font-size:12px; white-space:nowrap; flex-shrink:0; background:var(--primary-2); padding:3px 9px; border-radius:6px; letter-spacing:.02em;}
+  .entry-summary-text{font-size:13px; color:#3c3628; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;}
+  .entry-summary-text.empty{color:#a39c8a; font-style:italic;}
+  .entry-head-actions{display:flex; gap:6px; flex-shrink:0;}
+  .entry-body{padding:12px; display:none;}
+  .entry.open .entry-body{display:block; animation:fadeIn .15s ease;}
   .listgroup{border:1px solid var(--line); border-radius:8px; padding:8px; background:#fff; margin-top:4px;}
   .listitem{display:flex; gap:6px; margin-bottom:6px; align-items:center;}
   .listitem input[type=text]{flex:1;}
-  .add-section-types{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px;}
-  .add-section-types button{font-size:12px;}
+  .add-section-types{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; padding:10px; background:#f8f6ef; border:1px dashed var(--line); border-radius:10px;}
+  .add-section-types button{font-size:12px; background:#fff;}
   .muted{color:#7a7263; font-size:12px;}
   
   #previewHost{
@@ -162,7 +182,7 @@
 <div class="wrap">
   <div class="panel" id="formPanel">
     <div class="toolbar">
-      <button onclick="gerarPDF()">🖨️ Gerar / Imprimir PDF</button>
+      <button class="primary-action" onclick="gerarPDF()">🖨️ Gerar / Imprimir PDF</button>
       <button onclick="exportJSON()">⬇️ Salvar (.json)</button>
       <button onclick="document.getElementById('importInput').click()">⬆️ Carregar (.json)</button>
       <input type="file" id="importInput" accept=".json" style="display:none" onchange="importJSON(event)">
@@ -193,9 +213,12 @@
 
     <div class="section open" id="cargosSection">
       <div class="section-head" onclick="document.getElementById('cargosSection').classList.toggle('open')">
-        <h3>Legenda de Cargos (usados na "Legenda" do rodapé)</h3>
+        <div style="display:flex; align-items:center;">
+          <span class="section-caret">▸</span>
+          <h3>Legenda de Cargos (usados na "Legenda" do rodapé)</h3>
+        </div>
       </div>
-      <div class="section-body" style="display:block">
+      <div class="section-body">
         <div class="muted" style="margin-bottom:6px;">Marque a 1ª caixinha para mostrar na Legenda. Marque a 2ª caixinha para usar asterisco (*) automático nas reuniões.</div>
         <div id="cargosList" class="listgroup"></div>
         <div class="row-grid" style="margin-top:8px;grid-template-columns:1fr 2fr auto;">
@@ -727,6 +750,35 @@ function removeListItem(sectionId, entryId, fieldKey, idx){
   renderSections(); saveState(); renderPreview();
 }
 
+function getEntrySummary(def, entry){
+  const dataVal = entry.data && entry.data.data ? entry.data.data : '';
+  let dataLabel = 'Sem data';
+  if(dataVal){
+    dataLabel = fmtDate(dataVal) + ' ' + getWeekdayAbbr(dataVal);
+  }
+
+  let textoVal = '';
+  const skipKeys = ['data','hora','tipo'];
+  for(const f of def.fields){
+    if(skipKeys.includes(f.key)) continue;
+    const val = entry.data ? entry.data[f.key] : undefined;
+    if(f.type==='list'){
+      const filled = (val||[]).filter(x=>x && x.trim());
+      if(filled.length){ textoVal = filled.join(', '); break; }
+    } else if(f.type==='tags'){
+      const tagData = val || {};
+      const chips = tagData.chips || [];
+      const extra = tagData.texto ? [tagData.texto] : [];
+      const joined = chips.concat(extra).join(', ');
+      if(joined){ textoVal = joined; break; }
+    } else {
+      if(val && String(val).trim()){ textoVal = String(val).trim(); break; }
+    }
+  }
+
+  return { dataLabel, textoVal };
+}
+
 function renderSections(){
   sortStateDates();
   const host = document.getElementById('sectionsContainer');
@@ -775,6 +827,7 @@ function renderSections(){
     head.innerHTML = `
       <div style="display:flex; align-items:center;">
         <span class="drag-handle" title="Arraste para reordenar">☰</span>
+        <span class="section-caret">▸</span>
         <h3>${sIdx+1}. ${def.label}</h3>
       </div>
     `;
@@ -815,21 +868,65 @@ function renderSections(){
       const similarSections = STATE.sections.filter(s => s.typeKey === section.typeKey && s.id !== section.id);
 
       section.entries.forEach((entry, eIdx)=>{
+        if (typeof entry.isOpen === 'undefined') entry.isOpen = true;
+
         const eDiv = document.createElement('div');
-        eDiv.className='entry';
-        const rmBtn = document.createElement('button');
-        rmBtn.className='small danger remove'; rmBtn.textContent='✕'; rmBtn.title='Excluir linha';
-        rmBtn.onclick=()=>removeEntry(section.id, entry.id);
-        eDiv.appendChild(rmBtn);
+        eDiv.className = 'entry' + (entry.isOpen ? ' open' : '');
+
+        const eHead = document.createElement('div');
+        eHead.className = 'entry-head';
+
+        const eHeadLeft = document.createElement('div');
+        eHeadLeft.className = 'entry-head-left';
+
+        const caret = document.createElement('span');
+        caret.className = 'entry-caret';
+        caret.textContent = '▸';
+        eHeadLeft.appendChild(caret);
+
+        const { dataLabel, textoVal } = getEntrySummary(def, entry);
+
+        const dateBadge = document.createElement('span');
+        dateBadge.className = 'entry-summary-date';
+        dateBadge.textContent = dataLabel;
+        eHeadLeft.appendChild(dateBadge);
+
+        const summaryText = document.createElement('span');
+        summaryText.className = 'entry-summary-text' + (textoVal ? '' : ' empty');
+        summaryText.textContent = textoVal || 'Linha ' + (eIdx+1) + ' — clique para preencher';
+        eHeadLeft.appendChild(summaryText);
+
+        eHead.appendChild(eHeadLeft);
+
+        const eHeadActions = document.createElement('div');
+        eHeadActions.className = 'entry-head-actions';
 
         if (similarSections.length > 0) {
           const moveBtn = document.createElement('button');
-          moveBtn.className = 'small primary move-btn';
+          moveBtn.className = 'small';
           moveBtn.textContent = '⮀ Mover';
           moveBtn.title = 'Mover para outra tabela do mesmo tipo';
-          moveBtn.onclick = () => moveEntry(section.id, entry.id);
-          eDiv.appendChild(moveBtn);
+          moveBtn.onclick = (e) => { e.stopPropagation(); moveEntry(section.id, entry.id); };
+          eHeadActions.appendChild(moveBtn);
         }
+
+        const rmBtn = document.createElement('button');
+        rmBtn.className = 'small danger'; rmBtn.textContent = '✕'; rmBtn.title = 'Excluir linha';
+        rmBtn.onclick = (e) => { e.stopPropagation(); removeEntry(section.id, entry.id); };
+        eHeadActions.appendChild(rmBtn);
+
+        eHead.appendChild(eHeadActions);
+
+        eHead.onclick = () => {
+          entry.isOpen = !entry.isOpen;
+          renderSections();
+          saveState();
+        };
+
+        eDiv.appendChild(eHead);
+
+        const eBody = document.createElement('div');
+        eBody.className = 'entry-body';
 
         const grid = document.createElement('div');
         grid.className='row-grid';
@@ -970,7 +1067,8 @@ function renderSections(){
           grid.appendChild(fdiv);
         });
 
-        eDiv.appendChild(grid);
+        eBody.appendChild(grid);
+        eDiv.appendChild(eBody);
         body.appendChild(eDiv);
       });
 
