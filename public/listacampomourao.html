@@ -84,6 +84,11 @@
   input[type=text], input[type=date], input[type=time]{
     border:1.5px solid var(--line); border-radius:8px; padding:6px 8px; font-size:14px; width:100%;
   }
+  textarea.field-textarea{
+    border:1.5px solid var(--line); border-radius:8px; padding:8px; font-size:14px; width:100%;
+    resize:vertical; min-height:64px; line-height:1.4; font-family:inherit;
+  }
+  textarea.field-textarea:focus{ outline:none; border-color:var(--brass); box-shadow:0 0 0 3px rgba(169,125,61,.15); }
   input:focus, select:focus{ outline:none; border-color:var(--brass); box-shadow:0 0 0 3px rgba(169,125,61,.15); }
   label{font-size:13px; font-weight:700; color:var(--primary-2); display:block; margin-bottom:2px;}
   .field{margin-bottom:8px;}
@@ -170,7 +175,43 @@
   
   .note{background:#fbf1dc; border:1px solid #e5c675; padding:8px 10px; border-radius:8px; font-size:12px; margin-bottom:10px;}
   .avisos-box textarea{width:100%; min-height:120px; border:1.5px solid var(--line); border-radius:8px; padding:8px; font-size:13px;}
-  @media (max-width:980px){ .wrap{flex-direction:column;} #previewHost{position:static; max-height:none;} }
+
+  .mobile-preview-close{ display:none; }
+  .mobile-preview-fab{
+    display:none;
+    position:fixed; right:18px; bottom:18px; z-index:99996;
+    align-items:center; gap:8px;
+    background:linear-gradient(180deg, var(--brass-lt), var(--brass)); color:#fff;
+    border:none; border-radius:999px; padding:14px 20px; font-size:14px; font-weight:700;
+    box-shadow:0 10px 24px -6px rgba(27,42,65,.5), 0 2px 6px rgba(0,0,0,.15);
+    animation:fabPulse 2.4s ease-in-out infinite;
+  }
+  .mobile-preview-fab:hover{ transform:translateY(-2px); }
+  @keyframes fabPulse{
+    0%, 100% { box-shadow:0 10px 24px -6px rgba(27,42,65,.5), 0 0 0 0 rgba(169,125,61,.45); }
+    50% { box-shadow:0 10px 24px -6px rgba(27,42,65,.5), 0 0 0 10px rgba(169,125,61,0); }
+  }
+
+  @media (max-width:980px){
+    .wrap{flex-direction:column;}
+    #previewHost{ display:none; position:static; max-height:none; }
+    #previewHost.mobile-open{
+      display:flex !important; flex-direction:column;
+      position:fixed; inset:0; z-index:99997; margin:0; border-radius:0; border:none;
+      width:100vw; height:100vh; max-height:100vh; padding:12px; box-shadow:none;
+    }
+    #previewHost.mobile-open #previewScaleWrapper{ flex:1; }
+    .mobile-preview-close{
+      display:inline-flex; align-items:center; gap:4px;
+      background:var(--primary); color:#fdfbf6; border:none; border-radius:8px;
+      padding:7px 12px; font-size:13px; font-weight:700;
+    }
+    .mobile-preview-fab{ display:flex; }
+    body.mobile-preview-active{ overflow:hidden; }
+  }
+  @media (min-width:981px){
+    .mobile-preview-fab{ display:none !important; }
+  }
 </style>
 </head>
 <body>
@@ -235,7 +276,10 @@
 
   <div class="panel" id="previewHost">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-      <h3 style="margin:0;color:var(--primary)">Pré-visualização (Folha A4)</h3>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <button class="mobile-preview-close" onclick="closeMobilePreview()" title="Fechar pré-visualização">← Voltar</button>
+        <h3 style="margin:0;color:var(--primary)">Pré-visualização (Folha A4)</h3>
+      </div>
       <div style="display:flex; align-items:center; gap:6px; background:#eef1f5; padding:4px 8px; border-radius:6px; border:1px solid var(--line);">
         <label style="margin:0; font-weight:bold; font-size:12px; color:var(--primary);">Página:</label>
         <button class="small" onclick="changePreviewPage(-1)" style="padding:2px 6px; margin:0;">◀</button>
@@ -250,6 +294,10 @@
     </div>
   </div>
 </div>
+
+<button id="mobilePreviewFab" class="mobile-preview-fab" onclick="openMobilePreview()">
+  👁️ <span>Ver Pré-visualização</span>
+</button>
 
 <script>
 // =============== FUNÇÃO NOVA DE FORMATAÇÃO ===============
@@ -393,7 +441,7 @@ const SECTION_TYPES = {
       {key:"hora", label:"Hora", type:"time"},
       {key:"local", label:"Local", type:"text"},
       {key:"convocados", label:"Convocados", type:"tags"},
-      {key:"evento", label:"Evento", type:"text"}
+      {key:"evento", label:"Evento", type:"textarea"}
     ]
   },
   reuniaodiversa_cozinha: {
@@ -404,7 +452,7 @@ const SECTION_TYPES = {
       {key:"hora", label:"Hora", type:"time"},
       {key:"tipo", label:"Refeição", type:"select", options:["JANTA","CAFÉ","ALMOÇO","CAFÉ E ALMOÇO"]},
       {key:"aprox", label:"Participantes", type:"text"},
-      {key:"evento", label:"Evento", type:"text"}
+      {key:"evento", label:"Evento", type:"textarea"}
     ]
   },
   evangelizacao: {
@@ -772,7 +820,7 @@ function getEntrySummary(def, entry){
       const joined = chips.concat(extra).join(', ');
       if(joined){ textoVal = joined; break; }
     } else {
-      if(val && String(val).trim()){ textoVal = String(val).trim(); break; }
+      if(val && String(val).trim()){ textoVal = String(val).trim().replace(/\s*\n\s*/g, ' · '); break; }
     }
   }
 
@@ -1037,6 +1085,20 @@ function renderSections(){
             sel.value = entry.data[f.key] || '';
             sel.onchange = ()=>{ entry.data[f.key] = sel.value; saveState(); renderPreview(); };
             fdiv.appendChild(sel);
+          } else if(f.type==='textarea'){
+            fdiv.style.gridColumn = '1 / -1';
+            const ta = document.createElement('textarea');
+            ta.className = 'field-textarea';
+            ta.value = entry.data[f.key] || '';
+            ta.rows = 3;
+            ta.oninput = ()=>{ entry.data[f.key] = ta.value; saveState(); renderPreview(); };
+            ta.onchange = ()=>{
+              const formatado = formatarTextoCapitalizado(ta.value);
+              ta.value = formatado;
+              entry.data[f.key] = formatado;
+              saveState(); renderPreview();
+            };
+            fdiv.appendChild(ta);
           } else {
             const inp = document.createElement('input');
             inp.type = f.type;
@@ -1352,7 +1414,7 @@ function buildDocumentHTML(){
             const p = planoParticipantes[i];
             rowsHtmlCozinha += `<td rowspan="${p.rowspan}">${escapeHTML(p.valor||'') || '-'}</td>`;
           }
-          rowsHtmlCozinha += `<td style="text-align:left; vertical-align:middle;">${escapeHTML(it.evento||'') || '-'}</td>`;
+          rowsHtmlCozinha += `<td style="text-align:left; vertical-align:middle;">${escapeHTML(it.evento||'').replace(/\n/g, '<br>') || '-'}</td>`;
           rowsHtmlCozinha += '</tr>';
         });
       });
@@ -1478,7 +1540,8 @@ function buildDocumentHTML(){
         } else if(f.type==='time'){
           body += `<td>${fmtTime(entry.data[f.key]) || '-'}</td>`;
         } else if (f.key === 'evento') {
-          body += `<td style="text-align:left; vertical-align:middle;">${escapeHTML(entry.data[f.key]||'') || '-'}</td>`;
+          const eventoHtml = escapeHTML(entry.data[f.key]||'').replace(/\n/g, '<br>');
+          body += `<td style="text-align:left; vertical-align:middle;">${eventoHtml || '-'}</td>`;
           
         } else if (f.key === 'local' && section.typeKey === 'reuniaodiversa') {
           let strLocal = entry.data[f.key] || '';
@@ -1948,6 +2011,25 @@ function displayCurrentPreviewPage(){
   if (pageNumEl) pageNumEl.textContent = `${CURRENT_PREVIEW_PAGE} / ${totalPages}`;
 }
 
+function isMobileView(){
+  return window.matchMedia('(max-width:980px)').matches;
+}
+
+function openMobilePreview(){
+  const host = document.getElementById('previewHost');
+  if(!host) return;
+  host.classList.add('mobile-open');
+  document.body.classList.add('mobile-preview-active');
+  setTimeout(scalePreview, 30);
+}
+
+function closeMobilePreview(){
+  const host = document.getElementById('previewHost');
+  if(!host) return;
+  host.classList.remove('mobile-open');
+  document.body.classList.remove('mobile-preview-active');
+}
+
 function scalePreview() {
   const wrapper = document.getElementById('previewScaleWrapper');
   const sizer = document.getElementById('iframeSizer');
@@ -2045,7 +2127,13 @@ window.onload = ()=>{
   frame.addEventListener('load', () => {
     scalePreview();
   });
-  window.addEventListener('resize', scalePreview);
+  window.addEventListener('resize', () => {
+    scalePreview();
+    if (!isMobileView()) closeMobilePreview();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeMobilePreview();
+  });
   
   renderPreview();
   document.getElementById('meta_periodo').addEventListener('change', ()=>{ saveState(); renderPreview(); });
