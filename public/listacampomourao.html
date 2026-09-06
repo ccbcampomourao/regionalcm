@@ -55,6 +55,7 @@
 })();
 </script>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>LISTA CAMPO MOURÃO</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -259,6 +260,13 @@
   @media (max-width:480px){
     .toolbar button{ flex:1 1 100%; }
     .add-section-types button{ flex:1 1 100%; }
+    .wrap{ padding:6px; }
+    #formPanel{ padding:12px 8px; }
+    .section-body{ padding:10px 8px; }
+    .entry-body{ padding:12px 8px; }
+    .entry-head{ padding:10px 8px; }
+    header{ padding:12px; }
+    header h1{ font-size:15px; }
   }
   @media (min-width:981px){
     .mobile-preview-fab{ display:none !important; }
@@ -2278,12 +2286,12 @@ window.onload = ()=>{
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: tokenAtual(), regiao: REGIAO })
       });
-      var data = await res.json();
+     var data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Erro ao listar arquivos');
       if (!data.arquivos.length) { alert('Ainda não existe nenhuma lista salva para ' + REGIAO + '.'); return; }
       mostrarSeletorListas(data.arquivos);
     } catch (e) {
-   alert('Erro ao acessar as listas salvas: ' + e.message);
+      alert('Erro ao acessar as listas salvas: ' + e.message);
     } finally {
       if (btn) { btn.disabled = false; btn.textContent = '☁️ Carregar'; }
     }
@@ -2317,15 +2325,17 @@ window.onload = ()=>{
       };
       box.appendChild(item);
     });
+
     var cancelar = document.createElement('button');
     cancelar.textContent = 'Cancelar';
     cancelar.style.cssText = 'display:block; width:100%; text-align:center; padding:9px 10px; margin-top:6px; border:1px solid #ccd3da; border-radius:6px; background:#fff; cursor:pointer; font-size:13px;';
     cancelar.onclick = function () { overlay.remove(); };
     box.appendChild(cancelar);
+
     overlay.appendChild(box);
     document.body.appendChild(overlay);
   }
 })();
 </script>
 </body>
-</html
+</html>
