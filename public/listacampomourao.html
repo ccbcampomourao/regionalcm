@@ -122,6 +122,13 @@
   .entry-head-actions{display:flex; gap:6px; flex-shrink:0;}
   .entry-body{padding:12px; display:none;}
   .entry.open .entry-body{display:block; animation:fadeIn .15s ease;}
+  .city-group-header{
+    margin:14px 0 8px; padding:7px 12px;
+    background:var(--primary); color:#fdfbf6;
+    font-size:12.5px; font-weight:800; letter-spacing:.05em;
+    border-radius:7px;
+  }
+  .city-group-header:first-child{ margin-top:2px; }
   .listgroup{border:1px solid var(--line); border-radius:8px; padding:8px; background:#fff; margin-top:4px;}
   .listitem{display:flex; gap:6px; margin-bottom:6px; align-items:center;}
   .listitem input[type=text]{flex:1;}
@@ -631,11 +638,26 @@ function sanitizeState() {
 function sortStateDates() {
   STATE.sections.forEach(section => {
     if (section.entries && section.entries.length > 0) {
-      section.entries.sort((a, b) => {
-        const dateA = a.data && a.data.data ? a.data.data : "9999-12-31";
-        const dateB = b.data && b.data.data ? b.data.data : "9999-12-31";
-        return dateA.localeCompare(dateB);
-      });
+      if (section.typeKey === 'evangelizacao') {
+        // Nas Reuniões de Evangelização, agrupa primeiro por cidade (em ordem
+        // alfabética) e, dentro de cada cidade, ordena por data — igual ao
+        // agrupamento que já é feito na pré-visualização/impressão.
+        section.entries.sort((a, b) => {
+          const cidadeA = (a.data && a.data.cidade ? a.data.cidade : '').trim();
+          const cidadeB = (b.data && b.data.cidade ? b.data.cidade : '').trim();
+          const cidCompare = cidadeA.localeCompare(cidadeB, 'pt-BR');
+          if (cidCompare !== 0) return cidCompare;
+          const dateA = a.data && a.data.data ? a.data.data : "9999-12-31";
+          const dateB = b.data && b.data.data ? b.data.data : "9999-12-31";
+          return dateA.localeCompare(dateB);
+        });
+      } else {
+        section.entries.sort((a, b) => {
+          const dateA = a.data && a.data.data ? a.data.data : "9999-12-31";
+          const dateB = b.data && b.data.data ? b.data.data : "9999-12-31";
+          return dateA.localeCompare(dateB);
+        });
+      }
     }
   });
 }
@@ -997,8 +1019,21 @@ function renderSections(){
     } else {
       const similarSections = STATE.sections.filter(s => s.typeKey === section.typeKey && s.id !== section.id);
 
+      let lastCidade = null;
+
       section.entries.forEach((entry, eIdx)=>{
         if (typeof entry.isOpen === 'undefined') entry.isOpen = true;
+
+        if (section.typeKey === 'evangelizacao') {
+          const cidadeAtual = (entry.data.cidade || '').trim() || 'Sem cidade informada';
+          if (cidadeAtual !== lastCidade) {
+            lastCidade = cidadeAtual;
+            const cityHeader = document.createElement('div');
+            cityHeader.className = 'city-group-header';
+            cityHeader.textContent = cidadeAtual.toUpperCase();
+            body.appendChild(cityHeader);
+          }
+        }
 
         const eDiv = document.createElement('div');
         eDiv.className = 'entry' + (entry.isOpen ? ' open' : '');
@@ -1294,7 +1329,18 @@ function buildDocumentHTML(){
         <tbody>
           <tr><td style="text-align:left; padding:4px 6px; word-break: break-word; overflow-wrap: break-word;">`;
       
-      lines.forEach(l=> body += `<p style="margin:2px 0; font-size:12px; font-weight:normal;">${escapeHTML(l)}</p>`);
+      lines.forEach(l=>{
+        // Linhas decorativas feitas só de "=" e "-" (usadas como separador visual)
+        // quebram de formas diferentes em cada navegador, porque a quebra de uma
+        // "palavra" gigante sem espaços depende da métrica de fonte de cada um.
+        // Por isso são renderizadas como uma linha (<hr>) de verdade, com largura
+        // fixa em CSS — isso fica idêntico em qualquer navegador/impressora.
+        if (/^[=\-]{12,}$/.test(l.trim())) {
+          body += `<hr class="aviso-divider">`;
+        } else {
+          body += `<p style="margin:2px 0; font-size:12px; font-weight:normal;">${escapeHTML(l)}</p>`;
+        }
+      });
       
       body += `</td></tr></tbody></table></div>`;
       return;
@@ -1722,6 +1768,14 @@ function buildDocumentHTML(){
       box-sizing: border-box;
       max-height: 65mm;
       overflow: hidden;
+    }
+
+    .aviso-divider {
+      border: none;
+      border-top: 1.5px dashed #555;
+      margin: 6px 0;
+      width: 100%;
+      height: 0;
     }
 
     .table-wrapper {
