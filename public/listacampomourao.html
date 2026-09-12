@@ -1084,7 +1084,7 @@ function renderSections(){
 
         eHead.onclick = () => {
           entry.isOpen = !entry.isOpen;
-          renderSections();
+          eDiv.classList.toggle('open', entry.isOpen);
           saveState();
         };
 
