@@ -481,7 +481,7 @@ const SECTION_TYPES = {
       {key:"local", label:"Local", type:"text"},
       {key:"atende", label:"Atende", type:"list", itemLabel:"Obreiro"}
     ]
-  },
+    },
   culto_ensinamento: {
     label: "Culto de Ensinamento",
     columns: ["Data","Hora","Local","Atende"],
@@ -775,8 +775,10 @@ function renderCargos(){
 
     chkLegenda.onchange = () => { c.showInLegend = chkLegenda.checked; saveState(); renderPreview(); };
     chkAsterisco.onchange = () => { c.useAsterisk = chkAsterisco.checked; saveState(); renderPreview(); renderSections(); };
-    inputs[0].oninput = ()=>{ c.code = inputs[0].value; saveState(); renderPreview(); renderSections(); };
-    inputs[1].oninput = ()=>{ c.label = inputs[1].value; saveState(); renderPreview(); renderSections(); };
+    inputs[0].oninput = ()=>{ c.code = inputs[0].value; saveState(); renderPreview(); };
+    inputs[0].onchange = ()=>{ renderSections(); };
+    inputs[1].oninput = ()=>{ c.label = inputs[1].value; saveState(); renderPreview(); };
+    inputs[1].onchange = ()=>{ renderSections(); };
     delBtn.onclick = ()=>removeCargo(idx);
     host.appendChild(row);
   });
@@ -820,12 +822,21 @@ function addSection(typeKey){
   };
   STATE.sections.push(section);
   sortStateDates();
-  renderSections(); saveState(); renderPreview();
+  renderSection(section.id); saveState(); renderPreview();
 }
 
 function removeSection(id){
   STATE.sections = STATE.sections.filter(s=>s.id!==id);
-  renderSections(); saveState(); renderPreview();
+  const host = document.getElementById('sectionsContainer');
+  const wrap = host.querySelector(`[data-section-id="${id}"]`);
+  if (wrap) wrap.remove();
+  // Reajusta os índices usados no arraste (drag&drop) das seções restantes,
+  // já que a remoção pode ter deslocado a posição das demais.
+  STATE.sections.forEach((s, idx) => {
+    const w = host.querySelector(`[data-section-id="${s.id}"]`);
+    if (w) w.dataset.index = idx;
+  });
+  saveState(); renderPreview();
 }
 
 function addEntry(sectionId){
@@ -839,13 +850,13 @@ function addEntry(sectionId){
   });
   section.entries.push({id:newId(), data});
   sortStateDates();
-  renderSections(); saveState(); renderPreview();
+  renderSection(sectionId); saveState(); renderPreview();
 }
 
 function removeEntry(sectionId, entryId){
   const section = STATE.sections.find(s=>s.id===sectionId);
   section.entries = section.entries.filter(e=>e.id!==entryId);
-  renderSections(); saveState(); renderPreview();
+  renderSection(sectionId); saveState(); renderPreview();
 }
 
 function moveEntry(sourceSectionId, entryId) {
@@ -886,7 +897,8 @@ function moveEntry(sourceSectionId, entryId) {
     targetSec.entries.push(movedEntry);
     
     sortStateDates();
-    renderSections();
+    renderSection(srcSec.id);
+    renderSection(targetSec.id);
     saveState();
     renderPreview();
   }
@@ -902,14 +914,14 @@ function addListItem(sectionId, entryId, fieldKey){
     return;
   }
   entry.data[fieldKey].push("");
-  renderSections(); saveState(); renderPreview();
+  renderSection(sectionId); saveState(); renderPreview();
 }
 function removeListItem(sectionId, entryId, fieldKey, idx){
   const section = STATE.sections.find(s=>s.id===sectionId);
   const entry = section.entries.find(e=>e.id===entryId);
   entry.data[fieldKey].splice(idx,1);
   if(entry.data[fieldKey].length===0) entry.data[fieldKey].push("");
-  renderSections(); saveState(); renderPreview();
+  renderSection(sectionId); saveState(); renderPreview();
 }
 
 function getEntrySummary(def, entry){
@@ -946,8 +958,30 @@ function renderSections(){
   const host = document.getElementById('sectionsContainer');
   host.innerHTML = '';
   STATE.sections.forEach((section, sIdx)=>{
+    host.appendChild(buildSectionElement(section, sIdx));
+  });
+}
+
+// Re-renderiza só UMA seção (sem mexer nas demais), para evitar que a tela
+// inteira pisque quando o usuário só editou um campo dentro de uma seção.
+function renderSection(sectionId){
+  sortStateDates();
+  const sIdx = STATE.sections.findIndex(s => s.id === sectionId);
+  if (sIdx === -1) return;
+  const host = document.getElementById('sectionsContainer');
+  const oldWrap = host.querySelector(`[data-section-id="${sectionId}"]`);
+  const newWrap = buildSectionElement(STATE.sections[sIdx], sIdx);
+  if (oldWrap) {
+    host.replaceChild(newWrap, oldWrap);
+  } else {
+    host.appendChild(newWrap);
+  }
+}
+
+function buildSectionElement(section, sIdx){
     const def = SECTION_TYPES[section.typeKey];
     const wrap = document.createElement('div');
+    wrap.dataset.sectionId = section.id;
     
     if (typeof section.isOpen === 'undefined') section.isOpen = true; 
     wrap.className = section.isOpen ? 'section open' : 'section';
@@ -1127,6 +1161,7 @@ function renderSections(){
                 inp.value = formatado;
                 entry.data[f.key][idx] = formatado; 
                 saveState(); renderPreview(); 
+                renderSection(section.id);
               };
 
               li.appendChild(inp);
@@ -1171,7 +1206,7 @@ function renderSections(){
                 const arr = tagData.chips;
                 const i = arr.indexOf(c.code);
                 if(i>=0) arr.splice(i,1); else arr.push(c.code);
-                renderSections(); saveState(); renderPreview();
+                renderSection(section.id); saveState(); renderPreview();
               };
               chipsWrap.appendChild(chip);
             });
@@ -1188,6 +1223,7 @@ function renderSections(){
                 txtInp.value = formatado;
                 tagData.texto = formatado; 
                 saveState(); renderPreview(); 
+                renderSection(section.id);
             };
 
             lg.appendChild(txtInp);
@@ -1210,7 +1246,7 @@ function renderSections(){
               sel.appendChild(o);
             });
             sel.value = entry.data[f.key] || '';
-            sel.onchange = ()=>{ entry.data[f.key] = sel.value; saveState(); renderPreview(); };
+            sel.onchange = ()=>{ entry.data[f.key] = sel.value; saveState(); renderPreview(); renderSection(section.id); };
             fdiv.appendChild(sel);
           } else if(f.type==='textarea'){
             fdiv.style.gridColumn = '1 / -1';
@@ -1224,6 +1260,7 @@ function renderSections(){
               ta.value = formatado;
               entry.data[f.key] = formatado;
               saveState(); renderPreview();
+              renderSection(section.id);
             };
             fdiv.appendChild(ta);
           } else {
@@ -1235,9 +1272,8 @@ function renderSections(){
             if (f.type === 'date') {
               inp.onchange = () => {
                 entry.data[f.key] = inp.value;
-                sortStateDates();
                 saveState();
-                renderSections();
+                renderSection(section.id);
                 renderPreview();
               };
             } else {
@@ -1248,6 +1284,7 @@ function renderSections(){
                       inp.value = formatado;
                       entry.data[f.key] = formatado; 
                       saveState(); renderPreview(); 
+                      renderSection(section.id);
                   };
               }
             }
@@ -1268,8 +1305,7 @@ function renderSections(){
     }
 
     wrap.appendChild(body);
-    host.appendChild(wrap);
-  });
+    return wrap;
 }
 
 function fmtDate(d){
