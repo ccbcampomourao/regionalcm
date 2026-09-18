@@ -55,6 +55,7 @@
 })();
 </script>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>LISTA REGIONAL</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -75,32 +76,64 @@
   .panel{background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px; flex:1; min-width:320px; box-shadow:0 1px 2px rgba(27,42,65,.04), 0 10px 30px -14px rgba(27,42,65,.18);}
   .toolbar{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;}
   button{cursor:pointer; font-weight:600; border:1.5px solid var(--line); background:#fff; color:var(--primary); padding:8px 13px; border-radius:9px; font-size:13px; transition:.15s;}
-  button:hover{border-color:var(--brass-lt);}
+  button:hover{border-color:var(--brass-lt); box-shadow:0 3px 10px -4px rgba(27,42,65,.25); transform:translateY(-1px);}
+  button:active{transform:translateY(0);}
   button.danger{background:#fff; color:var(--accent); border-color:var(--accent);}
   button.small{padding:4px 8px; font-size:12px;}
+  button.primary-action{background:linear-gradient(180deg, var(--brass-lt), var(--brass)); color:#fff; border-color:var(--brass);}
+  button.primary-action:hover{box-shadow:0 4px 12px -3px rgba(169,125,61,.5);}
   input[type=text], input[type=date], input[type=time]{
     border:1.5px solid var(--line); border-radius:8px; padding:6px 8px; font-size:14px; width:100%;
   }
+  textarea.field-textarea{
+    border:1.5px solid var(--line); border-radius:8px; padding:8px; font-size:14px; width:100%;
+    resize:vertical; min-height:64px; line-height:1.4; font-family:inherit;
+  }
+  textarea.field-textarea:focus{ outline:none; border-color:var(--brass); box-shadow:0 0 0 3px rgba(169,125,61,.15); }
   input:focus, select:focus{ outline:none; border-color:var(--brass); box-shadow:0 0 0 3px rgba(169,125,61,.15); }
   label{font-size:13px; font-weight:700; color:var(--primary-2); display:block; margin-bottom:2px;}
   .field{margin-bottom:8px;}
   .row-grid{display:grid; gap:8px; grid-template-columns:repeat(3,1fr);}
-  .section{border:1px solid var(--line); border-radius:12px; margin-bottom:14px; overflow:hidden; transition: 0.2s;}
+  .section{border:1px solid var(--line); border-radius:12px; margin-bottom:14px; overflow:hidden; transition: box-shadow .2s, border-color .2s; box-shadow:0 1px 2px rgba(27,42,65,.03);}
+  .section:hover{border-color:var(--brass-lt);}
   .section.over { border: 2px dashed var(--brass); opacity: 0.7; }
-  .section-head{display:flex; justify-content:space-between; align-items:center; padding:10px 12px; background:#f6f2e7; cursor:pointer;}
+  .section-head{display:flex; justify-content:space-between; align-items:center; padding:11px 14px; background:linear-gradient(180deg,#f8f4e9,#f2ecdc); cursor:pointer; user-select:none; transition:background .15s;}
+  .section-head:hover{background:linear-gradient(180deg,#f4eeda,#eee5cc);}
   .section-head h3{margin:0; font-size:14px; color:var(--primary);}
-  .section-body{padding:12px; display:none;}
+  .section-caret{display:inline-block; margin-right:8px; font-size:12px; color:var(--brass); transition:transform .18s; transform:rotate(0deg);}
+  .section.open .section-caret{transform:rotate(90deg);}
+  .section-body{padding:14px; display:none; animation:fadeIn .15s ease;}
   .section.open .section-body{display:block;}
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(-4px);} to{opacity:1; transform:translateY(0);} }
   .drag-handle { cursor:grab; font-size:18px; color:#9a9284; padding-right:8px; user-select:none; }
   .drag-handle:active { cursor:grabbing; }
-  .entry{border:1px dashed var(--line); border-radius:8px; padding:10px; margin-bottom:10px; position:relative; background:#fafaf5;}
-  .entry .remove{position:absolute; top:6px; right:6px;}
-  .entry .move-btn{position:absolute; top:6px; right:42px;}
+
+  .entry{border:1px solid var(--line); border-radius:10px; margin-bottom:10px; background:#fdfcf8; overflow:hidden; transition:box-shadow .15s, border-color .15s;}
+  .entry.open{border-color:var(--brass-lt);}
+  .entry:hover{box-shadow:0 2px 10px -4px rgba(27,42,65,.15);}
+  .entry-head{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 10px; cursor:pointer; background:#f3efe1; user-select:none;}
+  .entry-head:hover{background:#ede6d1;}
+  .entry-head-left{display:flex; align-items:center; gap:9px; min-width:0; flex:1;}
+  .entry-caret{display:inline-block; font-size:11px; color:var(--brass); transition:transform .15s; flex-shrink:0;}
+  .entry.open .entry-caret{transform:rotate(90deg);}
+  .entry-summary-date{font-weight:700; color:#fdfbf6; font-size:12px; white-space:nowrap; flex-shrink:0; background:var(--primary-2); padding:3px 9px; border-radius:6px; letter-spacing:.02em;}
+  .entry-summary-text{font-size:13px; color:#3c3628; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;}
+  .entry-summary-text.empty{color:#a39c8a; font-style:italic;}
+  .entry-head-actions{display:flex; gap:6px; flex-shrink:0;}
+  .entry-body{padding:12px; display:none;}
+  .entry.open .entry-body{display:block; animation:fadeIn .15s ease;}
+  .city-group-header{
+    margin:14px 0 8px; padding:7px 12px;
+    background:var(--primary); color:#fdfbf6;
+    font-size:12.5px; font-weight:800; letter-spacing:.05em;
+    border-radius:7px;
+  }
+  .city-group-header:first-child{ margin-top:2px; }
   .listgroup{border:1px solid var(--line); border-radius:8px; padding:8px; background:#fff; margin-top:4px;}
   .listitem{display:flex; gap:6px; margin-bottom:6px; align-items:center;}
   .listitem input[type=text]{flex:1;}
-  .add-section-types{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px;}
-  .add-section-types button{font-size:12px;}
+  .add-section-types{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; padding:10px; background:#f8f6ef; border:1px dashed var(--line); border-radius:10px;}
+  .add-section-types button{font-size:12px; background:#fff;}
   .muted{color:#7a7263; font-size:12px;}
   
   #previewHost{
@@ -150,7 +183,123 @@
   
   .note{background:#fbf1dc; border:1px solid #e5c675; padding:8px 10px; border-radius:8px; font-size:12px; margin-bottom:10px;}
   .avisos-box textarea{width:100%; min-height:120px; border:1.5px solid var(--line); border-radius:8px; padding:8px; font-size:13px;}
-  @media (max-width:980px){ .wrap{flex-direction:column;} #previewHost{position:static; max-height:none;} }
+
+  .mobile-preview-close{ display:none; }
+  .mobile-preview-fab{
+    display:none;
+    position:fixed; right:18px; bottom:18px; z-index:99996;
+    align-items:center; gap:8px;
+    background:linear-gradient(180deg, var(--brass-lt), var(--brass)); color:#fff;
+    border:none; border-radius:999px; padding:14px 20px; font-size:14px; font-weight:700;
+    box-shadow:0 10px 24px -6px rgba(27,42,65,.5), 0 2px 6px rgba(0,0,0,.15);
+    animation:fabPulse 2.4s ease-in-out infinite;
+  }
+  .mobile-preview-fab:hover{ transform:translateY(-2px); }
+  @keyframes fabPulse{
+    0%, 100% { box-shadow:0 10px 24px -6px rgba(27,42,65,.5), 0 0 0 0 rgba(169,125,61,.45); }
+    50% { box-shadow:0 10px 24px -6px rgba(27,42,65,.5), 0 0 0 10px rgba(169,125,61,0); }
+  }
+  .swipe-hint{ display:none; }
+
+  @media (max-width:980px){
+    .wrap{flex-direction:column; padding:10px;}
+    #previewHost{ display:none; position:static; max-height:none; }
+    #previewHost.mobile-open{
+      display:flex !important; flex-direction:column;
+      position:fixed; inset:0; z-index:99997; margin:0; border-radius:0; border:none;
+      width:100vw; height:100vh; max-height:100vh; padding:12px; box-shadow:none;
+    }
+    #previewHost.mobile-open #previewScaleWrapper{ flex:1; }
+    .mobile-preview-close{
+      display:inline-flex; align-items:center; gap:4px;
+      background:var(--primary); color:#fdfbf6; border:none; border-radius:8px;
+      padding:7px 12px; font-size:13px; font-weight:700;
+    }
+    .mobile-preview-fab{ display:flex; padding-bottom:calc(14px + env(safe-area-inset-bottom)); }
+    body.mobile-preview-active{ overflow:hidden; }
+    .swipe-hint{
+      display:block; text-align:center; color:#8a8371; font-size:12px; padding-top:8px; opacity:.9;
+    }
+
+    /* ---- área de edição maior e mais fácil de tocar no celular ---- */
+    header{ padding:14px 16px; }
+    header h1{ font-size:16px; }
+    header p{ font-size:12.5px; }
+
+    #formPanel{ padding:14px 12px; min-width:0; }
+
+    label{ font-size:15px; margin-bottom:5px; }
+
+    input[type=text], input[type=date], input[type=time], select{
+      font-size:16.5px; padding:13px 12px; min-height:48px; border-radius:10px;
+    }
+    textarea.field-textarea{ font-size:16.5px; padding:12px; min-height:110px; border-radius:10px; }
+
+    .row-grid{ grid-template-columns:1fr !important; gap:12px; }
+    .field{ margin-bottom:4px; }
+
+    button{ font-size:15px; padding:13px 16px; min-height:48px; border-radius:11px; }
+    button.small{ font-size:14px; padding:9px 13px; min-height:40px; }
+
+    .toolbar{ gap:10px; }
+    .toolbar button{ flex:1 1 calc(50% - 10px); }
+
+    .add-section-types{ padding:12px; gap:8px; }
+    .add-section-types button{ font-size:13.5px; padding:11px 14px; min-height:42px; flex:1 1 calc(50% - 8px); }
+
+    .section-head{ padding:14px; }
+    .section-head h3{ font-size:16px; }
+    .section-caret{ font-size:14px; }
+
+    .entry{ margin-bottom:12px; }
+    .entry-head{
+      display:grid;
+      grid-template-columns:auto 1fr auto;
+      grid-template-areas: "plate plate plate" "caret text actions";
+      align-items:center;
+      row-gap:7px; column-gap:8px;
+      padding:12px;
+      cursor:pointer;
+    }
+    .entry-head-left{ display:contents; }
+    .entry-summary-date{
+      grid-area:plate;
+      justify-self:start;
+      width:auto;
+      margin:0;
+      box-sizing:border-box;
+      text-align:left;
+      font-size:12.5px; font-weight:800; letter-spacing:.03em;
+      padding:5px 11px;
+      border-radius:7px;
+      background:var(--primary);
+    }
+    .entry-caret{ grid-area:caret; }
+    .entry-summary-text{ grid-area:text; font-size:14.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .entry-head-actions{ grid-area:actions; }
+    .entry-head-actions button{ min-height:40px; }
+    .entry-body{ padding:14px 12px; }
+
+    .listitem{ gap:8px; margin-bottom:9px; }
+    .listitem input[type=text]{ min-height:46px; }
+    .listitem input[data-f="code"]{ max-width:110px !important; }
+    .listitem input[type=checkbox]{ width:22px !important; height:22px !important; }
+    .listitem button{ min-height:40px; min-width:40px; padding:8px; }
+  }
+  @media (max-width:480px){
+    .toolbar button{ flex:1 1 100%; }
+    .add-section-types button{ flex:1 1 100%; }
+    .wrap{ padding:6px; }
+    #formPanel{ padding:12px 8px; }
+    .section-body{ padding:10px 8px; }
+    .entry-body{ padding:12px 8px; }
+    .entry-head{ padding:10px 8px; }
+    header{ padding:12px; }
+    header h1{ font-size:15px; }
+  }
+  @media (min-width:981px){
+    .mobile-preview-fab{ display:none !important; }
+  }
 </style>
 </head>
 <body>
@@ -162,7 +311,7 @@
 <div class="wrap">
   <div class="panel" id="formPanel">
     <div class="toolbar">
-      <button onclick="gerarPDF()">🖨️ Gerar / Imprimir PDF</button>
+      <button class="primary-action" onclick="gerarPDF()">🖨️ Gerar / Imprimir PDF</button>
       <button onclick="exportJSON()">⬇️ Salvar (.json)</button>
       <button onclick="document.getElementById('importInput').click()">⬆️ Carregar (.json)</button>
       <input type="file" id="importInput" accept=".json" style="display:none" onchange="importJSON(event)">
@@ -193,9 +342,12 @@
 
     <div class="section open" id="cargosSection">
       <div class="section-head" onclick="document.getElementById('cargosSection').classList.toggle('open')">
-        <h3>Legenda de Cargos (usados na "Legenda" do rodapé)</h3>
+        <div style="display:flex; align-items:center;">
+          <span class="section-caret">▸</span>
+          <h3>Legenda de Cargos (usados na "Legenda" do rodapé)</h3>
+        </div>
       </div>
-      <div class="section-body" style="display:block">
+      <div class="section-body">
         <div class="muted" style="margin-bottom:6px;">Marque a 1ª caixinha para mostrar na Legenda. Marque a 2ª caixinha para usar asterisco (*) automático nas reuniões.</div>
         <div id="cargosList" class="listgroup"></div>
         <div class="row-grid" style="margin-top:8px;grid-template-columns:1fr 2fr auto;">
@@ -212,7 +364,10 @@
 
   <div class="panel" id="previewHost">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-      <h3 style="margin:0;color:var(--primary)">Pré-visualização (Folha A4)</h3>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <button class="mobile-preview-close" onclick="closeMobilePreview()" title="Fechar pré-visualização">← Voltar</button>
+        <h3 style="margin:0;color:var(--primary)">Pré-visualização (Folha A4)</h3>
+      </div>
       <div style="display:flex; align-items:center; gap:6px; background:#eef1f5; padding:4px 8px; border-radius:6px; border:1px solid var(--line);">
         <label style="margin:0; font-weight:bold; font-size:12px; color:var(--primary);">Página:</label>
         <button class="small" onclick="changePreviewPage(-1)" style="padding:2px 6px; margin:0;">◀</button>
@@ -225,8 +380,13 @@
         <iframe id="previewFrame"></iframe>
       </div>
     </div>
+    <div class="swipe-hint">⟵ arraste para o lado para virar a página ⟶</div>
   </div>
 </div>
+
+<button id="mobilePreviewFab" class="mobile-preview-fab" onclick="openMobilePreview()">
+  👁️ <span>Ver Pré-visualização</span>
+</button>
 
 <script>
 // =============== FUNÇÃO NOVA DE FORMATAÇÃO ===============
@@ -393,7 +553,7 @@ const SECTION_TYPES = {
       {key:"hora", label:"Hora", type:"time"},
       {key:"local", label:"Local", type:"text"},
       {key:"convocados", label:"Convocados", type:"tags"},
-      {key:"evento", label:"Evento", type:"text"}
+      {key:"evento", label:"Evento", type:"textarea"}
     ]
   },
   reuniaodiversa_cozinha: {
@@ -404,7 +564,7 @@ const SECTION_TYPES = {
       {key:"hora", label:"Hora", type:"time"},
       {key:"tipo", label:"Refeição", type:"select", options:["JANTA","CAFÉ","ALMOÇO","CAFÉ E ALMOÇO"]},
       {key:"aprox", label:"Participantes", type:"text"},
-      {key:"evento", label:"Evento", type:"text"}
+      {key:"evento", label:"Evento", type:"textarea"}
     ]
   },
   evangelizacao: {
@@ -511,11 +671,28 @@ function sanitizeState() {
 function sortStateDates() {
   STATE.sections.forEach(section => {
     if (section.entries && section.entries.length > 0) {
-      section.entries.sort((a, b) => {
-        const dateA = a.data && a.data.data ? a.data.data : "9999-12-31";
-        const dateB = b.data && b.data.data ? b.data.data : "9999-12-31";
-        return dateA.localeCompare(dateB);
-      });
+      const def = SECTION_TYPES[section.typeKey];
+      const temCidade = def && def.fields && def.fields.some(f => f.key === 'cidade');
+      if (temCidade) {
+        // Seções com campo "Cidade" (Evangelização, Novos Obreiros) agrupam
+        // primeiro por cidade (ordem alfabética) e, dentro de cada cidade,
+        // ordenam por data — igual ao agrupamento já feito na pré-visualização/impressão.
+        section.entries.sort((a, b) => {
+          const cidadeA = (a.data && a.data.cidade ? a.data.cidade : '').trim();
+          const cidadeB = (b.data && b.data.cidade ? b.data.cidade : '').trim();
+          const cidCompare = cidadeA.localeCompare(cidadeB, 'pt-BR');
+          if (cidCompare !== 0) return cidCompare;
+          const dateA = a.data && a.data.data ? a.data.data : "9999-12-31";
+          const dateB = b.data && b.data.data ? b.data.data : "9999-12-31";
+          return dateA.localeCompare(dateB);
+        });
+      } else {
+        section.entries.sort((a, b) => {
+          const dateA = a.data && a.data.data ? a.data.data : "9999-12-31";
+          const dateB = b.data && b.data.data ? b.data.data : "9999-12-31";
+          return dateA.localeCompare(dateB);
+        });
+      }
     }
   });
 }
@@ -623,8 +800,10 @@ function renderCargos(){
 
     chkLegenda.onchange = () => { c.showInLegend = chkLegenda.checked; saveState(); renderPreview(); };
     chkAsterisco.onchange = () => { c.useAsterisk = chkAsterisco.checked; saveState(); renderPreview(); renderSections(); };
-    inputs[0].oninput = ()=>{ c.code = inputs[0].value; saveState(); renderPreview(); renderSections(); };
-    inputs[1].oninput = ()=>{ c.label = inputs[1].value; saveState(); renderPreview(); renderSections(); };
+    inputs[0].oninput = ()=>{ c.code = inputs[0].value; saveState(); renderPreview(); };
+    inputs[0].onchange = ()=>{ renderSections(); };
+    inputs[1].oninput = ()=>{ c.label = inputs[1].value; saveState(); renderPreview(); };
+    inputs[1].onchange = ()=>{ renderSections(); };
     delBtn.onclick = ()=>removeCargo(idx);
     host.appendChild(row);
   });
@@ -668,12 +847,35 @@ function addSection(typeKey){
   };
   STATE.sections.push(section);
   sortStateDates();
-  renderSections(); saveState(); renderPreview();
+  renderSection(section.id);
+  // Seções irmãs (mesmo tipo) podem passar a ter/perder o botão "Mover"
+  // agora que existe mais de uma tabela do mesmo tipo — atualiza elas também.
+  STATE.sections.forEach(s => {
+    if (s.typeKey === typeKey && s.id !== section.id) renderSection(s.id);
+  });
+  saveState(); renderPreview();
 }
 
 function removeSection(id){
+  const removed = STATE.sections.find(s => s.id === id);
   STATE.sections = STATE.sections.filter(s=>s.id!==id);
-  renderSections(); saveState(); renderPreview();
+  const host = document.getElementById('sectionsContainer');
+  const wrap = host.querySelector(`[data-section-id="${id}"]`);
+  if (wrap) wrap.remove();
+  // Reajusta os índices usados no arraste (drag&drop) das seções restantes,
+  // já que a remoção pode ter deslocado a posição das demais.
+  STATE.sections.forEach((s, idx) => {
+    const w = host.querySelector(`[data-section-id="${s.id}"]`);
+    if (w) w.dataset.index = idx;
+  });
+  // Seções irmãs do mesmo tipo podem perder o botão "Mover" se essa era a
+  // última tabela irmã restante — atualiza elas também.
+  if (removed) {
+    STATE.sections.forEach(s => {
+      if (s.typeKey === removed.typeKey) renderSection(s.id);
+    });
+  }
+  saveState(); renderPreview();
 }
 
 function addEntry(sectionId){
@@ -687,13 +889,13 @@ function addEntry(sectionId){
   });
   section.entries.push({id:newId(), data});
   sortStateDates();
-  renderSections(); saveState(); renderPreview();
+  renderSection(sectionId); saveState(); renderPreview();
 }
 
 function removeEntry(sectionId, entryId){
   const section = STATE.sections.find(s=>s.id===sectionId);
   section.entries = section.entries.filter(e=>e.id!==entryId);
-  renderSections(); saveState(); renderPreview();
+  renderSection(sectionId); saveState(); renderPreview();
 }
 
 function moveEntry(sourceSectionId, entryId) {
@@ -734,7 +936,8 @@ function moveEntry(sourceSectionId, entryId) {
     targetSec.entries.push(movedEntry);
     
     sortStateDates();
-    renderSections();
+    renderSection(srcSec.id);
+    renderSection(targetSec.id);
     saveState();
     renderPreview();
   }
@@ -750,14 +953,43 @@ function addListItem(sectionId, entryId, fieldKey){
     return;
   }
   entry.data[fieldKey].push("");
-  renderSections(); saveState(); renderPreview();
+  renderSection(sectionId); saveState(); renderPreview();
 }
 function removeListItem(sectionId, entryId, fieldKey, idx){
   const section = STATE.sections.find(s=>s.id===sectionId);
   const entry = section.entries.find(e=>e.id===entryId);
   entry.data[fieldKey].splice(idx,1);
   if(entry.data[fieldKey].length===0) entry.data[fieldKey].push("");
-  renderSections(); saveState(); renderPreview();
+  renderSection(sectionId); saveState(); renderPreview();
+}
+
+function getEntrySummary(def, entry){
+  const dataVal = entry.data && entry.data.data ? entry.data.data : '';
+  let dataLabel = 'Sem data';
+  if(dataVal){
+    dataLabel = fmtDate(dataVal) + ' ' + getWeekdayAbbr(dataVal);
+  }
+
+  let textoVal = '';
+  const skipKeys = ['data','hora','tipo'];
+  for(const f of def.fields){
+    if(skipKeys.includes(f.key)) continue;
+    const val = entry.data ? entry.data[f.key] : undefined;
+    if(f.type==='list'){
+      const filled = (val||[]).filter(x=>x && x.trim());
+      if(filled.length){ textoVal = filled.join(', '); break; }
+    } else if(f.type==='tags'){
+      const tagData = val || {};
+      const chips = tagData.chips || [];
+      const extra = tagData.texto ? [tagData.texto] : [];
+      const joined = chips.concat(extra).join(', ');
+      if(joined){ textoVal = joined; break; }
+    } else {
+      if(val && String(val).trim()){ textoVal = String(val).trim().replace(/\s*\n\s*/g, ' · '); break; }
+    }
+  }
+
+  return { dataLabel, textoVal };
 }
 
 function renderSections(){
@@ -765,8 +997,36 @@ function renderSections(){
   const host = document.getElementById('sectionsContainer');
   host.innerHTML = '';
   STATE.sections.forEach((section, sIdx)=>{
+    host.appendChild(buildSectionElement(section, sIdx));
+  });
+}
+
+// Re-renderiza só UMA seção (sem mexer nas demais), para evitar que a tela
+// inteira pisque quando o usuário só editou um campo dentro de uma seção.
+function renderSection(sectionId){
+  // Adiado pro próximo "tick": se isso rodasse na hora, e o clique que disparou
+  // essa troca de campo também tivesse acabado de clicar em cima da própria
+  // linha (pra abrir/fechar), o elemento seria substituído ANTES desse clique
+  // ser processado — e o abrir/fechar simplesmente não acontecia.
+  setTimeout(() => {
+    sortStateDates();
+    const sIdx = STATE.sections.findIndex(s => s.id === sectionId);
+    if (sIdx === -1) return;
+    const host = document.getElementById('sectionsContainer');
+    const oldWrap = host.querySelector(`[data-section-id="${sectionId}"]`);
+    const newWrap = buildSectionElement(STATE.sections[sIdx], sIdx);
+    if (oldWrap) {
+      host.replaceChild(newWrap, oldWrap);
+    } else {
+      host.appendChild(newWrap);
+    }
+  }, 0);
+}
+
+function buildSectionElement(section, sIdx){
     const def = SECTION_TYPES[section.typeKey];
     const wrap = document.createElement('div');
+    wrap.dataset.sectionId = section.id;
     
     if (typeof section.isOpen === 'undefined') section.isOpen = true; 
     wrap.className = section.isOpen ? 'section open' : 'section';
@@ -808,6 +1068,7 @@ function renderSections(){
     head.innerHTML = `
       <div style="display:flex; align-items:center;">
         <span class="drag-handle" title="Arraste para reordenar">☰</span>
+        <span class="section-caret">▸</span>
         <h3>${sIdx+1}. ${def.label}</h3>
       </div>
     `;
@@ -839,7 +1100,7 @@ function renderSections(){
       const box = document.createElement('div');
       box.className='avisos-box';
       const ta = document.createElement('textarea');
-      ta.placeholder = "Um aviso por linha. Ex:\n(COLETAS) - Durante o mês de novembro...\n(REGIONAL) - No dia 30/11...";
+      ta.placeholder = "Um aviso por linha. Ex:\n(COLETAS) - Durante o mês de novembro...\n(CAMPO MOURÃO) - No dia 30/11...";
       ta.value = section.text || "";
       ta.oninput = ()=>{ section.text = ta.value; saveState(); renderPreview(); };
       box.appendChild(ta);
@@ -847,22 +1108,79 @@ function renderSections(){
     } else {
       const similarSections = STATE.sections.filter(s => s.typeKey === section.typeKey && s.id !== section.id);
 
+      let lastCidade = null;
+
       section.entries.forEach((entry, eIdx)=>{
+        if (typeof entry.isOpen === 'undefined') entry.isOpen = true;
+
+        if (def.fields.some(f => f.key === 'cidade')) {
+          const cidadeAtual = (entry.data.cidade || '').trim() || 'Sem cidade informada';
+          if (cidadeAtual !== lastCidade) {
+            lastCidade = cidadeAtual;
+            const cityHeader = document.createElement('div');
+            cityHeader.className = 'city-group-header';
+            cityHeader.textContent = cidadeAtual.toUpperCase();
+            body.appendChild(cityHeader);
+          }
+        }
+
         const eDiv = document.createElement('div');
-        eDiv.className='entry';
-        const rmBtn = document.createElement('button');
-        rmBtn.className='small danger remove'; rmBtn.textContent='✕'; rmBtn.title='Excluir linha';
-        rmBtn.onclick=()=>removeEntry(section.id, entry.id);
-        eDiv.appendChild(rmBtn);
+        eDiv.className = 'entry' + (entry.isOpen ? ' open' : '');
+
+        const eHead = document.createElement('div');
+        eHead.className = 'entry-head';
+
+        const eHeadLeft = document.createElement('div');
+        eHeadLeft.className = 'entry-head-left';
+
+        const caret = document.createElement('span');
+        caret.className = 'entry-caret';
+        caret.textContent = '▸';
+        eHeadLeft.appendChild(caret);
+
+        const { dataLabel, textoVal } = getEntrySummary(def, entry);
+
+        const dateBadge = document.createElement('span');
+        dateBadge.className = 'entry-summary-date';
+        dateBadge.textContent = dataLabel;
+        eHeadLeft.appendChild(dateBadge);
+
+        const summaryText = document.createElement('span');
+        summaryText.className = 'entry-summary-text' + (textoVal ? '' : ' empty');
+        summaryText.textContent = textoVal || 'Linha ' + (eIdx+1) + ' — clique para preencher';
+        eHeadLeft.appendChild(summaryText);
+
+        eHead.appendChild(eHeadLeft);
+
+        const eHeadActions = document.createElement('div');
+        eHeadActions.className = 'entry-head-actions';
 
         if (similarSections.length > 0) {
           const moveBtn = document.createElement('button');
-          moveBtn.className = 'small primary move-btn';
+          moveBtn.className = 'small';
           moveBtn.textContent = '⮀ Mover';
           moveBtn.title = 'Mover para outra tabela do mesmo tipo';
-          moveBtn.onclick = () => moveEntry(section.id, entry.id);
-          eDiv.appendChild(moveBtn);
+          moveBtn.onclick = (e) => { e.stopPropagation(); moveEntry(section.id, entry.id); };
+          eHeadActions.appendChild(moveBtn);
         }
+
+        const rmBtn = document.createElement('button');
+        rmBtn.className = 'small danger'; rmBtn.textContent = '✕'; rmBtn.title = 'Excluir linha';
+        rmBtn.onclick = (e) => { e.stopPropagation(); removeEntry(section.id, entry.id); };
+        eHeadActions.appendChild(rmBtn);
+
+        eHead.appendChild(eHeadActions);
+
+        eHead.onclick = () => {
+          entry.isOpen = !entry.isOpen;
+          eDiv.classList.toggle('open', entry.isOpen);
+          saveState();
+        };
+
+        eDiv.appendChild(eHead);
+
+        const eBody = document.createElement('div');
+        eBody.className = 'entry-body';
 
         const grid = document.createElement('div');
         grid.className='row-grid';
@@ -888,6 +1206,7 @@ function renderSections(){
                 inp.value = formatado;
                 entry.data[f.key][idx] = formatado; 
                 saveState(); renderPreview(); 
+                renderSection(section.id);
               };
 
               li.appendChild(inp);
@@ -932,7 +1251,7 @@ function renderSections(){
                 const arr = tagData.chips;
                 const i = arr.indexOf(c.code);
                 if(i>=0) arr.splice(i,1); else arr.push(c.code);
-                renderSections(); saveState(); renderPreview();
+                renderSection(section.id); saveState(); renderPreview();
               };
               chipsWrap.appendChild(chip);
             });
@@ -949,6 +1268,7 @@ function renderSections(){
                 txtInp.value = formatado;
                 tagData.texto = formatado; 
                 saveState(); renderPreview(); 
+                renderSection(section.id);
             };
 
             lg.appendChild(txtInp);
@@ -971,8 +1291,23 @@ function renderSections(){
               sel.appendChild(o);
             });
             sel.value = entry.data[f.key] || '';
-            sel.onchange = ()=>{ entry.data[f.key] = sel.value; saveState(); renderPreview(); };
+            sel.onchange = ()=>{ entry.data[f.key] = sel.value; saveState(); renderPreview(); renderSection(section.id); };
             fdiv.appendChild(sel);
+          } else if(f.type==='textarea'){
+            fdiv.style.gridColumn = '1 / -1';
+            const ta = document.createElement('textarea');
+            ta.className = 'field-textarea';
+            ta.value = entry.data[f.key] || '';
+            ta.rows = 3;
+            ta.oninput = ()=>{ entry.data[f.key] = ta.value; saveState(); renderPreview(); };
+            ta.onchange = ()=>{
+              const formatado = formatarTextoCapitalizado(ta.value);
+              ta.value = formatado;
+              entry.data[f.key] = formatado;
+              saveState(); renderPreview();
+              renderSection(section.id);
+            };
+            fdiv.appendChild(ta);
           } else {
             const inp = document.createElement('input');
             inp.type = f.type;
@@ -982,9 +1317,8 @@ function renderSections(){
             if (f.type === 'date') {
               inp.onchange = () => {
                 entry.data[f.key] = inp.value;
-                sortStateDates();
                 saveState();
-                renderSections();
+                renderSection(section.id);
                 renderPreview();
               };
             } else {
@@ -995,6 +1329,7 @@ function renderSections(){
                       inp.value = formatado;
                       entry.data[f.key] = formatado; 
                       saveState(); renderPreview(); 
+                      renderSection(section.id);
                   };
               }
             }
@@ -1003,7 +1338,8 @@ function renderSections(){
           grid.appendChild(fdiv);
         });
 
-        eDiv.appendChild(grid);
+        eBody.appendChild(grid);
+        eDiv.appendChild(eBody);
         body.appendChild(eDiv);
       });
 
@@ -1014,8 +1350,7 @@ function renderSections(){
     }
 
     wrap.appendChild(body);
-    host.appendChild(wrap);
-  });
+    return wrap;
 }
 
 function fmtDate(d){
@@ -1085,7 +1420,18 @@ function buildDocumentHTML(){
         <tbody>
           <tr><td style="text-align:left; padding:4px 6px; word-break: break-word; overflow-wrap: break-word;">`;
       
-      lines.forEach(l=> body += `<p style="margin:2px 0; font-size:12px; font-weight:normal;">${escapeHTML(l)}</p>`);
+      lines.forEach(l=>{
+        // Linhas decorativas feitas só de "=" e "-" (usadas como separador visual)
+        // quebram de formas diferentes em cada navegador, porque a quebra de uma
+        // "palavra" gigante sem espaços depende da métrica de fonte de cada um.
+        // Por isso são renderizadas como uma linha (<hr>) de verdade, com largura
+        // fixa em CSS — isso fica idêntico em qualquer navegador/impressora.
+        if (/^[=\-]{12,}$/.test(l.trim())) {
+          body += `<hr class="aviso-divider">`;
+        } else {
+          body += `<p style="margin:2px 0; font-size:12px; font-weight:normal;">${escapeHTML(l)}</p>`;
+        }
+      });
       
       body += `</td></tr></tbody></table></div>`;
       return;
@@ -1287,7 +1633,7 @@ function buildDocumentHTML(){
             const p = planoParticipantes[i];
             rowsHtmlCozinha += `<td rowspan="${p.rowspan}">${escapeHTML(p.valor||'') || '-'}</td>`;
           }
-          rowsHtmlCozinha += `<td style="text-align:left; vertical-align:middle;">${escapeHTML(it.evento||'') || '-'}</td>`;
+          rowsHtmlCozinha += `<td style="text-align:left; vertical-align:middle;">${escapeHTML(it.evento||'').replace(/\n/g, '<br>') || '-'}</td>`;
           rowsHtmlCozinha += '</tr>';
         });
       });
@@ -1413,7 +1759,8 @@ function buildDocumentHTML(){
         } else if(f.type==='time'){
           body += `<td>${fmtTime(entry.data[f.key]) || '-'}</td>`;
         } else if (f.key === 'evento') {
-          body += `<td style="text-align:left; vertical-align:middle;">${escapeHTML(entry.data[f.key]||'') || '-'}</td>`;
+          const eventoHtml = escapeHTML(entry.data[f.key]||'').replace(/\n/g, '<br>');
+          body += `<td style="text-align:left; vertical-align:middle;">${eventoHtml || '-'}</td>`;
           
         } else if (f.key === 'local' && section.typeKey === 'reuniaodiversa') {
           let strLocal = entry.data[f.key] || '';
@@ -1512,6 +1859,14 @@ function buildDocumentHTML(){
       box-sizing: border-box;
       max-height: 65mm;
       overflow: hidden;
+    }
+
+    .aviso-divider {
+      border: none;
+      border-top: 1.5px dashed #555;
+      margin: 6px 0;
+      width: 100%;
+      height: 0;
     }
 
     .table-wrapper {
@@ -1874,13 +2229,69 @@ function displayCurrentPreviewPage(){
 
     doc.body.innerHTML = newDoc.body.innerHTML;
     scalePreview();
+    attachSwipeListeners(frame);
   } else {
     // Primeira carga do iframe: precisa mesmo de srcdoc para criar o documento.
+    frame.onload = () => { attachSwipeListeners(frame); };
     frame.srcdoc = pageHtml;
   }
 
   const pageNumEl = document.getElementById('currentPageNum');
   if (pageNumEl) pageNumEl.textContent = `${CURRENT_PREVIEW_PAGE} / ${totalPages}`;
+}
+
+function attachSwipeListeners(frame){
+  let doc;
+  try { doc = frame.contentDocument; } catch(e){ return; }
+  if (!doc || doc.__swipeAttached) return;
+  doc.__swipeAttached = true;
+
+  let startX = 0, startY = 0, startT = 0, tracking = false;
+
+  doc.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) { tracking = false; return; }
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    startT = Date.now();
+    tracking = true;
+  }, { passive: true });
+
+  doc.addEventListener('touchend', (e) => {
+    if (!tracking) return;
+    tracking = false;
+    const host = document.getElementById('previewHost');
+    if (!host || !host.classList.contains('mobile-open')) return; // só no modo tela cheia do celular
+
+    const touch = e.changedTouches[0];
+    if (!touch) return;
+    const dx = touch.clientX - startX;
+    const dy = touch.clientY - startY;
+    const dt = Date.now() - startT;
+
+    const SWIPE_MIN_DIST = 55;
+    if (dt < 700 && Math.abs(dx) > SWIPE_MIN_DIST && Math.abs(dx) > Math.abs(dy) * 1.4) {
+      if (dx < 0) changePreviewPage(1); else changePreviewPage(-1);
+    }
+  }, { passive: true });
+}
+
+function isMobileView(){
+  return window.matchMedia('(max-width:980px)').matches;
+}
+
+function openMobilePreview(){
+  const host = document.getElementById('previewHost');
+  if(!host) return;
+  host.classList.add('mobile-open');
+  document.body.classList.add('mobile-preview-active');
+  setTimeout(scalePreview, 30);
+}
+
+function closeMobilePreview(){
+  const host = document.getElementById('previewHost');
+  if(!host) return;
+  host.classList.remove('mobile-open');
+  document.body.classList.remove('mobile-preview-active');
 }
 
 function scalePreview() {
@@ -1980,7 +2391,13 @@ window.onload = ()=>{
   frame.addEventListener('load', () => {
     scalePreview();
   });
-  window.addEventListener('resize', scalePreview);
+  window.addEventListener('resize', () => {
+    scalePreview();
+    if (!isMobileView()) closeMobilePreview();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeMobilePreview();
+  });
   
   renderPreview();
   document.getElementById('meta_periodo').addEventListener('change', ()=>{ saveState(); renderPreview(); });
