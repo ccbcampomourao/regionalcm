@@ -472,16 +472,6 @@ const SECTION_TYPES = {
       {key:"atende", label:"Atende", type:"list", itemLabel:"Obreiro"}
     ]
   },
-  culto_ensinamento_pais_filhos: {
-    label: "Culto de Aconselhamento para Pais e Filhos",
-    columns: ["Data","Hora","Local","Atende"],
-    fields: [
-      {key:"data", label:"Data", type:"date"},
-      {key:"hora", label:"Hora", type:"time"},
-      {key:"local", label:"Local", type:"text"},
-      {key:"atende", label:"Atende", type:"list", itemLabel:"Obreiro"}
-    ]
-    },
   culto_jovens: {
     label: "Culto para Jovens",
     columns: ["Data","Hora","Local","Atende"],
@@ -519,7 +509,7 @@ const SECTION_TYPES = {
       {key:"data", label:"Data", type:"date"},
       {key:"hora", label:"Hora", type:"time"},
       {key:"local", label:"Local", type:"text"},
-      {key:"categoria", label:"Categoria", type:"text"}
+      {key:"categoria", label:"Categoria (ex: ENSAIO GERAL DE CORDAS)", type:"text"}
     ]
   },
   santa_ceia: {
@@ -1697,7 +1687,8 @@ function buildDocumentHTML(){
       theadHtml += `</tr>`;
     }
 
-    body += `<div class="table-wrapper"><table><thead>${theadHtml}</thead><tbody>`;
+    const noSplitAttr = (section.typeKey === 'reuniaodiversa') ? ' data-no-split="true"' : '';
+    body += `<div class="table-wrapper"${noSplitAttr}><table><thead>${theadHtml}</thead><tbody>`;
     
     section.entries.forEach(entry=>{
       body += '<tr>';
@@ -2118,7 +2109,7 @@ function buildPagePlan(mDoc){
           html: tr.outerHTML,
           height: tr.getBoundingClientRect().height
         }));
-        units.push({ type:'table', theadHtml, theadHeight, rows, wrapperClass: el.className, forceBreak: el.hasAttribute('data-force-break') });
+        units.push({ type:'table', theadHtml, theadHeight, rows, wrapperClass: el.className, forceBreak: el.hasAttribute('data-force-break'), noSplit: el.hasAttribute('data-no-split') });
       } else {
         units.push({
           type:'atomic',
@@ -2165,6 +2156,25 @@ function buildPagePlan(mDoc){
     // em página nova, exceto se a página atual já estiver vazia.
     if (unit.forceBreak && curUsed > 0) {
       startNewPage();
+    }
+
+    // Tabelas marcadas como "não dividir" (ex: Reuniões Diversas): se a tabela
+    // inteira couber numa página, ela nunca é cortada no meio — se não couber
+    // no espaço restante da página atual, vai inteira para a próxima página.
+    // Só é dividida em duas se for realmente maior que uma página inteira sozinha.
+    if (unit.noSplit) {
+      const totalTableHeight = unit.theadHeight + rows.reduce((sum, r) => sum + r.height, 0);
+      if (totalTableHeight <= contentBudget) {
+        if (curUsed > 0 && (curUsed + totalTableHeight) > contentBudget) {
+          startNewPage();
+        }
+        curUsed += unit.theadHeight;
+        const chunk = rows.map(r => r.html);
+        curUsed += rows.reduce((sum, r) => sum + r.height, 0);
+        pages[curPage].push('<div class="' + (unit.wrapperClass || 'table-wrapper') + '"><table>' + unit.theadHtml + '<tbody>' + chunk.join('') + '</tbody></table></div>');
+        return;
+      }
+      // Maior que uma página inteira: cai no comportamento normal abaixo (divide por linha).
     }
 
     while (rows.length) {
