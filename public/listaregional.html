@@ -17,7 +17,7 @@
       function montarBarraTopo() {
         var bar = document.createElement('div');
         bar.style.cssText = 'position:fixed; top:12px; right:12px; z-index:99999; display:flex; gap:8px;';
-
+ 
         if (data.role === 'admin' || lists.length > 1) {
           var backBtn = document.createElement('a');
           backBtn.href = data.role === 'admin' ? '/admin-listas.html' : '/minhas-listas.html';
@@ -25,7 +25,7 @@
           backBtn.style.cssText = 'background:#fff; color:#1b2a41; text-decoration:none; padding:8px 16px; border-radius:9px; font-size:13px; font-weight:600; font-family:Inter, Arial, Helvetica, sans-serif; border:1.5px solid #e4dcc9; box-shadow:0 4px 10px -4px rgba(27,42,65,.3);';
           bar.appendChild(backBtn);
         }
-
+ 
         var sairBtn = document.createElement('a');
         sairBtn.href = '#';
         sairBtn.textContent = 'Sair';
@@ -36,10 +36,10 @@
           window.location.href = '/login.html';
         };
         bar.appendChild(sairBtn);
-
+ 
         document.body.appendChild(bar);
       }
-
+ 
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', montarBarraTopo);
       } else {
@@ -61,7 +61,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="icon" type="image/png" href="data:image/png;base64,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">
-
+ 
 <style>
   :root{
     --primary:#1b2a41; --primary-2:#2c3f5c; --brass:#a97d3d; --brass-lt:#c99a55; --accent:#b04b3c; --bg:#f5f1e8; --line:#e4dcc9;
@@ -107,7 +107,7 @@
   @keyframes fadeIn{ from{opacity:0; transform:translateY(-4px);} to{opacity:1; transform:translateY(0);} }
   .drag-handle { cursor:grab; font-size:18px; color:#9a9284; padding-right:8px; user-select:none; }
   .drag-handle:active { cursor:grabbing; }
-
+ 
   .entry{border:1px solid var(--line); border-radius:10px; margin-bottom:10px; background:#fdfcf8; overflow:hidden; transition:box-shadow .15s, border-color .15s;}
   .entry.open{border-color:var(--brass-lt);}
   .entry:hover{box-shadow:0 2px 10px -4px rgba(27,42,65,.15);}
@@ -162,14 +162,14 @@
   #previewScaleWrapper::-webkit-scrollbar-track { background: #525659; border-radius: 8px; }
   #previewScaleWrapper::-webkit-scrollbar-thumb { background: #888; border-radius: 8px; }
   #previewScaleWrapper::-webkit-scrollbar-thumb:hover { background: #aaa; }
-
+ 
   #iframeSizer {
     width: 100%;
     display: flex;
     justify-content: center;
     overflow: hidden;
   }
-
+ 
   #previewFrame{
     width: 210mm; 
     height: 297mm; 
@@ -183,7 +183,7 @@
   
   .note{background:#fbf1dc; border:1px solid #e5c675; padding:8px 10px; border-radius:8px; font-size:12px; margin-bottom:10px;}
   .avisos-box textarea{width:100%; min-height:120px; border:1.5px solid var(--line); border-radius:8px; padding:8px; font-size:13px;}
-
+ 
   .mobile-preview-close{ display:none; }
   .mobile-preview-fab{
     display:none;
@@ -200,7 +200,7 @@
     50% { box-shadow:0 10px 24px -6px rgba(27,42,65,.5), 0 0 0 10px rgba(169,125,61,0); }
   }
   .swipe-hint{ display:none; }
-
+ 
   @media (max-width:980px){
     .wrap{flex-direction:column; padding:10px;}
     #previewHost{ display:none; position:static; max-height:none; }
@@ -220,37 +220,37 @@
     .swipe-hint{
       display:block; text-align:center; color:#8a8371; font-size:12px; padding-top:8px; opacity:.9;
     }
-
+ 
     /* ---- área de edição maior e mais fácil de tocar no celular ---- */
     header{ padding:14px 16px; }
     header h1{ font-size:16px; }
     header p{ font-size:12.5px; }
-
+ 
     #formPanel{ padding:14px 12px; min-width:0; }
-
+ 
     label{ font-size:15px; margin-bottom:5px; }
-
+ 
     input[type=text], input[type=date], input[type=time], select{
       font-size:16.5px; padding:13px 12px; min-height:48px; border-radius:10px;
     }
     textarea.field-textarea{ font-size:16.5px; padding:12px; min-height:110px; border-radius:10px; }
-
+ 
     .row-grid{ grid-template-columns:1fr !important; gap:12px; }
     .field{ margin-bottom:4px; }
-
+ 
     button{ font-size:15px; padding:13px 16px; min-height:48px; border-radius:11px; }
     button.small{ font-size:14px; padding:9px 13px; min-height:40px; }
-
+ 
     .toolbar{ gap:10px; }
     .toolbar button{ flex:1 1 calc(50% - 10px); }
-
+ 
     .add-section-types{ padding:12px; gap:8px; }
     .add-section-types button{ font-size:13.5px; padding:11px 14px; min-height:42px; flex:1 1 calc(50% - 8px); }
-
+ 
     .section-head{ padding:14px; }
     .section-head h3{ font-size:16px; }
     .section-caret{ font-size:14px; }
-
+ 
     .entry{ margin-bottom:12px; }
     .entry-head{
       display:grid;
@@ -279,7 +279,7 @@
     .entry-head-actions{ grid-area:actions; }
     .entry-head-actions button{ min-height:40px; }
     .entry-body{ padding:14px 12px; }
-
+ 
     .listitem{ gap:8px; margin-bottom:9px; }
     .listitem input[type=text]{ min-height:46px; }
     .listitem input[data-f="code"]{ max-width:110px !important; }
@@ -307,7 +307,7 @@
   <h1>Congregação Cristã no Brasil - Lista de Serviços Regional</h1>
   <p>Monte a lista escolhendo os tipos de serviço. Pode arrastar as seções criadas pelo cabeçalho para reordená-las.</p>
 </header>
-
+ 
 <div class="wrap">
   <div class="panel" id="formPanel">
     <div class="toolbar">
@@ -320,13 +320,13 @@
       <button class="danger" onclick="if(confirm('Limpar tudo?')) resetAll()">🗑️ Limpar Tudo</button>
     </div>
     <div class="note">Para o PDF sair <strong>idêntico</strong> ao que vê na pré-visualização: na janela de impressão que abrir, marque <strong>"Gráficos de fundo"</strong> (Background graphics), desmarque "Cabeçalhos e rodapés" e deixe a <strong>Escala em 100%</strong>.</div>
-
+ 
     <div class="field row-grid">
 	  <div><label>Título</label><input type="text" id="meta_titulo" value="LISTA DE SERVIÇOS" readonly style="background:#eee"></div>
       <div><label>Região</label><input type="text" id="meta_regiao" value="" placeholder="opcional"></div>
 	  <div><label>Período</label><select id="meta_periodo"></select></div>
     </div>
-
+ 
     <div class="field row-grid" style="grid-template-columns: 1fr 1fr; margin-top: 10px; margin-bottom: 16px; align-items: start;">
       <div>
         <label>Rodapé Esquerdo (Fixo em todas as páginas)</label>
@@ -339,7 +339,7 @@
         <div class="muted" style="margin-top:6px; font-size:11px;">As caixas aparecem automaticamente conforme as páginas forem criadas.</div>
       </div>
     </div>
-
+ 
     <div class="section open" id="cargosSection">
       <div class="section-head" onclick="document.getElementById('cargosSection').classList.toggle('open')">
         <div style="display:flex; align-items:center;">
@@ -357,11 +357,11 @@
         </div>
       </div>
     </div>
-
+ 
     <div class="add-section-types" id="addButtons"></div>
     <div id="sectionsContainer"></div>
   </div>
-
+ 
   <div class="panel" id="previewHost">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
       <div style="display:flex; align-items:center; gap:8px;">
@@ -383,11 +383,11 @@
     <div class="swipe-hint">⟵ arraste para o lado para virar a página ⟶</div>
   </div>
 </div>
-
+ 
 <button id="mobilePreviewFab" class="mobile-preview-fab" onclick="openMobilePreview()">
   👁️ <span>Ver Pré-visualização</span>
 </button>
-
+ 
 <script>
 // =============== FUNÇÃO NOVA DE FORMATAÇÃO ===============
 // Sempre deixa maiúscula a primeira letra logo após um "(", mesmo que o "("
@@ -395,15 +395,15 @@
 function corrigirLetraAposParenteses(texto) {
   return texto.replace(/\(\s*([a-zà-ÿ])/gi, (match, letra) => '(' + letra.toUpperCase());
 }
-
+ 
 function formatarTextoCapitalizado(texto) {
   if (!texto) return '';
-
+ 
   // REGRA: Só formata (title case completo) se o texto estiver 100% em
   // minúsculas. Guardamos essa decisão ANTES de qualquer alteração, para
   // não fazer a correção do parêntese "atrapalhar" essa checagem.
   const eraTudoMinusculo = texto === texto.toLowerCase();
-
+ 
   if (!eraTudoMinusculo) {
     // Não reformata o texto todo (o usuário já pode ter maiúsculas de
     // propósito em algum lugar), mas garante a letra após "(" mesmo assim.
@@ -431,7 +431,7 @@ function formatarTextoCapitalizado(texto) {
       });
     })
     .join(' ');
-
+ 
   // O split acima só capitaliza o INÍCIO de cada palavra separada por
   // espaço; se o "(" estiver colado numa palavra (ex: "teste(perto"), a
   // letra depois dele não é atingida por aquele passo — por isso essa
@@ -439,7 +439,7 @@ function formatarTextoCapitalizado(texto) {
   return corrigirLetraAposParenteses(formatado);
 }
 // =========================================================
-
+ 
 const SECTION_TYPES = {
   batismo: {
     label: "Batismos",
@@ -624,7 +624,7 @@ const SECTION_TYPES = {
     isFreeText: true
   }
 };
-
+ 
 const DEFAULT_CARGOS = [
   {code:"Anc", label:"ANCIÃES", showInLegend: true, useAsterisk: true},
   {code:"Dcn", label:"DIÁCONOS", showInLegend: true, useAsterisk: true},
@@ -643,15 +643,15 @@ const DEFAULT_CARGOS = [
   {code:"Anc e *Dcn do Estado (Todos)", label:"ANCIÃES E DIÁCONOS DO ESTADO", showInLegend: false, useAsterisk: true},
   {code:"Adm Titulares e Vices", label:"ADMINISTRAÇÃO TITULARES E VICES", showInLegend: false, useAsterisk: true},
 ];
-
+ 
 let STATE = { meta:{regiao:"", periodo:"", titulo:"LISTA DE SERVIÇOS", rodape_esq:"", rodape_dir:[]}, sections: [], cargos: JSON.parse(JSON.stringify(DEFAULT_CARGOS)) };
 let CURRENT_PREVIEW_PAGE = 1;
 let TOTAL_PAGES_ESTIMATED = 1;
-
+ 
 const newId = () => 'id_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
-
+ 
 let dragSrcEl = null;
-
+ 
 function sanitizeState() {
   const seenIds = new Set();
   STATE.sections.forEach(sec => {
@@ -677,7 +677,7 @@ function sanitizeState() {
     }
   });
 }
-
+ 
 function sortStateDates() {
   STATE.sections.forEach(section => {
     if (section.entries && section.entries.length > 0) {
@@ -706,7 +706,7 @@ function sortStateDates() {
     }
   });
 }
-
+ 
 function loadState(){
   const raw = localStorage.getItem('ccb_lista_state_regional');
   if(raw){ try{ STATE = JSON.parse(raw); }catch(e){} }
@@ -716,7 +716,7 @@ function loadState(){
   sanitizeState(); 
   sortStateDates();
 }
-
+ 
 function saveState(){
   STATE.meta.regiao = document.getElementById('meta_regiao').value;
   STATE.meta.periodo = document.getElementById('meta_periodo').value;
@@ -724,7 +724,7 @@ function saveState(){
   STATE.meta.rodape_esq = document.getElementById('meta_rodape_esq').value;
   localStorage.setItem('ccb_lista_state_regional', JSON.stringify(STATE));
 }
-
+ 
 function populatePeriodoOptions(selectedValue){
   const sel = document.getElementById('meta_periodo');
   const bimestres = [
@@ -751,14 +751,14 @@ function populatePeriodoOptions(selectedValue){
     }
   }
 }
-
+ 
 function getRodapeDirArray() {
   if (!STATE.meta) return [];
   if (typeof STATE.meta.rodape_dir === 'string') return [STATE.meta.rodape_dir];
   if (Array.isArray(STATE.meta.rodape_dir)) return STATE.meta.rodape_dir;
   return [];
 }
-
+ 
 function renderRodapeDirInputs() {
   const container = document.getElementById('rodape_dir_inputs');
   if(!container) return;
@@ -780,7 +780,7 @@ function renderRodapeDirInputs() {
     container.appendChild(inp);
   }
 }
-
+ 
 function renderCargos(){
   const host = document.getElementById('cargosList');
   host.innerHTML = '';
@@ -807,7 +807,7 @@ function renderCargos(){
     const chkAsterisco = row.querySelector('.chk-asterisco');
     const inputs = row.querySelectorAll('input[type="text"]');
     const delBtn = row.querySelector('button');
-
+ 
     chkLegenda.onchange = () => { c.showInLegend = chkLegenda.checked; saveState(); renderPreview(); };
     chkAsterisco.onchange = () => { c.useAsterisk = chkAsterisco.checked; saveState(); renderPreview(); renderSections(); };
     inputs[0].oninput = ()=>{ c.code = inputs[0].value; saveState(); renderPreview(); };
@@ -818,7 +818,7 @@ function renderCargos(){
     host.appendChild(row);
   });
 }
-
+ 
 function escapeAttr(s){ return String(s||'').replace(/"/g,'&quot;'); }
 function addCargo(){
   const codeInp = document.getElementById('novoCargoCodigo');
@@ -834,7 +834,7 @@ function removeCargo(idx){
   STATE.cargos.splice(idx,1);
   renderCargos(); renderSections(); saveState(); renderPreview();
 }
-
+ 
 function buildAddButtons(){
   const host = document.getElementById('addButtons');
   host.innerHTML = '';
@@ -845,7 +845,7 @@ function buildAddButtons(){
     host.appendChild(b);
   });
 }
-
+ 
 function addSection(typeKey){
   const def = SECTION_TYPES[typeKey];
   const section = {
@@ -865,7 +865,7 @@ function addSection(typeKey){
   });
   saveState(); renderPreview();
 }
-
+ 
 function removeSection(id){
   const removed = STATE.sections.find(s => s.id === id);
   STATE.sections = STATE.sections.filter(s=>s.id!==id);
@@ -887,7 +887,7 @@ function removeSection(id){
   }
   saveState(); renderPreview();
 }
-
+ 
 function addEntry(sectionId){
   const section = STATE.sections.find(s=>s.id===sectionId);
   const def = SECTION_TYPES[section.typeKey];
@@ -901,19 +901,19 @@ function addEntry(sectionId){
   sortStateDates();
   renderSection(sectionId); saveState(); renderPreview();
 }
-
+ 
 function removeEntry(sectionId, entryId){
   const section = STATE.sections.find(s=>s.id===sectionId);
   section.entries = section.entries.filter(e=>e.id!==entryId);
   renderSection(sectionId); saveState(); renderPreview();
 }
-
+ 
 function moveEntry(sourceSectionId, entryId) {
   const srcSec = STATE.sections.find(s => s.id === sourceSectionId);
   const targetSections = STATE.sections.filter(s => s.typeKey === srcSec.typeKey && s.id !== srcSec.id);
-
+ 
   if (targetSections.length === 0) return;
-
+ 
   let targetSec;
   
   if (targetSections.length === 1) {
@@ -939,7 +939,7 @@ function moveEntry(sourceSectionId, entryId) {
       return;
     }
   }
-
+ 
   const entryIndex = srcSec.entries.findIndex(e => e.id === entryId);
   if (entryIndex > -1) {
     const [movedEntry] = srcSec.entries.splice(entryIndex, 1);
@@ -952,7 +952,7 @@ function moveEntry(sourceSectionId, entryId) {
     renderPreview();
   }
 }
-
+ 
 function addListItem(sectionId, entryId, fieldKey){
   const section = STATE.sections.find(s=>s.id===sectionId);
   const def = SECTION_TYPES[section.typeKey];
@@ -972,14 +972,14 @@ function removeListItem(sectionId, entryId, fieldKey, idx){
   if(entry.data[fieldKey].length===0) entry.data[fieldKey].push("");
   renderSection(sectionId); saveState(); renderPreview();
 }
-
+ 
 function getEntrySummary(def, entry){
   const dataVal = entry.data && entry.data.data ? entry.data.data : '';
   let dataLabel = 'Sem data';
   if(dataVal){
     dataLabel = fmtDate(dataVal) + ' ' + getWeekdayAbbr(dataVal);
   }
-
+ 
   let textoVal = '';
   const skipKeys = ['data','hora','tipo'];
   for(const f of def.fields){
@@ -998,10 +998,10 @@ function getEntrySummary(def, entry){
       if(val && String(val).trim()){ textoVal = String(val).trim().replace(/\s*\n\s*/g, ' · '); break; }
     }
   }
-
+ 
   return { dataLabel, textoVal };
 }
-
+ 
 function renderSections(){
   sortStateDates();
   const host = document.getElementById('sectionsContainer');
@@ -1010,7 +1010,7 @@ function renderSections(){
     host.appendChild(buildSectionElement(section, sIdx));
   });
 }
-
+ 
 // Re-renderiza só UMA seção (sem mexer nas demais), para evitar que a tela
 // inteira pisque quando o usuário só editou um campo dentro de uma seção.
 function renderSection(sectionId){
@@ -1032,7 +1032,7 @@ function renderSection(sectionId){
     }
   }, 0);
 }
-
+ 
 function buildSectionElement(section, sIdx){
     const def = SECTION_TYPES[section.typeKey];
     const wrap = document.createElement('div');
@@ -1072,7 +1072,7 @@ function buildSectionElement(section, sIdx){
       this.style.opacity = '1';
       document.querySelectorAll('.section').forEach(el => el.classList.remove('over'));
     });
-
+ 
     const head = document.createElement('div');
     head.className = 'section-head';
     head.innerHTML = `
@@ -1102,10 +1102,10 @@ function buildSectionElement(section, sIdx){
       saveState(); 
     };
     wrap.appendChild(head);
-
+ 
     const body = document.createElement('div');
     body.className = 'section-body';
-
+ 
     if(def.isFreeText){
       const box = document.createElement('div');
       box.className='avisos-box';
@@ -1117,12 +1117,12 @@ function buildSectionElement(section, sIdx){
       body.appendChild(box);
     } else {
       const similarSections = STATE.sections.filter(s => s.typeKey === section.typeKey && s.id !== section.id);
-
+ 
       let lastCidade = null;
-
+ 
       section.entries.forEach((entry, eIdx)=>{
         if (typeof entry.isOpen === 'undefined') entry.isOpen = true;
-
+ 
         if (def.fields.some(f => f.key === 'cidade')) {
           const cidadeAtual = (entry.data.cidade || '').trim() || 'Sem cidade informada';
           if (cidadeAtual !== lastCidade) {
@@ -1133,38 +1133,38 @@ function buildSectionElement(section, sIdx){
             body.appendChild(cityHeader);
           }
         }
-
+ 
         const eDiv = document.createElement('div');
         eDiv.className = 'entry' + (entry.isOpen ? ' open' : '');
-
+ 
         const eHead = document.createElement('div');
         eHead.className = 'entry-head';
-
+ 
         const eHeadLeft = document.createElement('div');
         eHeadLeft.className = 'entry-head-left';
-
+ 
         const caret = document.createElement('span');
         caret.className = 'entry-caret';
         caret.textContent = '▸';
         eHeadLeft.appendChild(caret);
-
+ 
         const { dataLabel, textoVal } = getEntrySummary(def, entry);
-
+ 
         const dateBadge = document.createElement('span');
         dateBadge.className = 'entry-summary-date';
         dateBadge.textContent = dataLabel;
         eHeadLeft.appendChild(dateBadge);
-
+ 
         const summaryText = document.createElement('span');
         summaryText.className = 'entry-summary-text' + (textoVal ? '' : ' empty');
         summaryText.textContent = textoVal || 'Linha ' + (eIdx+1) + ' — clique para preencher';
         eHeadLeft.appendChild(summaryText);
-
+ 
         eHead.appendChild(eHeadLeft);
-
+ 
         const eHeadActions = document.createElement('div');
         eHeadActions.className = 'entry-head-actions';
-
+ 
         if (similarSections.length > 0) {
           const moveBtn = document.createElement('button');
           moveBtn.className = 'small';
@@ -1173,34 +1173,34 @@ function buildSectionElement(section, sIdx){
           moveBtn.onclick = (e) => { e.stopPropagation(); moveEntry(section.id, entry.id); };
           eHeadActions.appendChild(moveBtn);
         }
-
+ 
         const rmBtn = document.createElement('button');
         rmBtn.className = 'small danger'; rmBtn.textContent = '✕'; rmBtn.title = 'Excluir linha';
         rmBtn.onclick = (e) => { e.stopPropagation(); removeEntry(section.id, entry.id); };
         eHeadActions.appendChild(rmBtn);
-
+ 
         eHead.appendChild(eHeadActions);
-
+ 
         eHead.onclick = () => {
           entry.isOpen = !entry.isOpen;
           eDiv.classList.toggle('open', entry.isOpen);
           saveState();
         };
-
+ 
         eDiv.appendChild(eHead);
-
+ 
         const eBody = document.createElement('div');
         eBody.className = 'entry-body';
-
+ 
         const grid = document.createElement('div');
         grid.className='row-grid';
-
+ 
         def.fields.forEach(f=>{
           const fdiv = document.createElement('div');
           fdiv.className='field';
           const lab = document.createElement('label'); lab.textContent = f.label;
           fdiv.appendChild(lab);
-
+ 
           if(f.type==='list'){
             fdiv.style.gridColumn = '1 / -1';
             const lg = document.createElement('div'); lg.className='listgroup';
@@ -1218,7 +1218,7 @@ function buildSectionElement(section, sIdx){
                 saveState(); renderPreview(); 
                 renderSection(section.id);
               };
-
+ 
               li.appendChild(inp);
               const del = document.createElement('button'); del.className='small'; del.textContent='−';
               del.onclick = ()=>removeListItem(section.id, entry.id, f.key, idx);
@@ -1243,7 +1243,7 @@ function buildSectionElement(section, sIdx){
             if (!tagData) tagData = { chips: [], texto: "" };
             if (Array.isArray(tagData)) tagData = { chips: tagData, texto: "" };
             entry.data[f.key] = tagData;
-
+ 
             const lg = document.createElement('div'); lg.className='listgroup';
             
             const chipsWrap = document.createElement('div');
@@ -1280,9 +1280,9 @@ function buildSectionElement(section, sIdx){
                 saveState(); renderPreview(); 
                 renderSection(section.id);
             };
-
+ 
             lg.appendChild(txtInp);
-
+ 
             if(!STATE.cargos.length){
               const note = document.createElement('div'); note.className='muted';
               note.textContent = 'Adicione cargos na "Legenda de Cargos" acima.';
@@ -1347,22 +1347,22 @@ function buildSectionElement(section, sIdx){
           }
           grid.appendChild(fdiv);
         });
-
+ 
         eBody.appendChild(grid);
         eDiv.appendChild(eBody);
         body.appendChild(eDiv);
       });
-
+ 
       const addEntryBtn = document.createElement('button');
       addEntryBtn.textContent = '+ adicionar linha';
       addEntryBtn.onclick = ()=>addEntry(section.id);
       body.appendChild(addEntryBtn);
     }
-
+ 
     wrap.appendChild(body);
     return wrap;
 }
-
+ 
 function fmtDate(d){
   if(!d) return '-';
   const [y,m,day] = d.split('-');
@@ -1378,7 +1378,7 @@ function getWeekdayAbbr(dStr) {
   return days[date.getUTCDay()] || '-';
 }
 function fmtTime(t){ return t || ''; }
-
+ 
 function buildDocumentHTML(){
   sortStateDates(); 
   const titulo = document.getElementById('meta_titulo').value || 'LISTA DE SERVIÇOS';
@@ -1388,7 +1388,7 @@ function buildDocumentHTML(){
   
   const rodapeEsq = STATE.meta.rodape_esq || '';
   const arrDir = Array.isArray(STATE.meta.rodape_dir) ? STATE.meta.rodape_dir : [];
-
+ 
   let absoluteFooters = '';
   const totalP = window.TOTAL_PAGES_ESTIMATED || 1;
   for (let i = 0; i < totalP; i++) {
@@ -1397,16 +1397,16 @@ function buildDocumentHTML(){
       absoluteFooters += `<div class="fixed-footer-right" style="position:absolute; bottom:auto; top: calc(${i * 297 + 297}mm - 8.5mm);">${escapeHTML(txt)}</div>`;
     }
   }
-
+ 
   const narrowCols = {
     "HORA": "width:40px; max-width:40px;", 
     "LOCAL": "width:170px; min-width:170px;",
     "EVENTO": "width:270px; min-width:270px;"
   };
-
+ 
   let body = '';
   let avisosHTML = '';
-
+ 
   // As Reuniões de Evangelização são sempre jogadas para o final da lista,
   // numa página à parte (o bloco de título dessa seção já força quebra de
   // página via data-force-break), independente da ordem em que a seção foi
@@ -1415,7 +1415,7 @@ function buildDocumentHTML(){
     ...STATE.sections.filter(s => s.typeKey !== 'evangelizacao'),
     ...STATE.sections.filter(s => s.typeKey === 'evangelizacao')
   ];
-
+ 
   orderedSections.forEach(section=>{
     const def = SECTION_TYPES[section.typeKey];
     
@@ -1446,14 +1446,14 @@ function buildDocumentHTML(){
       body += `</td></tr></tbody></table></div>`;
       return;
     }
-
+ 
     if(section.typeKey === 'evangelizacao' || section.typeKey === 'obreiros'){
       if(!section.entries.length) return;
-
+ 
       // Colunas exibidas na tabela (a "Cidade" não vira coluna: ela vira o
       // cabeçalho de cada bloco, agrupando as reuniões daquela cidade).
       const displayFields = def.fields.filter(f=>f.key!=='cidade');
-
+ 
       const listFieldsCid = displayFields.filter(f=>f.type==='list');
       const maxCountsCid = {};
       listFieldsCid.forEach(f=>{
@@ -1464,14 +1464,14 @@ function buildDocumentHTML(){
         });
         maxCountsCid[f.key] = max;
       });
-
+ 
       let totalColsCid = 0;
       displayFields.forEach(f=>{
         if(f.type==='list') totalColsCid += maxCountsCid[f.key];
         else if(f.type==='date') totalColsCid += 2;
         else totalColsCid += 1;
       });
-
+ 
       // Colspan da barra de cidade: as 3 primeiras colunas visuais
       // (Data, Hora, Local) mescladas numa célula só, e o restante
       // (Endereço + Atende) na célula seguinte, do tamanho que sobrar.
@@ -1482,7 +1482,7 @@ function buildDocumentHTML(){
         else colsCidadeFirst3 += 1;
       });
       const colsCidadeRest = totalColsCid - colsCidadeFirst3;
-
+ 
       // Agrupa as entradas por cidade preservando a ordem cronológica já
       // aplicada por sortStateDates() dentro de cada grupo; os GRUPOS em si
       // são ordenados alfabeticamente (sem alterar o array em STATE, então
@@ -1497,7 +1497,7 @@ function buildDocumentHTML(){
       const groups = Array.from(groupsMap.entries())
         .map(([cidade, entries])=>({cidade, entries}))
         .sort((a,b)=> a.cidade.localeCompare(b.cidade, 'pt-BR'));
-
+ 
       let colHeaderRowCid = `<tr>`;
       displayFields.forEach(f=>{
         if(f.type==='list'){
@@ -1512,20 +1512,20 @@ function buildDocumentHTML(){
         }
       });
       colHeaderRowCid += `</tr>`;
-
+ 
       // O título geral "REUNIÕES DE EVANGELIZAÇÃO" vira um bloco PRÓPRIO,
       // separado das tabelas de cidade, para conseguir ter um espaço real
       // (margem) entre ele e a primeira barra de cidade — coisa que não dá
       // pra fazer com padding quando os dois estão dentro da mesma tabela.
       body += `<div class="section-title-block" data-force-break="true"><table><thead><tr><th colspan="${totalColsCid}" class="table-title">${escapeHTML(def.label.toUpperCase())}</th></tr></thead></table></div>`;
-
+ 
       groups.forEach((g, gIdx)=>{
         let theadHtml = '';
         // Os blocos de cidade começam direto pela barra com o nome da
         // cidade, igual no impresso; o título geral já foi emitido acima.
         theadHtml += `<tr><th colspan="${colsCidadeFirst3}" class="table-title-cidade">${escapeHTML(g.cidade.toUpperCase())}</th><th colspan="${colsCidadeRest}" class="table-title-cidade-rest"></th></tr>`;
         theadHtml += colHeaderRowCid;
-
+ 
         let rowsHtml = '';
         g.entries.forEach(entry=>{
           rowsHtml += '<tr>';
@@ -1563,15 +1563,15 @@ function buildDocumentHTML(){
           });
           rowsHtml += '</tr>';
         });
-
+ 
         body += `<div class="table-wrapper cidade-frame" data-no-split="true"><table><thead>${theadHtml}</thead><tbody>${rowsHtml}</tbody></table></div>`;
       });
-
+ 
       return;
     }
-
+ 
     if(!section.entries.length) return;
-
+ 
     if(section.typeKey === 'reuniaodiversa_cozinha'){
       // Agrupa só a coluna DATA (rowspan): cada refeição continua na sua
       // própria linha, com hora/refeição/participantes/evento separados;
@@ -1593,7 +1593,7 @@ function buildDocumentHTML(){
         });
       });
       const gruposCozinha = ordemGrupos.map(k=>gruposMap.get(k));
-
+ 
       const theadHtmlCozinha = `<tr><th colspan="6" class="table-title">${escapeHTML(def.label.toUpperCase())}</th></tr>
         <tr>
           <th colspan="2" style="width:65px; max-width:65px;">DATA</th>
@@ -1602,7 +1602,7 @@ function buildDocumentHTML(){
           <th>PARTICIPANTES</th>
           <th>EVENTO</th>
         </tr>`;
-
+ 
       // Calcula, para cada dia (grupo), como a coluna PARTICIPANTES deve ser
       // mesclada: se o usuário deixar as primeiras linhas em branco e só
       // preencher a última, essas linhas em branco se juntam (rowspan) com
@@ -1626,7 +1626,7 @@ function buildDocumentHTML(){
         }
         return plano;
       }
-
+ 
       let rowsHtmlCozinha = '';
       gruposCozinha.forEach(g=>{
         const n = g.itens.length;
@@ -1647,11 +1647,11 @@ function buildDocumentHTML(){
           rowsHtmlCozinha += '</tr>';
         });
       });
-
+ 
       body += `<div class="table-wrapper" data-no-split="true"><table><thead>${theadHtmlCozinha}</thead><tbody>${rowsHtmlCozinha}</tbody></table></div>`;
       return;
     }
-
+ 
     const listFields = def.fields.filter(f=>f.type==='list');
     const maxCounts = {};
     listFields.forEach(f=>{
@@ -1662,16 +1662,16 @@ function buildDocumentHTML(){
       });
       maxCounts[f.key] = max;
     });
-
+ 
     let totalCols = 0;
     def.fields.forEach(f=>{
       if(f.type==='list') totalCols += maxCounts[f.key];
       else if(f.type==='date') totalCols += 2; 
       else totalCols += 1;
     });
-
+ 
     let theadHtml = `<tr><th colspan="${totalCols}" class="table-title">${escapeHTML(def.label.toUpperCase())}</th></tr>`;
-
+ 
     if(section.typeKey === 'batismo' || section.typeKey === 'batissimo') {
       const atendeColspan = 1 + (maxCounts['diaconos'] || 1);
       theadHtml += `<tr>
@@ -1696,7 +1696,7 @@ function buildDocumentHTML(){
       });
       theadHtml += `</tr>`;
     }
-
+ 
     body += `<div class="table-wrapper" data-no-split="true"><table><thead>${theadHtml}</thead><tbody>`;
     
     section.entries.forEach(entry=>{
@@ -1784,7 +1784,7 @@ function buildDocumentHTML(){
       body += '</tr>';
     });
     body += '</tbody></table></div>';
-
+ 
     if(def.fields.some(f=>f.type==='tags') && STATE.cargos.length){
       const visCargos = STATE.cargos.filter(c => c.showInLegend !== false);
       if(visCargos.length > 0) {
@@ -1793,18 +1793,18 @@ function buildDocumentHTML(){
       }
     }
   });
-
+ 
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escapeHTML(titulo)}</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght=400;700&display=swap');
     
     @page { size:A4; margin:0; }
-
+ 
     :root{
       --hairline: #404040;
       --hairline-strong: #262626; 
     }
-
+ 
     html,body { margin:0; padding:0; box-sizing: border-box; }
     body { 
       font-family: 'Roboto', Arial, Helvetica, sans-serif; 
@@ -1829,7 +1829,7 @@ function buildDocumentHTML(){
       z-index: 9999;
       box-sizing: border-box;
     }
-
+ 
     table.layout-table {
       width: 100%;
       border: none !important;
@@ -1870,7 +1870,7 @@ function buildDocumentHTML(){
       max-height: 65mm;
       overflow: hidden;
     }
-
+ 
     .aviso-divider {
       border: none;
       border-top: 1.5px dashed #555;
@@ -1878,27 +1878,29 @@ function buildDocumentHTML(){
       width: 100%;
       height: 0;
     }
-
+ 
     .table-wrapper {
       margin-bottom: 8px; 
       border: none;
       outline: 1px solid var(--hairline-strong);
       outline-offset: 1.5px; 
-      page-break-inside: auto;
+      page-break-inside: avoid;
+      break-inside: avoid;
     }
-
+ 
     /* Moldura externa em linha DUPLA, usada apenas nos blocos de cidade das
        Reuniões de Evangelização (ex.: CAMPO MOURÃO, IRETAMA). As bordas
        internas de colunas/linhas continuam simples (herdadas de th/td). */
     
-
+ 
     table { 
       width:100%; 
       border-collapse: separate; 
       border-spacing: 0;
       border-top: 1px solid var(--hairline);
       border-left: 1px solid var(--hairline);      
-      page-break-inside: auto; 
+      page-break-inside: avoid;
+      break-inside: avoid;
       margin-bottom: 0;
     }
     
@@ -1933,7 +1935,7 @@ function buildDocumentHTML(){
       background: #ffffff; 
       color: #000;      
     }
-
+ 
     /* Bloco do título geral da seção (ex: "REUNIÕES DE EVANGELIZAÇÃO"),
        separado das tabelas de cidade, com a mesma "moldura" de linha dupla
        do table-wrapper e margem própria — é essa margem que cria o espaço
@@ -1947,7 +1949,7 @@ function buildDocumentHTML(){
       page-break-before: always;
       break-before: page;
     }
-
+ 
     th.table-title-cidade {
       /* Agora é uma célula real, mesclada via colspan sobre as 3 primeiras
          colunas (Data, Hora, Local) — a largura vem da própria grade da
@@ -1962,7 +1964,7 @@ function buildDocumentHTML(){
       padding: 3px 6px;
       border-bottom: 1px solid var(--hairline);
     }
-
+ 
     th.table-title-cidade-rest {
       /* 4ª célula: ocupa o espaço restante da tabela (Endereço + Atende),
          em branco, só para fechar a linha/grade. */
@@ -1976,7 +1978,7 @@ function buildDocumentHTML(){
     .legenda-container { display:flex; flex-wrap:wrap; gap:3px 10px; margin:1px 0 9.5px; align-items:center; page-break-inside: avoid; }
     .legenda-item { font-size:8.5px; font-weight:bold; color:#000; display:flex; align-items:center; gap:4px; }
     .legenda-chip { display:inline-block; background:#262626; color:#fff; border-radius:3px; padding:1px 3px; font-size:8px; line-height:1.2; white-space:nowrap; }
-
+ 
     .fixed-footer-left {
       position: fixed;
       bottom: 5.2mm;
@@ -1996,7 +1998,7 @@ function buildDocumentHTML(){
       pointer-events: none;
       
     }
-
+ 
     @media print {
       * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     }
@@ -2004,7 +2006,7 @@ function buildDocumentHTML(){
   <body>
     <div class="page-border"></div>
     <div class="fixed-footer-left">${escapeHTML(rodapeEsq)}</div>
-
+ 
     <div id="previewPageOffset" style="transition: transform 0.25s ease; position: relative;">
       ${absoluteFooters}
       
@@ -2017,7 +2019,7 @@ function buildDocumentHTML(){
               <div class="org">CONGREGAÇÃO CRISTÃ NO BRASIL</div>
               <div class="ttl">${escapeHTML(titulo)} - REGIONAL${regiao ? ' - '+escapeHTML(regiao) : ''}${periodo? ' - '+escapeHTML(periodo):''}</div>
             </div>
-
+ 
             ${avisosHTML ? `<div class="avisos-container">${avisosHTML}</div>` : ''}
             
             ${body || '<p style="text-align:center;color:#777;font-weight:normal;">Nenhuma seção adicionada ainda.</p>'}
@@ -2029,16 +2031,16 @@ function buildDocumentHTML(){
     </div>
   </body></html>`;
 }
-
+ 
 function escapeHTML(s){
   return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
-
+ 
 // ============ PAGINAÇÃO REAL DO PREVIEW (mede alturas reais e nunca corta linha/bloco ao meio) ============
-
+ 
 let PAGE_PLAN = [['']];
 let PAGE_STYLE_HTML = '';
-
+ 
 function getMeasureFrame(){
   let f = document.getElementById('measureFrameHidden');
   if(!f){
@@ -2055,7 +2057,7 @@ function getMeasureFrame(){
   }
   return f;
 }
-
+ 
 function renderPreview(){
   saveState();
   const html = buildDocumentHTML();
@@ -2072,19 +2074,19 @@ function renderPreview(){
   };
   mFrame.srcdoc = html;
 }
-
+ 
 function buildPagePlan(mDoc){
   const styleEl = mDoc.querySelector('style');
   const rawStyleHtml = styleEl ? styleEl.outerHTML : '<style></style>';
   PAGE_STYLE_HTML = rawStyleHtml.replace('<style>', '<style id="pageStyleTag">');
-
+ 
   const offsetEl = mDoc.getElementById('previewPageOffset');
   if(!offsetEl){
     PAGE_PLAN = [['']];
     window.TOTAL_PAGES_ESTIMATED = 1;
     return;
   }
-
+ 
   let measureDiv = mDoc.getElementById('measureDivPageHeight');
   if (!measureDiv) {
     measureDiv = mDoc.createElement('div');
@@ -2095,16 +2097,16 @@ function buildPagePlan(mDoc){
     mDoc.body.appendChild(measureDiv);
   }
   const pageHeightPx = measureDiv.offsetHeight || 1123;
-
+ 
   // O topo/rodapé (.spacer) se repete em toda página real (thead/tfoot da tabela de layout),
   // então o espaço útil de cada página deve descontar essa margem duas vezes.
   const spacerEl = offsetEl.querySelector('.spacer');
   const spacerHeightPx = spacerEl ? spacerEl.getBoundingClientRect().height : 0;
   const contentBudget = Math.max(50, pageHeightPx - (spacerHeightPx * 2));
-
+ 
   const contentPadding = offsetEl.querySelector('.content-padding');
   const units = [];
-
+ 
   if (contentPadding) {
     Array.from(contentPadding.children).forEach(el=>{
       if (el.classList.contains('table-wrapper')) {
@@ -2129,17 +2131,17 @@ function buildPagePlan(mDoc){
       }
     });
   }
-
+ 
   const pages = [[]];
   let curUsed = 0;
   let curPage = 0;
-
+ 
   function startNewPage(){
     pages.push([]);
     curPage++;
     curUsed = 0;
   }
-
+ 
   units.forEach(unit=>{
     if (unit.type === 'atomic') {
       // Bloco indivisível (cabeçalho do documento, avisos, legenda): nunca é cortado ao meio.
@@ -2155,18 +2157,18 @@ function buildPagePlan(mDoc){
       curUsed += unit.height;
       return;
     }
-
+ 
     // Tabela: as linhas nunca são cortadas ao meio; se a tabela continuar na
     // página seguinte, o cabeçalho da tabela é repetido, assim como acontece na impressão real.
     let rows = unit.rows.slice();
     if (!rows.length) return;
-
+ 
     // Bloco marcado (ex: início das Reuniões de Evangelização) sempre começa
     // em página nova, exceto se a página atual já estiver vazia.
     if (unit.forceBreak && curUsed > 0) {
       startNewPage();
     }
-
+ 
     // Tabelas marcadas como "não dividir" (ex: Reuniões Diversas): se a tabela
     // inteira couber numa página, ela nunca é cortada no meio — se não couber
     // no espaço restante da página atual, vai inteira para a próxima página.
@@ -2185,7 +2187,7 @@ function buildPagePlan(mDoc){
       }
       // Maior que uma página inteira: cai no comportamento normal abaixo (divide por linha).
     }
-
+ 
     while (rows.length) {
       if (curUsed > 0 && (curUsed + unit.theadHeight + rows[0].height) > contentBudget) {
         startNewPage();
@@ -2203,23 +2205,23 @@ function buildPagePlan(mDoc){
       if (rows.length) startNewPage();
     }
   });
-
+ 
   PAGE_PLAN = pages;
-
+ 
   const totalPages = pages.length;
   if (window.TOTAL_PAGES_ESTIMATED !== totalPages) {
     window.TOTAL_PAGES_ESTIMATED = totalPages;
     renderRodapeDirInputs();
   }
 }
-
+ 
 function buildPageHtmlDocument(pageIndex){
   const rodapeEsq = STATE.meta.rodape_esq || '';
   const arrDir = Array.isArray(STATE.meta.rodape_dir) ? STATE.meta.rodape_dir : [];
   const rightTxt = arrDir[pageIndex] || '';
   const rightFooterHtml = rightTxt.trim() ? `<div class="fixed-footer-right">${escapeHTML(rightTxt)}</div>` : '';
   const fragments = (PAGE_PLAN[pageIndex] || []).join('');
-
+ 
   return `<!DOCTYPE html><html><head><meta charset="UTF-8">${PAGE_STYLE_HTML}</head>
   <body>
     <div class="page-border"></div>
@@ -2232,30 +2234,30 @@ function buildPageHtmlDocument(pageIndex){
     </div>
   </body></html>`;
 }
-
+ 
 function displayCurrentPreviewPage(){
   const totalPages = Math.max(1, PAGE_PLAN.length);
   if (CURRENT_PREVIEW_PAGE > totalPages) CURRENT_PREVIEW_PAGE = totalPages;
   if (CURRENT_PREVIEW_PAGE < 1) CURRENT_PREVIEW_PAGE = 1;
-
+ 
   const frame = document.getElementById('previewFrame');
   const pageHtml = buildPageHtmlDocument(CURRENT_PREVIEW_PAGE - 1);
-
+ 
   let doc = null;
   try { doc = frame.contentDocument; } catch(e){ doc = null; }
-
+ 
   if (doc && doc.body && doc.getElementById('pageStyleTag')) {
     // Já existe um documento carregado no iframe: atualiza o conteúdo no lugar,
     // sem recarregar a página (frame.srcdoc), o que evita o flash/flicker branco.
     const parser = new DOMParser();
     const newDoc = parser.parseFromString(pageHtml, 'text/html');
-
+ 
     const oldStyle = doc.getElementById('pageStyleTag');
     const newStyle = newDoc.getElementById('pageStyleTag');
     if (oldStyle && newStyle && oldStyle.textContent !== newStyle.textContent) {
       oldStyle.textContent = newStyle.textContent;
     }
-
+ 
     doc.body.innerHTML = newDoc.body.innerHTML;
     scalePreview();
     attachSwipeListeners(frame);
@@ -2264,19 +2266,19 @@ function displayCurrentPreviewPage(){
     frame.onload = () => { attachSwipeListeners(frame); };
     frame.srcdoc = pageHtml;
   }
-
+ 
   const pageNumEl = document.getElementById('currentPageNum');
   if (pageNumEl) pageNumEl.textContent = `${CURRENT_PREVIEW_PAGE} / ${totalPages}`;
 }
-
+ 
 function attachSwipeListeners(frame){
   let doc;
   try { doc = frame.contentDocument; } catch(e){ return; }
   if (!doc || doc.__swipeAttached) return;
   doc.__swipeAttached = true;
-
+ 
   let startX = 0, startY = 0, startT = 0, tracking = false;
-
+ 
   doc.addEventListener('touchstart', (e) => {
     if (e.touches.length !== 1) { tracking = false; return; }
     startX = e.touches[0].clientX;
@@ -2284,30 +2286,30 @@ function attachSwipeListeners(frame){
     startT = Date.now();
     tracking = true;
   }, { passive: true });
-
+ 
   doc.addEventListener('touchend', (e) => {
     if (!tracking) return;
     tracking = false;
     const host = document.getElementById('previewHost');
     if (!host || !host.classList.contains('mobile-open')) return; // só no modo tela cheia do celular
-
+ 
     const touch = e.changedTouches[0];
     if (!touch) return;
     const dx = touch.clientX - startX;
     const dy = touch.clientY - startY;
     const dt = Date.now() - startT;
-
+ 
     const SWIPE_MIN_DIST = 55;
     if (dt < 700 && Math.abs(dx) > SWIPE_MIN_DIST && Math.abs(dx) > Math.abs(dy) * 1.4) {
       if (dx < 0) changePreviewPage(1); else changePreviewPage(-1);
     }
   }, { passive: true });
 }
-
+ 
 function isMobileView(){
   return window.matchMedia('(max-width:980px)').matches;
 }
-
+ 
 function openMobilePreview(){
   const host = document.getElementById('previewHost');
   if(!host) return;
@@ -2315,14 +2317,14 @@ function openMobilePreview(){
   document.body.classList.add('mobile-preview-active');
   setTimeout(scalePreview, 30);
 }
-
+ 
 function closeMobilePreview(){
   const host = document.getElementById('previewHost');
   if(!host) return;
   host.classList.remove('mobile-open');
   document.body.classList.remove('mobile-preview-active');
 }
-
+ 
 function scalePreview() {
   const wrapper = document.getElementById('previewScaleWrapper');
   const sizer = document.getElementById('iframeSizer');
@@ -2340,12 +2342,12 @@ function scalePreview() {
   iframe.style.transform = `scale(${scale})`;
   sizer.style.height = `${iframeHeightPx * scale}px`;
 }
-
+ 
 function changePreviewPage(dir) {
   CURRENT_PREVIEW_PAGE += dir;
   displayCurrentPreviewPage();
 }
-
+ 
 function gerarPDF(){
   saveState();
   const html = buildDocumentHTML();
@@ -2356,7 +2358,7 @@ function gerarPDF(){
     w.print();
   }, 400);
 }
-
+ 
 function exportJSON(){
   saveState();
   const blob = new Blob([JSON.stringify(STATE,null,2)], {type:'application/json'});
@@ -2365,7 +2367,7 @@ function exportJSON(){
   a.download = 'lista_servicos.json';
   a.click();
 }
-
+ 
 function loadStateFromJSON(texto){
   try{
     STATE = JSON.parse(texto);
@@ -2381,7 +2383,7 @@ function loadStateFromJSON(texto){
     renderCargos(); renderSections(); renderPreview(); saveState();
   }catch(e){ alert('Arquivo inválido.'); }
 }
-
+ 
 function importJSON(ev){
   const file = ev.target.files[0];
   if(!file) return;
@@ -2389,7 +2391,7 @@ function importJSON(ev){
   reader.onload = ()=>{ loadStateFromJSON(reader.result); };
   reader.readAsText(file);
 }
-
+ 
 function resetAll(){
   STATE = { meta:{regiao:"", periodo:"", titulo:"LISTA DE SERVIÇOS", rodape_esq:"", rodape_dir:[]}, sections: [], cargos: JSON.parse(JSON.stringify(DEFAULT_CARGOS)) };
   localStorage.removeItem('ccb_lista_state_regional');
@@ -2402,7 +2404,7 @@ function resetAll(){
   renderRodapeDirInputs();
   renderCargos(); renderSections(); renderPreview();
 }
-
+ 
 window.onload = ()=>{
   buildAddButtons();
   loadState();
@@ -2437,23 +2439,23 @@ window.onload = ()=>{
 <script>
 (function () {
   var REGIAO = 'regional';
-
+ 
   function tokenAtual() {
     return localStorage.getItem('session_token');
   }
-
+ 
   function sugerirNomeArquivo() {
     var d = new Date().toISOString().slice(0, 10);
     return REGIAO + '_' + d;
   }
-
+ 
   window.salvarLista = async function () {
     var btn = document.getElementById('btnListaSalvar');
     var nome = prompt('Nome para salvar esta lista:', sugerirNomeArquivo());
     if (nome === null) return; // cancelou
     nome = nome.trim();
     if (!nome) { alert('Informe um nome para o arquivo.'); return; }
-
+ 
     if (btn) { btn.disabled = true; btn.textContent = '☁️ Salvando...'; }
     try {
       saveState();
@@ -2472,7 +2474,7 @@ window.onload = ()=>{
       if (btn) { btn.disabled = false; btn.textContent = '☁️ Salvar'; }
     }
   };
-
+ 
   window.carregarLista = async function () {
     var btn = document.getElementById('btnListaCarregar');
     if (btn) { btn.disabled = true; btn.textContent = '☁️ Carregando...'; }
@@ -2492,14 +2494,14 @@ window.onload = ()=>{
       if (btn) { btn.disabled = false; btn.textContent = '☁️ Carregar'; }
     }
   };
-
+ 
   function mostrarSeletorListas(arquivos) {
     var overlay = document.createElement('div');
     overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:99999; display:flex; align-items:center; justify-content:center;';
     var box = document.createElement('div');
     box.style.cssText = 'background:#fff; border-radius:10px; padding:20px; width:340px; max-height:70vh; overflow:auto; font-family:Arial, Helvetica, sans-serif;';
     box.innerHTML = '<h3 style="margin:0 0 12px; font-size:16px;">Escolha o arquivo</h3>';
-
+ 
     arquivos.forEach(function (f) {
       var item = document.createElement('button');
       item.textContent = f.nome;
@@ -2521,13 +2523,13 @@ window.onload = ()=>{
       };
       box.appendChild(item);
     });
-
+ 
     var cancelar = document.createElement('button');
     cancelar.textContent = 'Cancelar';
     cancelar.style.cssText = 'display:block; width:100%; text-align:center; padding:9px 10px; margin-top:6px; border:1px solid #ccd3da; border-radius:6px; background:#fff; cursor:pointer; font-size:13px;';
     cancelar.onclick = function () { overlay.remove(); };
     box.appendChild(cancelar);
-
+ 
     overlay.appendChild(box);
     document.body.appendChild(overlay);
   }
