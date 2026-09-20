@@ -1564,7 +1564,7 @@ function buildDocumentHTML(){
           rowsHtml += '</tr>';
         });
 
-        body += `<div class="table-wrapper cidade-frame"><table><thead>${theadHtml}</thead><tbody>${rowsHtml}</tbody></table></div>`;
+        body += `<div class="table-wrapper cidade-frame" data-no-split="true"><table><thead>${theadHtml}</thead><tbody>${rowsHtml}</tbody></table></div>`;
       });
 
       return;
@@ -1648,7 +1648,7 @@ function buildDocumentHTML(){
         });
       });
 
-      body += `<div class="table-wrapper"><table><thead>${theadHtmlCozinha}</thead><tbody>${rowsHtmlCozinha}</tbody></table></div>`;
+      body += `<div class="table-wrapper" data-no-split="true"><table><thead>${theadHtmlCozinha}</thead><tbody>${rowsHtmlCozinha}</tbody></table></div>`;
       return;
     }
 
@@ -1697,8 +1697,7 @@ function buildDocumentHTML(){
       theadHtml += `</tr>`;
     }
 
-    const noSplitAttr = (section.typeKey === 'reuniaodiversa') ? ' data-no-split="true"' : '';
-    body += `<div class="table-wrapper"${noSplitAttr}><table><thead>${theadHtml}</thead><tbody>`;
+    body += `<div class="table-wrapper" data-no-split="true"><table><thead>${theadHtml}</thead><tbody>`;
     
     section.entries.forEach(entry=>{
       body += '<tr>';
