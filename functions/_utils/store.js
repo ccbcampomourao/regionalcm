@@ -8,6 +8,7 @@ export const LISTAS = {
   goioere: '/listagoioere.html',
   ivaipora: '/listaivaipora.html',
   calendario: '/calendario-ensaios.html',
+  calendarioanual: '/calendario-reunioes.html',
 };
 
 // Rótulos amigáveis das listas, usados nas telas de admin e seleção de listas.
@@ -20,6 +21,7 @@ export const LISTA_LABELS = {
   goioere: 'Goioerê',
   ivaipora: 'Ivaiporã',
   calendario: 'Calendário dos Ensaios',
+  calendarioanual: 'Calendário Anual de Reuniões',
 };
 
 export const DEFAULT_ADMIN_EMAIL = 'bruno07dacosta@gmail.com';

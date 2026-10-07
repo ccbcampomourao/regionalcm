@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<script>
+(function () {
+  document.documentElement.style.visibility = 'hidden';
+  var token = localStorage.getItem('session_token');
+  if (!token) { window.location.replace('/login.html'); return; }
+  fetch('/api/verify-session', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: token, list: 'calendarioanual' })
+  }).then(function (r) { return r.json(); }).then(function (data) {
+    if (data && data.ok) {
+      document.documentElement.style.visibility = 'visible';
+      var lists = Array.isArray(data.lists) ? data.lists : [];
+      function montarBarraTopo() {
+        var bar = document.createElement('div');
+        bar.style.cssText = 'position:fixed; top:12px; right:12px; z-index:99999; display:flex; gap:8px;';
+        if (data.role === 'admin' || lists.length > 1) {
+          var backBtn = document.createElement('a');
+          backBtn.href = data.role === 'admin' ? '/admin-listas.html' : '/minhas-listas.html';
+          backBtn.textContent = '\u2190 Voltar';
+          backBtn.style.cssText = 'background:#fff; color:#1b2a41; text-decoration:none; padding:8px 16px; border-radius:9px; font-size:13px; font-weight:600; font-family:Inter, Arial, Helvetica, sans-serif; border:1.5px solid #e4dcc9; box-shadow:0 4px 10px -4px rgba(27,42,65,.3);';
+          bar.appendChild(backBtn);
+        }
+        var sairBtn = document.createElement('a');
+        sairBtn.href = '#';
+        sairBtn.textContent = 'Sair';
+        sairBtn.style.cssText = 'background:linear-gradient(180deg,#2c3f5c,#1b2a41); color:#fdfbf6; text-decoration:none; padding:8px 16px; border-radius:9px; font-size:13px; font-weight:600; font-family:Inter, Arial, Helvetica, sans-serif; box-shadow:0 6px 16px -6px rgba(27,42,65,.5);';
+        sairBtn.onclick = function (e) {
+          e.preventDefault();
+          localStorage.removeItem('session_token');
+          window.location.href = '/login.html';
+        };
+        bar.appendChild(sairBtn);
+        document.body.appendChild(bar);
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', montarBarraTopo);
+      } else {
+        montarBarraTopo();
+      }
+    } else {
+      localStorage.removeItem('session_token');
+      window.location.replace('/login.html');
+    }
+  }).catch(function () {
+    window.location.replace('/login.html');
+  });
+})();
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Calendário de Reuniões</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--primary:#1b2a41;--primary-2:#2c3f5c;--brass:#a97d3d;--brass-lt:#c99a55;--accent:#b04b3c;--bg:#f5f1e8;--line:#e4dcc9;--ink:#24304a;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box;font-family:'Inter',Arial,sans-serif}
+body{margin:0;background:var(--bg);color:var(--ink)}
+header{padding-right:200px!important;background:linear-gradient(180deg,var(--primary-2),var(--primary));color:#fdfbf6;padding:16px 22px}
+header h1{margin:0;font-size:19px;font-family:'Fraunces',Georgia,serif;font-weight:600}
+header p{margin:4px 0 0;font-size:13px;opacity:.85}
+.wrap{display:flex;gap:16px;padding:16px;align-items:flex-start}
+.panel{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:0 10px 30px -14px rgba(27,42,65,.18)}
+#form{flex:1;min-width:340px}
+#prevHost{flex:1.2;position:sticky;top:16px;height:calc(100vh - 32px);display:flex;flex-direction:column;min-width:420px}
+#prevScroll{flex:1;overflow:auto;background:#525659;border-radius:8px;padding:10px 0}
+#prev{display:flex;justify-content:center}
+button{cursor:pointer;font-weight:600;border:1.5px solid var(--line);background:#fff;color:var(--primary);padding:8px 13px;border-radius:9px;font-size:13px}
+button:hover{border-color:var(--brass-lt)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--brass);outline-offset:1px}
+button.primary{background:linear-gradient(180deg,var(--primary-2),var(--primary));color:#fdfbf6;border-color:var(--primary)}
+button.danger{color:var(--accent);border-color:var(--accent)}
+input,select{border:1.5px solid var(--line);border-radius:8px;padding:7px 9px;font-size:13px;width:100%;background:#fff;color:var(--ink)}
+label{font-size:12px;font-weight:700;color:var(--primary-2);display:block;margin-bottom:2px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.meta{display:grid;grid-template-columns:2fr 2fr 1fr;gap:8px;margin-bottom:12px}
+.meses{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0;padding-top:12px;border-top:1px solid var(--line)}
+.meses button{padding:6px 10px}
+.meses button.on{background:var(--primary);color:#fdfbf6;border-color:var(--primary)}
+.dia{display:grid;grid-template-columns:62px 1fr;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
+.dia.dom .dn{color:var(--brass)}.dia.fer .dn{color:var(--accent)}
+.dn{font-weight:700;font-size:13px;line-height:1.2}.dn small{display:block;font-weight:500;font-size:10.5px;color:#7a7466}
+.fer-tag{font-size:11px;font-weight:600;color:var(--accent);margin-bottom:4px}
+.ent{display:grid;grid-template-columns:auto 130px 78px 1fr auto auto;gap:5px;margin-bottom:5px;align-items:center}
+.ent button{padding:5px 9px}
+.dn{cursor:pointer;user-select:none}
+.bar2{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}.bar2 button{padding:5px 10px;font-size:12px}
+.res{display:flex;gap:6px;align-items:center;font-size:12px;color:#7a7466;padding:1px 0}.res u{width:8px;height:8px;border-radius:50%;flex-shrink:0}.res.vazio{font-style:italic;opacity:.7}
+.entc{display:flex;gap:7px;align-items:center;padding:5px 9px;margin-bottom:5px;border:1px solid var(--line);border-radius:8px;font-size:12px;cursor:pointer;background:#faf8f2}.entc:hover{border-color:var(--brass-lt)}.entc u{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.tg{padding:4px 8px!important}
+.atin{margin:0 0 6px}.atin input{padding:4px 8px;font-size:12px}
+.add{font-size:12px;padding:4px 10px}
+/* ===== Páginas A4 ===== */
+.pg{width:210mm;height:297mm;background:#fff;color:#111;padding:11mm 12mm 9mm;display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.3);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.pg h2{margin:0;font-family:'Fraunces',Georgia,serif;font-weight:700;font-size:26pt;letter-spacing:.02em;line-height:1}
+.pg .top{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2.5px solid var(--primary);padding-bottom:6px;margin-bottom:4px}
+.pg .top span{font-size:9pt;font-weight:600;color:var(--primary-2);text-align:right}
+.dias{flex:1;display:grid;grid-auto-rows:minmax(min-content,1fr);min-height:0;font-size:9.5pt}
+.r{display:grid;grid-template-columns:27mm 1fr;border-bottom:.6pt solid #c9c2b0;align-items:center}
+.r .d{padding:1mm 2mm;font-size:.9em;display:flex;gap:1.5mm;align-items:baseline}
+.r .d b{font-size:1.2em;min-width:6mm;text-align:right}.r .d span{font-weight:600;font-size:.8em;color:#555}
+.r.dom{background:#f6efdd}.r.dom .d b{color:var(--brass)}
+.r.fer{background:#f8e4e0}.r.fer .d b{color:var(--accent)}
+.r .e{padding:.8mm 0;font-size:1em;line-height:1.25}
+.r .f{font-weight:700;color:var(--accent);font-size:.9em}
+.r .s{border-left:2.2pt solid var(--c);padding-left:1.6mm;margin:.4mm 0;font-weight:500}
+.r .at{font-weight:600;font-style:italic;font-size:.93em}
+.r .s i{font-style:normal;font-weight:700}
+.leg{display:flex;flex-wrap:wrap;gap:1mm 4mm;margin-top:2.5mm;font-size:6.8pt;color:#444}
+.leg em{font-style:normal;display:inline-flex;align-items:center;gap:1mm}.leg u{display:inline-block;width:2.5mm;height:2.5mm;border-radius:.6mm;text-decoration:none}
+.rod{margin-top:1.5mm;font-size:7pt;color:#666;text-align:center}
+.capa{align-items:center;justify-content:center;text-align:center;border:3pt double var(--primary);margin:0}
+.capa small{font-size:15pt;letter-spacing:.08em;font-weight:700}
+.capa h2{font-size:34pt;font-style:italic;margin:22mm 0 8mm}
+.capa p{font-family:'Fraunces',Georgia,serif;font-style:italic;font-size:24pt;margin:0}
+.capa .ano{font-size:44pt;font-weight:700;margin-top:55mm;color:var(--brass)}
+#print{display:none}
+textarea{width:100%;border:1.5px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;resize:vertical;background:#fff;color:var(--ink)}
+.info{font-size:10pt;line-height:1.45;white-space:normal}
+.cvd{border:1px solid var(--line);border-radius:8px;margin:0 0 9px;background:#faf8f2}
+.cvd summary{cursor:pointer;padding:6px 10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;list-style:none}
+.cvd summary::-webkit-details-marker{display:none}.cvd summary::before{content:'▸';color:var(--brass)}.cvd[open] summary::before{content:'▾'}
+.cvd summary b{color:var(--primary-2)}.sel{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+.cc2{background:#262626;color:#fff;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:600}.nenhum{opacity:.55;font-style:italic}.oo{font-size:11px}
+.cvp{padding:8px 10px 10px;border-top:1px solid var(--line)}.grp{font-size:11px;font-weight:700;color:var(--brass);margin:2px 0 5px}
+.og{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:5px 12px;margin-bottom:10px}
+.opt{display:flex;gap:6px;align-items:center;font-size:12px;cursor:pointer}.opt input{width:auto;margin:0}
+.cvp>input{font-size:12px;padding:5px 8px}
+.cvs{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 9px;align-items:center}.cvs button{padding:2px 9px;font-size:11px;border-radius:12px}.cvs button.on{background:var(--primary);color:#fdfbf6;border-color:var(--primary)}.cvs input{flex:1;min-width:170px;padding:4px 8px;font-size:12px}
+.cg{display:grid;grid-template-columns:130px 1fr 18px 18px auto;gap:6px;align-items:center;margin-bottom:6px}.cg input[type=checkbox]{width:16px;height:16px;padding:0}.cg button{padding:3px 9px}
+.cc{display:inline-block;background:#262626;color:#fff;border-radius:1mm;padding:0 1mm;font-size:5.8pt;font-weight:700;line-height:1.35;white-space:nowrap}
+.cv{font-style:italic;font-size:6pt}
+.dias .cc{font-size:.6em}.dias .cv{font-size:.63em}
+.cvb{margin-top:.3mm;display:flex;flex-wrap:wrap;gap:.5mm 1mm;align-items:center}
+.cvl{display:flex;flex-direction:column;gap:1.6mm;font-size:8.8pt;font-weight:600}.cvl .cc{font-size:8pt}
+.pg .ex{font-size:9.5pt;margin:5mm 0 4mm;color:#444}
+.legp{display:grid;gap:2.5mm}.li{display:flex;align-items:center;gap:3mm;font-size:10.5pt;font-weight:500}.li u{width:9mm;height:6mm;border-radius:1mm;flex-shrink:0}
+.sub{font-family:'Fraunces',Georgia,serif;font-size:13pt;margin:7mm 0 2mm;color:var(--primary);border-bottom:1.5pt solid var(--brass);padding-bottom:1mm}
+.fls{columns:2;column-gap:8mm;font-size:8.5pt;line-height:1.35}.fl{break-inside:avoid;padding:.6mm 0;border-bottom:.5pt solid #ddd}.fl b{display:inline-block;width:11mm;color:var(--accent)}
+.anogrid{flex:1;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(4,1fr);gap:4mm 5mm;margin-top:4mm;min-height:0}
+.fgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:2.5mm 5mm;margin-top:3mm}
+.mm .g span.dom{color:var(--brass);font-weight:700}
+.mm h4{margin:0 0 1mm;font-family:'Fraunces',Georgia,serif;font-size:10.5pt;color:var(--primary)}
+.mm .g{display:grid;grid-template-columns:repeat(7,1fr);gap:.6mm;text-align:center;font-size:7.5pt}
+.mm .g b{font-size:6.5pt;color:var(--brass)}.mm .g span{padding:1.1mm 0;border-radius:.8mm}
+.mm .g span.m{color:#fff;font-weight:700;text-shadow:0 0 2px rgba(0,0,0,.65)}
+@media (max-width:980px){.wrap{flex-direction:column}#prevHost{position:static;height:70vh;min-width:100%}#form{min-width:100%}.ent{grid-template-columns:auto 1fr 70px}.ent input.tx{grid-column:1/-1}}
+@page{size:A4 portrait;margin:0}
+@media print{body{background:#fff}body>*:not(#print){display:none!important}#print{display:block}#print .pg{box-shadow:none;break-after:page;zoom:1;height:296.4mm}#print .pg:last-child{break-after:auto}}
+#print.medindo{display:block;position:absolute;left:-99999px;top:0}
+</style>
+</head>
+<body>
+<header>
+  <h1>Calendário de Reuniões</h1>
+  <p>Escolha o mês, lance os serviços em cada dia e veja a página A4 ao lado. Feriados nacionais entram automaticamente.</p>
+</header>
+<div class="wrap">
+  <div class="panel" id="form">
+    <div class="bar">
+      <button class="primary" onclick="imprimir()">Imprimir / salvar PDF (capa + 12 meses)</button>
+      <button id="btnListaSalvar" onclick="salvarLista()">☁️ Salvar na nuvem</button>
+      <button id="btnListaCarregar" onclick="carregarLista()">☁️ Carregar da nuvem</button>
+      <button onclick="exportar()">Salvar backup</button>
+      <button onclick="document.getElementById('imp').click()">Carregar backup</button>
+      <input type="file" id="imp" accept=".json" style="display:none" onchange="importar(event)">
+      <button class="danger" onclick="if(confirm('Apagar todos os serviços?')){S.dias={};salvar();montar()}">Limpar tudo</button>
+    </div>
+    <div class="meta">
+      <div><label>Igreja / órgão</label><input id="m_org" oninput="meta('org',this.value)"></div>
+      <div><label>Localidade</label><input id="m_sub" oninput="meta('sub',this.value)"></div>
+      <div><label>Ano</label><input id="m_ano" type="number" oninput="meta('ano',this.value)"></div>
+    </div>
+    <div class="meta" style="grid-template-columns:1fr">
+      <div><label>Observação no rodapé de cada página</label><input id="m_rod" oninput="meta('rod',this.value)"></div>
+    </div>
+    <div class="meses" id="meses"></div>
+    <div id="dias"></div>
+  </div>
+  <div class="panel" id="prevHost">
+    <h3 style="margin:0 0 10px;color:var(--primary)">Pré-visualização (A4 retrato)</h3>
+    <div id="prevScroll"><div id="prev"></div></div>
+  </div>
+</div>
+<div id="print"></div>
+
+<script>
+const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const SEM=['DOMINGO','SEGUNDA','TERÇA','QUARTA','QUINTA','SEXTA','SÁBADO'];
+const TIPOS={local:['Reuniões locais – ministeriais e administrativas','#1b2a41'],musical:['Reuniões locais – setor musical','#3f7d58'],manut:['Reuniões locais – manutenção preventiva','#a97d3d'],regional:['Reuniões regionais','#2563eb'],estadual:['Reuniões estaduais','#6b4c9a'],brasil:['Reuniões nível Brasil (BRÁS)','#5f6b7a'],ensaio:['Ensaios regionais','#7c4a2d'],mocidade:['Reuniões para a mocidade','#d4801f']};
+const HOL='#c0392b',HOLE='#e11d74',HOLM='#0d9488';
+const HOLEG=[[HOL,'Feriados nacionais'],[HOLE,'Feriados / pontos facultativos do Paraná'],[ '#c78a2c','Pontos facultativos (Carnaval, Corpus Christi)'],[HOLM,'Feriados municipais de Campo Mourão']];
+function anivCM(y){if(new Date(y,9,10).getDay()==0)return '10-10';const d=new Date(y,9,12),a=((1-d.getDay()+7)%7)||7;d.setDate(12+a);return p2(d.getMonth()+1)+'-'+p2(d.getDate())}
+function locais(y){const o={};o[anivCM(y)]=['Aniversário de Campo Mourão (feriado municipal)','m'];
+  if(y==2026){o['01-02']=['Recesso do Executivo estadual (Paraná)','e'];o['04-02']=['Ponto facultativo estadual (Paraná)','e'];o['04-20']=['Véspera de Tiradentes – ponto facultativo estadual (Paraná)','e']}
+  return o}
+const CARGOS=[['Anc','ANCIÃES',1],['Dcn','DIÁCONOS',1],['Com','COOPERADORES DO OFÍCIO MINISTERIAL',1],['Cjm','COOPERADORES DE JOVENS E MENORES',1],['Ero','ENCARREGADOS REGIONAIS DE ORQUESTRA',1],['Elo','ENCARREGADOS LOCAIS DE ORQUESTRA',1],['Adm','ADMINISTRAÇÃO',1],['Adm (Convocados)','ADMINISTRAÇÃO CONVOCADOS',0],['Dcn da Regional (Convocados)','DIÁCONOS DA REGIONAL CONVOCADOS',0],['Dcn da Regional','DIÁCONOS DA REGIONAL',0],['Adm Regional','ADMINISTRAÇÃO DA REGIONAL',0],['Adm Casas de Oração','ADMINISTRAÇÃO DAS CASAS DE ORAÇÃO',0],['Dcn (Convocados)','DIÁCONOS CONVOCADOS',0],['Dcn do Estado (Todos)','DIÁCONOS DO ESTADO',0],['Anc e *Dcn do Estado (Todos)','ANCIÃES E DIÁCONOS DO ESTADO',0],['Adm Titulares e Vices','ADMINISTRAÇÃO TITULARES E VICES',0]].map(a=>({code:a[0],label:a[1],showInLegend:!!a[2],useAsterisk:true}));
+const KEY='ccb_calendario_reunioes_anual';
+let S={meta:{org:'Congregação Cristã no Brasil',sub:'CAMPO MOURÃO/PR',ano:2026,rod:'As reuniões deste calendário estão sujeitas a alterações.'},dias:{}};
+let cur=0; // 0..11 mês; -1 capa; -2 legenda; -3 ano
+
+try{const r=localStorage.getItem(KEY);if(r)S=JSON.parse(r)}catch(e){}
+if(!S.cargos)S.cargos=JSON.parse(JSON.stringify(CARGOS));
+const p2=n=>String(n).padStart(2,'0');
+const kk=(m,d)=>p2(m+1)+'-'+p2(d);
+const esc=s=>String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function salvar(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+
+function pascoa(y){const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),mes=Math.floor((h+l-7*m+114)/31),dia=((h+l-7*m+114)%31)+1;return new Date(y,mes-1,dia)}
+function feriados(y){
+  const f={'01-01':'Confraternização Universal','04-21':'Tiradentes','05-01':'Dia do Trabalho','09-07':'Dia da Independência','10-12':'N. S. Aparecida','11-02':'Finados','11-15':'Proclamação da República','11-20':'Consciência Negra','12-25':'Natal'};
+  const P=pascoa(y);
+  [[-47,'Carnaval'],[-2,'Sexta-feira Santa'],[0,'Domingo de Páscoa'],[60,'Corpus Christi']].forEach(([o,n])=>{const d=new Date(P);d.setDate(d.getDate()+o);f[p2(d.getMonth()+1)+'-'+p2(d.getDate())]=n});
+  return f;
+}
+
+/* ---------- Páginas ---------- */
+function paginaMes(m){
+  const y=+S.meta.ano,n=new Date(y,m+1,0).getDate(),fer=feriados(y);let rows='';
+  for(let d=1;d<=n;d++){
+    const w=new Date(y,m,d).getDay(),k=kk(m,d),f=fer[k],es=S.dias[k]||[];
+    rows+=`<div class="r${w==0?' dom':''}${f?' fer':''}"><div class="d"><b>${d}</b><span>${SEM[w]}</span></div><div class="e">${f?`<div class="f">${esc(f)}</div>`:''}${es.map(e=>`<div class="s" style="--c:${TIPOS[e.t][1]}">${esc(e.x)}${e.h?` - <i>${esc(hr(e.h))}</i>`:''}${e.a&&e.a.trim()?` <span class="at">Atende ${esc(e.a.trim())}</span>`:''}${cvHTML(e)}</div>`).join('')}</div></div>`;
+  }
+  const leg=Object.values(TIPOS).map(t=>`<em><u style="background:${t[1]}"></u>${t[0]}</em>`).join('')+`<em><u style="background:${HOL}"></u>Feriados</em>`;
+  return `<div class="pg"><div class="top"><h2>${MESES[m].toUpperCase()}</h2><span>${esc(S.meta.org)}<br>${esc(S.meta.sub)} · ${esc(S.meta.ano)}</span></div><div class="dias">${rows}</div><div class="leg">${leg}</div><div class="rod">${esc(S.meta.rod)}</div></div>`;
+}
+function paginaCapa(){
+  return `<div class="pg capa"><small>${esc(S.meta.org).toUpperCase()}</small><h2>CALENDÁRIO DE REUNIÕES</h2><p>${esc(S.meta.sub)}</p><div class="ano" style="font-family:Fraunces,serif;font-style:italic">${esc(S.meta.ano)}</div></div>`;
+}
+
+function cvHTML(e){const a=(e.c||[]).map(code=>{const g=S.cargos.find(x=>x.code==code);return `<span class="cc">${g&&g.useAsterisk===false?'':'*'}${esc(code)}</span>`}).join('')+(e.o?`<span class="cv">${esc(e.o)}</span>`:'');return a?`<div class="cvb">${a}</div>`:''}
+function grad(c){if(c.length==1)return c[0];const s=100/c.length;return 'linear-gradient(135deg,'+c.map((x,i)=>`${x} ${(i*s).toFixed(1)}% ${((i+1)*s).toFixed(1)}%`).join(',')+')'}
+function cab(t){return `<div class="top"><h2>${t}</h2><span>${esc(S.meta.org)}<br>${esc(S.meta.sub)} · ${esc(S.meta.ano)}</span></div>`}
+function paginaLegenda(){
+  const it=Object.values(TIPOS).map(t=>`<div class="li"><u style="background:${t[1]}"></u>${t[0]}</div>`).join('');
+  const inf=(S.meta.info||'').trim();
+  return `<div class="pg">${cab('LEGENDA')}<p class="ex">Cada dia da página "Calendário" é colorido conforme os tipos de reunião lançados naquele dia. Quando há mais de um tipo, a cor do dia é dividida.</p><div class="legp">${it}</div><h3 class="sub">Cargos e Ministérios</h3><div class="cvl">${S.cargos.filter(g=>g.showInLegend!==false).map(g=>`<div><span class="cc">${esc(g.code)}</span> = ${esc(g.label)}</div>`).join('')}</div>${inf?`<h3 class="sub">Informações</h3><div class="info">${esc(inf).replace(/\n/g,'<br>')}</div>`:''}<div class="rod">${esc(S.meta.rod)}</div></div>`;
+}
+const CATF={nac:['Nacional',HOL],fac:['Ponto facultativo','#c78a2c'],est:['Paraná',HOLE],mun:['Campo Mourão',HOLM]};
+function feriadosFull(y){const L=[],add=(k,n,t)=>L.push({k,n,t});
+  [['01-01','Confraternização Universal'],['04-21','Tiradentes'],['05-01','Dia do Trabalho'],['09-07','Independência do Brasil'],['10-12','N. S. Aparecida'],['11-02','Finados'],['11-15','Proclamação da República']].forEach(a=>add(a[0],a[1],'nac'));
+  if(y>=2024)add('11-20','Consciência Negra','nac');add('12-25','Natal','nac');
+  const P=pascoa(y),o=n=>{const d=new Date(P);d.setDate(d.getDate()+n);return p2(d.getMonth()+1)+'-'+p2(d.getDate())};
+  add(o(-2),'Sexta-feira Santa','nac');add(o(0),'Domingo de Páscoa','nac');
+  add(o(-48),'Carnaval (ponto facultativo)','fac');add(o(-47),'Carnaval (ponto facultativo)','fac');add(o(-46),'Quarta-feira de Cinzas (até 14h)','fac');add(o(60),'Corpus Christi (ponto facultativo)','fac');
+  const l=locais(y);Object.keys(l).forEach(k=>add(k,l[k][0],l[k][1]=='e'?'est':'mun'));
+  return L.sort((a,b)=>a.k<b.k?-1:a.k>b.k?1:0)}
+function paginaFeriados(){
+  const y=+S.meta.ano,L=feriadosFull(y),map={},pr=['nac','mun','est','fac'];L.forEach(h=>{(map[h.k]=map[h.k]||[]).push(h)});let h='';
+  for(let m=0;m<12;m++){
+    const first=new Date(y,m,1).getDay(),n=new Date(y,m+1,0).getDate();
+    let g='DSTQQSS'.split('').map(x=>`<b>${x}</b>`).join('')+'<i></i>'.repeat(first);
+    for(let d=1;d<=n;d++){
+      const k=kk(m,d),hs=map[k],es=S.dias[k]||[],w=new Date(y,m,d).getDay(),c=[];
+      if(hs)c.push(CATF[pr.find(p=>hs.some(x=>x.t==p))][1]);
+      [...new Set(es.map(e=>e.t))].forEach(t=>c.push(TIPOS[t][1]));
+      const tip=[...(hs||[]).map(x=>x.n),...es.map(e=>e.x)].filter(Boolean).join(' | ');
+      g+=c.length?`<span class="m" style="background:${grad(c)}" title="${esc(tip)}">${d}</span>`:`<span class="${w==0?'dom':''}">${d}</span>`;
+    }
+    h+=`<div class="mm"><h4>${MESES[m]}</h4><div class="g">${g}</div></div>`;
+  }
+  const lista=L.map(x=>{const a=x.k.split('-');return `<div class="fl"><b style="color:${CATF[x.t][1]}">${+a[1]}/${a[0]}</b>${esc(x.n)}</div>`}).join('');
+  const lg=Object.values(TIPOS).map(t=>`<em><u style="background:${t[1]}"></u>${t[0]}</em>`).join('')+Object.values(CATF).map(c=>`<em><u style="background:${c[1]}"></u>Feriado: ${c[0]}</em>`).join('');
+  return `<div class="pg">${cab('CALENDÁRIO')}<div class="fgrid">${h}</div><h3 class="sub">Lista de feriados</h3><div class="fls">${lista}</div><div class="leg" style="margin-top:3mm">${lg}</div><div class="rod">${esc(S.meta.rod)}</div></div>`}
+function pagina(c){return c==-4?paginaFeriados():c==-1?paginaCapa():c==-2?paginaLegenda():paginaMes(c)}
+
+/* ---------- Painel de edição ---------- */
+function montar(){
+  ['org','sub','ano','rod'].forEach(k=>document.getElementById('m_'+k).value=S.meta[k]||'');
+  document.getElementById('meses').innerHTML=[['Capa',-1],['Legenda',-2],['Calendário',-4]].map(a=>`<button class="${cur==a[1]?'on':''}" onclick="ir(${a[1]})">${a[0]}</button>`).join('')+MESES.map((n,i)=>`<button class="${cur==i?'on':''}" onclick="ir(${i})">${n}</button>`).join('');
+  const box=document.getElementById('dias');
+  if(cur<0){box.innerHTML='<p style="font-size:13px;color:#7a7466">'+(cur==-4?'Calendário do ano, com os feriados (nacionais, pontos facultativos, Paraná e Campo Mourão) e com os dias coloridos pelos tipos de reunião lançados nos meses. É gerado automaticamente.':cur==-1?'Esta é a capa. Ajuste os textos nos campos acima.':cur==-2?'Legenda dos tipos de reunião, dos convocados e dos feriados do ano.':'Calendário do ano: os dias são coloridos automaticamente pelos serviços lançados em cada mês. Passe o mouse sobre um dia para ver o que há nele.')+'</p>'+(cur==-2?cargosEditor():'');preview();return}
+  const y=+S.meta.ano,n=new Date(y,cur+1,0).getDate(),fer=feriados(y);let h='';
+  for(let d=1;d<=n;d++){
+    const w=new Date(y,cur,d).getDay(),k=kk(cur,d),es=S.dias[k]||[];
+    h+=`<div class="dia${w==0?' dom':''}${fer[k]?' fer':''}"><div class="dn" role="button" tabindex="0" title="Minimizar / expandir o dia" onclick="togDia('${k}')" onkeydown="if(event.key==='Enter')togDia('${k}')">${fDia[k]?'▸':'▾'} ${d}<small>${SEM[w].slice(0,3)}</small></div><div>${fer[k]?`<div class="fer-tag">${fer[k]}</div>`:''}`+
+    (fDia[k]?resumoDia(es):es.map((e,i)=>entHTML(k,i,e)).join('')+`<button class="add" onclick="novo('${k}')">+ serviço</button>`)+`</div></div>`;
+  }
+  box.innerHTML=`<div class="bar2"><button onclick="tudo('d',1)">Recolher dias</button><button onclick="tudo('d',0)">Expandir dias</button><button onclick="tudo('e',1)">Recolher reuniões</button><button onclick="tudo('e',0)">Expandir reuniões</button></div>`+h;preview();
+}
+function hr(v){v=String(v||'').trim();const m=v.match(/^(\d{1,2})[:.hH]?(\d{2})?$/);if(!m)return v;const h=+m[1],mi=m[2];if(h>23||(mi&&+mi>59))return v;return h+'h'+(mi&&mi!='00'?mi+'min':'')}
+function horaInput(el,k,i){edit(k,i,'h',el.value);if(/^\d{4}$/.test(el.value.trim()))horaBlur(el,k,i)}
+function horaBlur(el,k,i){el.value=hr(el.value);S.dias[k][i].h=el.value;salvar();preview()}
+const fDia={},fEnt={};
+function togDia(k){fDia[k]=!fDia[k];montar()}
+function togEnt(id){fEnt[id]=!fEnt[id];montar()}
+function tudo(t,f){const n=new Date(+S.meta.ano,cur+1,0).getDate();for(let d=1;d<=n;d++){const k=kk(cur,d);if(t=='d')fDia[k]=!!f;else (S.dias[k]||[]).forEach((e,i)=>{fEnt[k+'#'+i]=!!f})}montar()}
+function resumoDia(es){return es.length?es.map(e=>`<div class="res"><u style="background:${TIPOS[e.t][1]}"></u>${esc(hr(e.h))} ${esc(e.x)}</div>`).join(''):'<div class="res vazio">sem serviços</div>'}
+function entHTML(k,i,e){
+  const id=k+'#'+i;
+  if(fEnt[id])return `<div class="entc" onclick="togEnt('${id}')" title="Expandir"><span>▸</span><u style="background:${TIPOS[e.t][1]}"></u><span>${esc(hr(e.h))} ${esc(e.x)||'(sem descrição)'} ${esc((e.c||[]).map(c=>'*'+c).join(' '))}</span></div>`;
+  return `<div class="entw"><div class="ent"><button class="tg" title="Minimizar" onclick="togEnt('${id}')">▾</button><select onchange="edit('${k}',${i},'t',this.value)">${Object.entries(TIPOS).map(([v,t])=>`<option value="${v}"${e.t==v?' selected':''}>${t[0]}</option>`).join('')}</select><input value="${esc(e.h)}" placeholder="1930" inputmode="numeric" oninput="horaInput(this,'${k}',${i})" onblur="horaBlur(this,'${k}',${i})"><input class="tx" value="${esc(e.x)}" placeholder="Descrição do serviço" oninput="edit('${k}',${i},'x',this.value,1)"><button title="Repetir no mesmo dia da semana (mesma posição no mês) nos outros meses" onclick="repetir('${k}',${i})">↻</button><button class="danger" title="Remover" onclick="remover('${k}',${i})">×</button></div><div class="atin"><input value="${esc(e.a||'')}" placeholder="Quem atende (opcional) – ex.: Ir. Carlos Roberto" oninput="edit('${k}',${i},'a',this.value)"></div>${cvEd(k,i,e)}</div>`}
+const fCv={};
+function cvSum(e){const c=e.c||[];const t=c.map(code=>{const g=S.cargos.find(x=>x.code==code);return `<span class="cc2">${g&&g.useAsterisk===false?'':'*'}${esc(code)}</span>`}).join('')+(e.o?`<em class="oo">${esc(e.o)}</em>`:'');return t||'<span class="nenhum">nenhum selecionado</span>'}
+function cvOpt(k,i,e,g,ci){return `<label class="opt" title="${esc(g.label)}"><input type="checkbox" ${(e.c||[]).includes(g.code)?'checked':''} onchange="cvTog('${k}',${i},${ci},this.checked)"><span>${g.useAsterisk!==false?'*':''}${esc(g.code)}</span></label>`}
+function cvEd(k,i,e){
+  const id='cv_'+k+'_'+i,all=S.cargos.map((g,ci)=>[g,ci]),pr=all.filter(x=>x[0].showInLegend!==false),ou=all.filter(x=>x[0].showInLegend===false);
+  const og=l=>`<div class="og">${l.map(x=>cvOpt(k,i,e,x[0],x[1])).join('')}</div>`;
+  return `<details class="cvd"${fCv[id]?' open':''} ontoggle="fCv['${id}']=this.open"><summary><b>Convocados</b><span class="sel" id="${id}">${cvSum(e)}</span></summary><div class="cvp"><div class="grp">Principais</div>${og(pr)}${ou.length?`<div class="grp">Outros cargos</div>${og(ou)}`:''}<input type="text" value="${esc(e.o||'')}" placeholder="Outros convocados (ex.: Organistas)" oninput="cvTxt('${k}',${i},this.value)"></div></details>`}
+function cvUp(k,i){const el=document.getElementById('cv_'+k+'_'+i);if(el)el.innerHTML=cvSum(S.dias[k][i]);preview()}
+function cvTog(k,i,ci,on){const e=S.dias[k][i],c=e.c=e.c||[],code=S.cargos[ci].code,p=c.indexOf(code);if(on&&p<0)c.push(code);if(!on&&p>=0)c.splice(p,1);salvar();cvUp(k,i)}
+function cvTxt(k,i,v){S.dias[k][i].o=v;salvar();cvUp(k,i)}
+function cargosEditor(){return `<label style="margin-top:14px">Informações na legenda (opcional — só aparece se você escrever)</label><textarea rows="4" placeholder="Ex.: avisos, observações gerais..." oninput="meta('info',this.value)">${esc(S.meta.info||'')}</textarea>`+`<h3 style="margin:16px 0 4px;font-size:14px;color:var(--primary)">Cargos e Ministérios</h3><p style="font-size:12px;color:#7a7466;margin:0 0 8px">Siglas disponíveis ao lançar um serviço. 1ª caixa: mostra na legenda · 2ª caixa: coloca * na frente.</p>`+S.cargos.map((g,i)=>`<div class="cg"><input value="${esc(g.code)}" oninput="cg(${i},'code',this.value)"><input value="${esc(g.label)}" oninput="cg(${i},'label',this.value)"><input type="checkbox" title="Mostrar na legenda" ${g.showInLegend!==false?'checked':''} onchange="cg(${i},'showInLegend',this.checked)"><input type="checkbox" title="Asterisco" ${g.useAsterisk!==false?'checked':''} onchange="cg(${i},'useAsterisk',this.checked)"><button class="danger" onclick="cgDel(${i})">×</button></div>`).join('')+`<button onclick="cgAdd()">+ cargo</button>`}
+function cg(i,f,v){S.cargos[i][f]=v;salvar();preview()}
+function cgDel(i){S.cargos.splice(i,1);salvar();montar()}
+function cgAdd(){S.cargos.push({code:'Nova',label:'NOVO CARGO',showInLegend:true,useAsterisk:true});salvar();montar()}
+function ir(i){cur=i;montar()}
+function meta(k,v){S.meta[k]=k=='ano'?(+v||2026):v;salvar();if(k=='ano'){montar()}else preview()}
+function novo(k){(S.dias[k]=S.dias[k]||[]).push({t:'local',h:'19h30min',x:'',c:[],o:''});salvar();montar()}
+function remover(k,i){Object.keys(fEnt).forEach(x=>{if(x.startsWith(k+'#'))delete fEnt[x]});S.dias[k].splice(i,1);if(!S.dias[k].length)delete S.dias[k];salvar();montar()}
+function edit(k,i,f,v,live){S.dias[k][i][f]=v;salvar();preview()}
+function repetir(k,i){
+  const e=S.dias[k][i],m0=+k.slice(0,2)-1,d0=+k.slice(3),y=+S.meta.ano,w=new Date(y,m0,d0).getDay(),nth=Math.ceil(d0/7);let c=0;
+  for(let m=0;m<12;m++){if(m==m0)continue;let cnt=0;const n=new Date(y,m+1,0).getDate();
+    for(let d=1;d<=n;d++){if(new Date(y,m,d).getDay()==w&&++cnt==nth){const kk2=kk(m,d),l=S.dias[kk2]=S.dias[kk2]||[];if(!l.some(o=>o.x==e.x&&o.h==e.h)){l.push({...e,c:[...(e.c||[])]});c++}break}}}
+  salvar();alert(c+' mês(es) receberam este serviço ('+nth+'º '+SEM[w].toLowerCase()+' do mês).');
+}
+
+/* ---------- Preview / impressão ---------- */
+function preview(){
+  const el=document.getElementById('prev');el.innerHTML=pagina(cur);
+  ajustar(el);
+  const pg=el.firstChild,w=document.getElementById('prevScroll').clientWidth-20;pg.style.zoom=Math.min(1,w/794);
+}
+/* Cada mês deve caber numa única página: reduz a letra até o conteúdo caber */
+function ajustar(root){root.querySelectorAll('.dias').forEach(d=>{let fs=9.5,n=0;d.style.fontSize=fs+'pt';while(d.scrollHeight>d.clientHeight+1&&fs>4&&n++<60){fs-=.25;d.style.fontSize=fs+'pt'}})}
+function prepararImpressao(){
+  const el=document.getElementById('print');
+  el.innerHTML=paginaCapa()+paginaLegenda()+paginaFeriados()+MESES.map((_,m)=>paginaMes(m)).join('');
+  el.classList.add('medindo');ajustar(el);el.classList.remove('medindo');
+}
+window.addEventListener('beforeprint',prepararImpressao);
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>preview());
+function imprimir(){prepararImpressao();setTimeout(()=>window.print(),150)}
+function exportar(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:'application/json'}));a.download='calendario_reunioes_'+S.meta.ano+'.json';a.click()}
+function importar(ev){const f=ev.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{S=JSON.parse(r.result);if(!S.cargos)S.cargos=JSON.parse(JSON.stringify(CARGOS));salvar();montar()}catch(e){alert('Arquivo inválido.')}};r.readAsText(f)}
+window.addEventListener('resize',preview);
+montar();
+</script>
+<script>
+(function () {
+  var REGIAO = 'calendarioanual';
+  function tokenAtual() { return localStorage.getItem('session_token'); }
+  function sugerirNome() { return 'calendario_reunioes_' + S.meta.ano; }
+
+  window.salvarLista = async function () {
+    var btn = document.getElementById('btnListaSalvar');
+    var nome = prompt('Nome para salvar este calendário:', sugerirNome());
+    if (nome === null) return;
+    if (btn) { btn.disabled = true; btn.textContent = '☁️ Salvando...'; }
+    try {
+      salvar();
+      var res = await fetch('/api/lista-save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: tokenAtual(), regiao: REGIAO, nome: nome, conteudo: JSON.stringify(S, null, 2) })
+      });
+      var data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro ao salvar');
+      alert('Calendário salvo como: ' + data.nomeArquivo);
+    } catch (e) {
+      alert('Erro ao salvar: ' + e.message);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '☁️ Salvar na nuvem'; }
+    }
+  };
+
+  window.carregarLista = async function () {
+    var btn = document.getElementById('btnListaCarregar');
+    if (btn) { btn.disabled = true; btn.textContent = '☁️ Carregando...'; }
+    try {
+      var res = await fetch('/api/lista-list', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: tokenAtual(), regiao: REGIAO })
+      });
+      var data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro ao listar arquivos');
+      if (!data.arquivos.length) { alert('Ainda não existe nenhum calendário salvo.'); return; }
+      seletor(data.arquivos);
+    } catch (e) {
+      alert('Erro ao acessar os calendários salvos: ' + e.message);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '☁️ Carregar da nuvem'; }
+    }
+  };
+
+  function seletor(arquivos) {
+    var overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:99999; display:flex; align-items:center; justify-content:center;';
+    var box = document.createElement('div');
+    box.style.cssText = 'background:#fff; border-radius:10px; padding:20px; width:340px; max-height:70vh; overflow:auto;';
+    box.innerHTML = '<h3 style="margin:0 0 12px; font-size:16px;">Escolha o arquivo</h3>';
+    arquivos.forEach(function (f) {
+      var item = document.createElement('button');
+      item.textContent = f.nome + (f.modificado ? '  ·  ' + new Date(f.modificado).toLocaleDateString('pt-BR') : '');
+      item.style.cssText = 'display:block; width:100%; text-align:left; margin-bottom:6px;';
+      item.onclick = async function () {
+        overlay.remove();
+        try {
+          var res = await fetch('/api/lista-load', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: tokenAtual(), regiao: REGIAO, nome: f.nome })
+          });
+          var data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Erro ao carregar');
+          var novo = JSON.parse(data.conteudo);
+          if (!novo.cargos) novo.cargos = JSON.parse(JSON.stringify(CARGOS));
+          S = novo; salvar(); montar();
+        } catch (e) {
+          alert('Erro ao carregar arquivo: ' + e.message);
+        }
+      };
+      box.appendChild(item);
+    });
+    var cancelar = document.createElement('button');
+    cancelar.textContent = 'Cancelar';
+    cancelar.style.cssText = 'display:block; width:100%; text-align:center; margin-top:6px;';
+    cancelar.onclick = function () { overlay.remove(); };
+    box.appendChild(cancelar);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+  }
+})();
+</script>
+</body>
+</html>
