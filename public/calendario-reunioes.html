@@ -144,7 +144,7 @@ body.dgon .win{border-style:dashed}
 .leg em{font-style:normal;display:inline-flex;align-items:center;gap:1mm}.leg u{display:inline-block;width:2.5mm;height:2.5mm;border-radius:.6mm;text-decoration:none}
 .rod{margin-top:1.5mm;font-size:7pt;color:#666;text-align:center}
 .capa{align-items:center;justify-content:center;text-align:center;border:3pt double var(--primary);margin:0}
-.capa .capa-logo{display:block;width:92mm;height:auto;margin:0 auto 14mm}
+.capa .capa-logo{display:block;width:130mm;height:auto;margin:0 auto 14mm}
 .capa small{font-size:15pt;letter-spacing:.08em;font-weight:700}
 .capa h2{font-size:34pt;font-style:italic;margin:22mm 0 8mm}
 .capa p{font-family:'Fraunces',Georgia,serif;font-style:italic;font-size:24pt;margin:0}
@@ -232,7 +232,7 @@ function locais(y){const o={};o[anivCM(y)]=['Aniversário de Campo Mourão (feri
   return o}
 const CARGOS=[['Anc','ANCIÃES',1],['Dcn','DIÁCONOS',1],['Com','COOPERADORES DO OFÍCIO MINISTERIAL',1],['Cjm','COOPERADORES DE JOVENS E MENORES',1],['Ero','ENCARREGADOS REGIONAIS DE ORQUESTRA',1],['Elo','ENCARREGADOS LOCAIS DE ORQUESTRA',1],['Adm','ADMINISTRAÇÃO',1],['Adm (Convocados)','ADMINISTRAÇÃO CONVOCADOS',0],['Dcn da Regional (Convocados)','DIÁCONOS DA REGIONAL CONVOCADOS',0],['Dcn da Regional','DIÁCONOS DA REGIONAL',0],['Adm Regional','ADMINISTRAÇÃO DA REGIONAL',0],['Adm Casas de Oração','ADMINISTRAÇÃO DAS CASAS DE ORAÇÃO',0],['Dcn (Convocados)','DIÁCONOS CONVOCADOS',0],['Dcn do Estado (Todos)','DIÁCONOS DO ESTADO',0],['Anc e *Dcn do Estado (Todos)','ANCIÃES E DIÁCONOS DO ESTADO',0],['Adm Titulares e Vices','ADMINISTRAÇÃO TITULARES E VICES',0]].map(a=>({code:a[0],label:a[1],showInLegend:!!a[2],useAsterisk:true}));
 const KEY='ccb_calendario_reunioes_anual';
-let S={meta:{org:'Congregação Cristã no Brasil',sub:'CAMPO MOURÃO/PR - Rua Prefeito Devete de Paula Xavier, 649',ano:2026,rod:'As reuniões deste calendário estão sujeitas a alterações.'},dias:{}};
+let S={meta:{org:'',sub:'CAMPO MOURÃO/PR',ano:2026,rod:'As reuniões deste calendário estão sujeitas a alterações.'},dias:{}};
 let cur=0; // 0..11 mês; -1 capa; -2 legenda; -3 ano
 
 try{const r=localStorage.getItem(KEY);if(r)S=JSON.parse(r)}catch(e){}
