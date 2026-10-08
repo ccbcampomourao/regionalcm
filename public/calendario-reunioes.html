@@ -84,7 +84,7 @@ label{font-size:12px;font-weight:700;color:var(--primary-2);display:block;margin
 .dia.dom .dn{color:var(--brass)}.dia.fer .dn{color:var(--accent)}
 .dn{font-weight:700;font-size:13px;line-height:1.2}.dn small{display:block;font-weight:500;font-size:10.5px;color:#7a7466}
 .fer-tag{font-size:11px;font-weight:600;color:var(--accent);margin-bottom:4px}
-.ent{display:grid;grid-template-columns:auto 130px 78px 1fr auto auto;gap:5px;margin-bottom:5px;align-items:center}
+.ent{display:grid;grid-template-columns:auto 130px 78px 1fr auto auto auto;gap:5px;margin-bottom:5px;align-items:center}
 .ent button{padding:5px 9px}
 .dn{cursor:pointer;user-select:none}
 .bar2{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}.bar2 button{padding:5px 10px;font-size:12px}
@@ -320,7 +320,7 @@ function resumoHead(es){
 function entHTML(k,i,e){
   const id=k+'#'+i;
   if(fEnt[id])return `<div class="entc" onclick="togEnt('${id}')" title="Expandir"><span>▸</span><u style="background:${TIPOS[e.t][1]}"></u><span>${esc(hr(e.h))} ${esc(e.x)||'(sem descrição)'} ${esc((e.c||[]).map(c=>'*'+c).join(' '))}</span></div>`;
-  return `<div class="entw"><div class="ent"><button class="tg" title="Minimizar" onclick="togEnt('${id}')">▾</button><select onchange="edit('${k}',${i},'t',this.value)">${Object.entries(TIPOS).map(([v,t])=>`<option value="${v}"${e.t==v?' selected':''}>${t[0]}</option>`).join('')}</select><input value="${esc(e.h)}" placeholder="1930" inputmode="numeric" oninput="horaInput(this,'${k}',${i})" onblur="horaBlur(this,'${k}',${i})"><input class="tx" value="${esc(e.x)}" placeholder="Descrição do serviço" oninput="edit('${k}',${i},'x',this.value,1)"><button title="Repetir no mesmo dia da semana (mesma posição no mês) nos outros meses" onclick="repetir('${k}',${i})">↻</button><button class="danger" title="Remover" onclick="remover('${k}',${i})">×</button></div><div class="atin"><input value="${esc(e.a||'')}" placeholder="Quem atende (opcional) – ex.: Ir. Carlos Roberto" oninput="edit('${k}',${i},'a',this.value)"></div>${cvEd(k,i,e)}</div>`}
+  return `<div class="entw"><div class="ent"><button class="tg" title="Minimizar" onclick="togEnt('${id}')">▾</button><select onchange="edit('${k}',${i},'t',this.value)">${Object.entries(TIPOS).map(([v,t])=>`<option value="${v}"${e.t==v?' selected':''}>${t[0]}</option>`).join('')}</select><input value="${esc(e.h)}" placeholder="1930" inputmode="numeric" oninput="horaInput(this,'${k}',${i})" onblur="horaBlur(this,'${k}',${i})"><input class="tx" value="${esc(e.x)}" placeholder="Descrição do serviço" oninput="edit('${k}',${i},'x',this.value,1)"><button title="Repetir no mesmo dia da semana (mesma posição no mês) em todos os outros meses" onclick="repetir('${k}',${i})">↻</button><button title="Repetir a cada 2 meses (pula 1 mês), no mesmo dia da semana e na mesma posição no mês" onclick="repetir('${k}',${i},2)">↻ 2</button><button class="danger" title="Remover" onclick="remover('${k}',${i})">×</button></div><div class="atin"><input value="${esc(e.a||'')}" placeholder="Quem atende (opcional) – ex.: Ir. Carlos Roberto" oninput="edit('${k}',${i},'a',this.value)"></div>${cvEd(k,i,e)}</div>`}
 const fCv={};
 function cvSum(e){const c=e.c||[];const t=c.map(code=>{const g=S.cargos.find(x=>x.code==code);return `<span class="cc2">${g&&g.useAsterisk===false?'':'*'}${esc(code)}</span>`}).join('')+(e.o?`<em class="oo">${esc(e.o)}</em>`:'');return t||'<span class="nenhum">nenhum selecionado</span>'}
 function cvOpt(k,i,e,g,ci){return `<label class="opt" title="${esc(g.label)}"><input type="checkbox" ${(e.c||[]).includes(g.code)?'checked':''} onchange="cvTog('${k}',${i},${ci},this.checked)"><span>${g.useAsterisk!==false?'*':''}${esc(g.code)}</span></label>`}
@@ -340,11 +340,12 @@ function meta(k,v){S.meta[k]=k=='ano'?(+v||2026):v;salvar();if(k=='ano'){montar(
 function novo(k){aDia[k]=true;(S.dias[k]=S.dias[k]||[]).push({t:'local',h:'19h30min',x:'',c:[],o:''});salvar();montar()}
 function remover(k,i){Object.keys(fEnt).forEach(x=>{if(x.startsWith(k+'#'))delete fEnt[x]});S.dias[k].splice(i,1);if(!S.dias[k].length)delete S.dias[k];salvar();montar()}
 function edit(k,i,f,v,live){S.dias[k][i][f]=v;salvar();preview()}
-function repetir(k,i){
+function repetir(k,i,passo){
+  passo=passo||1;
   const e=S.dias[k][i],m0=+k.slice(0,2)-1,d0=+k.slice(3),y=+S.meta.ano,w=new Date(y,m0,d0).getDay(),nth=Math.ceil(d0/7);let c=0;
-  for(let m=0;m<12;m++){if(m==m0)continue;let cnt=0;const n=new Date(y,m+1,0).getDate();
+  for(let m=0;m<12;m++){if(m==m0||Math.abs(m-m0)%passo)continue;let cnt=0;const n=new Date(y,m+1,0).getDate();
     for(let d=1;d<=n;d++){if(new Date(y,m,d).getDay()==w&&++cnt==nth){const kk2=kk(m,d),l=S.dias[kk2]=S.dias[kk2]||[];if(!l.some(o=>o.x==e.x&&o.h==e.h)){l.push({...e,c:[...(e.c||[])]});c++}break}}}
-  salvar();alert(c+' mês(es) receberam este serviço ('+nth+'º '+SEM[w].toLowerCase()+' do mês).');
+  salvar();montar();alert(c+' mês(es) receberam este serviço ('+nth+'º '+SEM[w].toLowerCase()+' do mês'+(passo>1?', a cada '+passo+' meses':'')+').');
 }
 
 /* ---------- Preview / impressão ---------- */
