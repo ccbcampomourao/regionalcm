@@ -33,56 +33,84 @@
 <header class="topbar">
   <div class="brandmark">
     <img src="/assets/regionalcmlogo.png" alt="CCB" style="height:35px;">
-    <h1>Acessar listas</h1>
+    <h1>Listas e calendários</h1>
   </div>
   <div style="display:flex; gap:8px; align-items:center;">
-    <a href="/admin.html" class="btn-ghost">← Voltar ao painel admin</a>
+    <a href="/admin.html" class="btn-ghost">← Painel admin</a>
     <a href="#" id="btnSair" class="btn-ghost">Sair</a>
   </div>
 </header>
-<div class="wrap narrow">
-  <p class="lede">Escolha qual lista você quer visualizar:</p>
-  <div style="display:flex; justify-content:center; margin-bottom:16px;">
-    <a class="citycard" href="/listaregional.html" style="max-width:220px; width:100%;">
-      <div class="pin"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 22s7-7.1 7-12.5A7 7 0 0 0 5 9.5C5 14.9 12 22 12 22Z" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="9.5" r="2.4" stroke="currentColor" stroke-width="1.7"/></svg></div>
-      <div class="nome">Regional</div>
-    </a>
+
+<main class="cat">
+  <div class="cat-intro">
+    <h2>O que você quer abrir?</h2>
+    <p>Listas de serviços da regional e das localidades, e os calendários, separados por tipo.</p>
   </div>
-  <div class="grid">
-    <a class="citycard" href="/listacampomourao.html">
-      <div class="pin"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 22s7-7.1 7-12.5A7 7 0 0 0 5 9.5C5 14.9 12 22 12 22Z" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="9.5" r="2.4" stroke="currentColor" stroke-width="1.7"/></svg></div>
-      <div class="nome">Campo Mourão</div>
+
+  <section class="blk">
+    <div class="blk-head"><h3>Regional</h3></div>
+    <a class="feat" href="/listaregional.html">
+      <div class="ficon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><path d="M3 12h18M12 3c2.6 2.7 3.9 5.7 3.9 9s-1.3 6.3-3.9 9c-2.6-2.7-3.9-5.7-3.9-9S9.4 5.7 12 3Z" stroke="currentColor" stroke-width="1.7"/></svg></div>
+      <div class="ftx">
+        <h4>Lista Regional</h4>
+        <p>Lista de serviços de toda a regional, reunindo as localidades.</p>
+      </div>
+      <span class="go">Abrir lista</span>
     </a>
-    <a class="citycard" href="/listacianorte.html">
-      <div class="pin"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 22s7-7.1 7-12.5A7 7 0 0 0 5 9.5C5 14.9 12 22 12 22Z" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="9.5" r="2.4" stroke="currentColor" stroke-width="1.7"/></svg></div>
-      <div class="nome">Cianorte</div>
-    </a>
-    <a class="citycard" href="/listaubirata.html">
-      <div class="pin"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 22s7-7.1 7-12.5A7 7 0 0 0 5 9.5C5 14.9 12 22 12 22Z" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="9.5" r="2.4" stroke="currentColor" stroke-width="1.7"/></svg></div>
-      <div class="nome">Ubiratã</div>
-    </a>
-    <a class="citycard" href="/listapitanga.html">
-      <div class="pin"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 22s7-7.1 7-12.5A7 7 0 0 0 5 9.5C5 14.9 12 22 12 22Z" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="9.5" r="2.4" stroke="currentColor" stroke-width="1.7"/></svg></div>
-      <div class="nome">Pitanga</div>
-    </a>
-    <a class="citycard" href="/listagoioere.html">
-      <div class="pin"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 22s7-7.1 7-12.5A7 7 0 0 0 5 9.5C5 14.9 12 22 12 22Z" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="9.5" r="2.4" stroke="currentColor" stroke-width="1.7"/></svg></div>
-      <div class="nome">Goioerê</div>
-    </a>
-    <a class="citycard" href="/listaivaipora.html">
-      <div class="pin"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 22s7-7.1 7-12.5A7 7 0 0 0 5 9.5C5 14.9 12 22 12 22Z" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="9.5" r="2.4" stroke="currentColor" stroke-width="1.7"/></svg></div>
-      <div class="nome">Ivaiporã</div>
-    </a>
-    <a class="citycard" href="/calendario-ensaios.html">
-      <div class="pin"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="5" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M3 9.5h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></div>
-      <div class="nome">Calendário dos Ensaios</div>
-    </a>
-    <a class="citycard" href="/calendario-reunioes.html">
-      <div class="pin"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="5" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M3 9.5h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></div>
-      <div class="nome">Calendário Anual de Reuniões</div>
-    </a>
-  </div>
-</div>
+  </section>
+
+  <section class="blk">
+    <div class="blk-head"><h3>Listas por localidade</h3><span class="qt">6</span></div>
+    <div class="lcards">
+      <a class="lcard" href="/listacampomourao.html">
+        <div class="lic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 22s7-7.1 7-12.5A7 7 0 0 0 5 9.5C5 14.9 12 22 12 22Z" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="9.5" r="2.4" stroke="currentColor" stroke-width="1.8"/></svg></div>
+        <div class="ltx"><div class="lnm">Campo Mourão</div><div class="lds">Lista de serviços da localidade</div></div>
+        <svg class="lgo" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <a class="lcard" href="/listacianorte.html">
+        <div class="lic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 22s7-7.1 7-12.5A7 7 0 0 0 5 9.5C5 14.9 12 22 12 22Z" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="9.5" r="2.4" stroke="currentColor" stroke-width="1.8"/></svg></div>
+        <div class="ltx"><div class="lnm">Cianorte</div><div class="lds">Lista de serviços da localidade</div></div>
+        <svg class="lgo" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <a class="lcard" href="/listaubirata.html">
+        <div class="lic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 22s7-7.1 7-12.5A7 7 0 0 0 5 9.5C5 14.9 12 22 12 22Z" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="9.5" r="2.4" stroke="currentColor" stroke-width="1.8"/></svg></div>
+        <div class="ltx"><div class="lnm">Ubiratã</div><div class="lds">Lista de serviços da localidade</div></div>
+        <svg class="lgo" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <a class="lcard" href="/listapitanga.html">
+        <div class="lic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 22s7-7.1 7-12.5A7 7 0 0 0 5 9.5C5 14.9 12 22 12 22Z" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="9.5" r="2.4" stroke="currentColor" stroke-width="1.8"/></svg></div>
+        <div class="ltx"><div class="lnm">Pitanga</div><div class="lds">Lista de serviços da localidade</div></div>
+        <svg class="lgo" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <a class="lcard" href="/listagoioere.html">
+        <div class="lic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 22s7-7.1 7-12.5A7 7 0 0 0 5 9.5C5 14.9 12 22 12 22Z" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="9.5" r="2.4" stroke="currentColor" stroke-width="1.8"/></svg></div>
+        <div class="ltx"><div class="lnm">Goioerê</div><div class="lds">Lista de serviços da localidade</div></div>
+        <svg class="lgo" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <a class="lcard" href="/listaivaipora.html">
+        <div class="lic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 22s7-7.1 7-12.5A7 7 0 0 0 5 9.5C5 14.9 12 22 12 22Z" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="9.5" r="2.4" stroke="currentColor" stroke-width="1.8"/></svg></div>
+        <div class="ltx"><div class="lnm">Ivaiporã</div><div class="lds">Lista de serviços da localidade</div></div>
+        <svg class="lgo" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </div>
+  </section>
+
+  <section class="blk">
+    <div class="blk-head"><h3>Calendários</h3><span class="qt">2</span></div>
+    <div class="lcards wide">
+      <a class="lcard cal" href="/calendario-ensaios.html">
+        <div class="lic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M3 9.5h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+        <div class="ltx"><div class="lnm">Calendário dos Ensaios</div><div class="lds">Ensaios locais da regional</div></div>
+        <svg class="lgo" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <a class="lcard cal" href="/calendario-reunioes.html">
+        <div class="lic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M3 9.5h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+        <div class="ltx"><div class="lnm">Calendário Anual de Reuniões</div><div class="lds">Reuniões do ano, com capa, legenda e feriados</div></div>
+        <svg class="lgo" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </div>
+  </section>
+</main>
 <script>
 document.getElementById('btnSair').addEventListener('click', function (e) {
   e.preventDefault();

@@ -93,6 +93,32 @@ label{font-size:12px;font-weight:700;color:var(--primary-2);display:block;margin
 .tg{padding:4px 8px!important}
 .atin{margin:0 0 6px}.atin input{padding:4px 8px;font-size:12px}
 .add{font-size:12px;padding:4px 10px}
+
+/* ===== Dias em janelas (como as seções da lista de Campo Mourão) ===== */
+.win{border:1px solid var(--line);border-radius:12px;margin-bottom:10px;overflow:hidden;background:#fff;box-shadow:0 1px 2px rgba(27,42,65,.03);transition:border-color .2s}
+.win:hover{border-color:var(--brass-lt)}
+.win.tem{border-left:3px solid var(--brass)}
+.win-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;background:linear-gradient(180deg,#f8f4e9,#f2ecdc);cursor:pointer;user-select:none;transition:background .15s}
+.win-head:hover{background:linear-gradient(180deg,#f4eeda,#eee5cc)}
+.wh-l{display:flex;align-items:baseline;gap:8px;min-width:0;flex-wrap:wrap}
+.caret{display:inline-block;align-self:center;font-size:12px;color:var(--brass);transition:transform .18s}
+.win.open .caret{transform:rotate(90deg)}
+.wd{font-family:'Fraunces',Georgia,serif;font-weight:700;font-size:18px;color:var(--primary);min-width:24px}
+.ws{font-size:12.5px;font-weight:600;color:#7a7466}
+.win.dom .wd,.win.dom .ws{color:var(--brass)}
+.win.fer .wd,.win.fer .ws{color:var(--accent)}
+.wf{font-size:11px;font-weight:700;color:var(--accent);background:#f8e4e0;padding:2px 9px;border-radius:12px}
+.wh-r{display:flex;align-items:center;gap:8px;min-width:0}
+.rl{display:flex;gap:10px;min-width:0;font-size:12px;color:#5d584a;overflow:hidden}
+.rs{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px}
+.rs u{width:8px;height:8px;border-radius:50%;flex:none}
+.mais{font-weight:700;color:var(--brass);white-space:nowrap}
+.vz{font-size:12px;font-style:italic;color:#a39b86;white-space:nowrap}
+.qtd{background:var(--primary);color:#fdfbf6;font-size:11px;font-weight:700;border-radius:10px;padding:1px 8px;flex:none}
+.win.open .rl,.win.open .vz{display:none}
+.win-body{display:none;padding:12px 14px;border-top:1px solid var(--line)}
+.win.open .win-body{display:block}
+@media (max-width:980px){.rl{display:none}}
 /* ===== Páginas A4 ===== */
 .pg{width:210mm;height:297mm;background:#fff;color:#111;padding:11mm 12mm 9mm;display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.3);-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .pg h2{margin:0;font-family:'Fraunces',Georgia,serif;font-weight:700;font-size:26pt;letter-spacing:.02em;line-height:1}
@@ -275,20 +301,22 @@ function montar(){
   if(cur<0){box.innerHTML='<p style="font-size:13px;color:#7a7466">'+(cur==-4?'Calendário do ano, com os feriados (nacionais, pontos facultativos, Paraná e Campo Mourão) e com os dias coloridos pelos tipos de reunião lançados nos meses. É gerado automaticamente.':cur==-1?'Esta é a capa. Ajuste os textos nos campos acima.':cur==-2?'Legenda dos tipos de reunião, dos convocados e dos feriados do ano.':'Calendário do ano: os dias são coloridos automaticamente pelos serviços lançados em cada mês. Passe o mouse sobre um dia para ver o que há nele.')+'</p>'+(cur==-2?cargosEditor():'');preview();return}
   const y=+S.meta.ano,n=new Date(y,cur+1,0).getDate(),fer=feriados(y);let h='';
   for(let d=1;d<=n;d++){
-    const w=new Date(y,cur,d).getDay(),k=kk(cur,d),es=S.dias[k]||[];
-    h+=`<div class="dia${w==0?' dom':''}${fer[k]?' fer':''}"><div class="dn" role="button" tabindex="0" title="Minimizar / expandir o dia" onclick="togDia('${k}')" onkeydown="if(event.key==='Enter')togDia('${k}')">${fDia[k]?'▸':'▾'} ${d}<small>${SEM[w].slice(0,3)}</small></div><div>${fer[k]?`<div class="fer-tag">${fer[k]}</div>`:''}`+
-    (fDia[k]?resumoDia(es):es.map((e,i)=>entHTML(k,i,e)).join('')+`<button class="add" onclick="novo('${k}')">+ serviço</button>`)+`</div></div>`;
+    const w=new Date(y,cur,d).getDay(),k=kk(cur,d),es=S.dias[k]||[],ab=!!aDia[k];
+    h+=`<div class="win${ab?' open':''}${w==0?' dom':''}${fer[k]?' fer':''}${es.length?' tem':''}"><div class="win-head" role="button" tabindex="0" aria-expanded="${ab}" onclick="togDia('${k}',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();togDia('${k}',this)}"><div class="wh-l"><span class="caret">▸</span><span class="wd">${d}</span><span class="ws">${SEM[w].charAt(0)+SEM[w].slice(1).toLowerCase()}</span>${fer[k]?`<span class="wf">${esc(fer[k])}</span>`:''}</div><div class="wh-r">${resumoHead(es)}</div></div><div class="win-body">${es.map((e,i)=>entHTML(k,i,e)).join('')}<button class="add" onclick="novo('${k}')">+ serviço</button></div></div>`;
   }
   box.innerHTML=`<div class="bar2"><button onclick="tudo('d',1)">Recolher dias</button><button onclick="tudo('d',0)">Expandir dias</button><button onclick="tudo('e',1)">Recolher reuniões</button><button onclick="tudo('e',0)">Expandir reuniões</button></div>`+h;preview();
 }
 function hr(v){v=String(v||'').trim();const m=v.match(/^(\d{1,2})[:.hH]?(\d{2})?$/);if(!m)return v;const h=+m[1],mi=m[2];if(h>23||(mi&&+mi>59))return v;return h+'h'+(mi&&mi!='00'?mi+'min':'')}
 function horaInput(el,k,i){edit(k,i,'h',el.value);if(/^\d{4}$/.test(el.value.trim()))horaBlur(el,k,i)}
 function horaBlur(el,k,i){el.value=hr(el.value);S.dias[k][i].h=el.value;salvar();preview()}
-const fDia={},fEnt={};
-function togDia(k){fDia[k]=!fDia[k];montar()}
+const aDia={},fEnt={};
+function togDia(k,el){aDia[k]=!aDia[k];const w=el.parentNode;w.classList.toggle('open',aDia[k]);el.setAttribute('aria-expanded',aDia[k])}
 function togEnt(id){fEnt[id]=!fEnt[id];montar()}
-function tudo(t,f){const n=new Date(+S.meta.ano,cur+1,0).getDate();for(let d=1;d<=n;d++){const k=kk(cur,d);if(t=='d')fDia[k]=!!f;else (S.dias[k]||[]).forEach((e,i)=>{fEnt[k+'#'+i]=!!f})}montar()}
-function resumoDia(es){return es.length?es.map(e=>`<div class="res"><u style="background:${TIPOS[e.t][1]}"></u>${esc(hr(e.h))} ${esc(e.x)}</div>`).join(''):'<div class="res vazio">sem serviços</div>'}
+function tudo(t,f){const n=new Date(+S.meta.ano,cur+1,0).getDate();for(let d=1;d<=n;d++){const k=kk(cur,d);if(t=='d')aDia[k]=!f;else (S.dias[k]||[]).forEach((e,i)=>{fEnt[k+'#'+i]=!!f})}montar()}
+function resumoHead(es){
+  if(!es.length)return '<span class="vz">sem serviços</span>';
+  const sh=es.slice(0,2).map(e=>`<span class="rs"><u style="background:${TIPOS[e.t][1]}"></u>${esc(hr(e.h))} ${esc(e.x)}</span>`).join('');
+  return `<span class="rl">${sh}${es.length>2?`<span class="mais">+${es.length-2}</span>`:''}</span><span class="qtd">${es.length}</span>`}
 function entHTML(k,i,e){
   const id=k+'#'+i;
   if(fEnt[id])return `<div class="entc" onclick="togEnt('${id}')" title="Expandir"><span>▸</span><u style="background:${TIPOS[e.t][1]}"></u><span>${esc(hr(e.h))} ${esc(e.x)||'(sem descrição)'} ${esc((e.c||[]).map(c=>'*'+c).join(' '))}</span></div>`;
@@ -309,7 +337,7 @@ function cgDel(i){S.cargos.splice(i,1);salvar();montar()}
 function cgAdd(){S.cargos.push({code:'Nova',label:'NOVO CARGO',showInLegend:true,useAsterisk:true});salvar();montar()}
 function ir(i){cur=i;montar()}
 function meta(k,v){S.meta[k]=k=='ano'?(+v||2026):v;salvar();if(k=='ano'){montar()}else preview()}
-function novo(k){(S.dias[k]=S.dias[k]||[]).push({t:'local',h:'19h30min',x:'',c:[],o:''});salvar();montar()}
+function novo(k){aDia[k]=true;(S.dias[k]=S.dias[k]||[]).push({t:'local',h:'19h30min',x:'',c:[],o:''});salvar();montar()}
 function remover(k,i){Object.keys(fEnt).forEach(x=>{if(x.startsWith(k+'#'))delete fEnt[x]});S.dias[k].splice(i,1);if(!S.dias[k].length)delete S.dias[k];salvar();montar()}
 function edit(k,i,f,v,live){S.dias[k][i][f]=v;salvar();preview()}
 function repetir(k,i){

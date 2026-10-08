@@ -361,3 +361,48 @@ textarea.code-out{
   color:var(--ink); background:#faf8f2;
 }
 .notice{ background:var(--warn-bg); border:1px solid #e5c675; padding:12px 14px; border-radius:9px; font-size:13px; margin-top:16px; color:#6b4a00; }
+
+/* ============================================================
+   Catálogo de listas (admin-listas e minhas-listas)
+   ============================================================ */
+.cat{ max-width:1040px; margin:30px auto 50px; padding:0 20px; }
+.cat-intro h2{ font-family:var(--font-display); font-size:26px; font-weight:600; margin:0 0 6px; letter-spacing:-.01em; color:var(--ink); }
+.cat-intro p{ margin:0 0 30px; color:var(--muted); font-size:14px; max-width:60ch; line-height:1.5; }
+.blk{ margin-bottom:34px; }
+.blk-head{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.blk-head h3{ margin:0; font-family:var(--font-display); font-size:17px; font-weight:600; color:var(--ink); }
+.blk-head .qt{ font-size:12px; font-weight:600; color:var(--brass); background:#f3ecdb; padding:2px 10px; border-radius:20px; }
+.blk-head::after{ content:""; flex:1; height:1px; background:var(--line); order:3; }
+
+.feat{ position:relative; overflow:hidden; display:flex; align-items:center; gap:20px; text-decoration:none; color:#fdfbf6;
+  background:linear-gradient(135deg, var(--ink) 0%, var(--ink-2) 60%, #3a5170 100%); border-radius:var(--radius);
+  padding:24px 28px; box-shadow:0 14px 34px -16px rgba(27,42,65,.55); transition:transform .15s ease, box-shadow .15s ease; }
+.feat::before{ content:""; position:absolute; inset:0; pointer-events:none; background-image:radial-gradient(circle, rgba(255,255,255,.15) 1.4px, transparent 1.4px); background-size:22px 22px;
+  mask-image:radial-gradient(420px 220px at 100% 0%, #000 0%, transparent 70%); -webkit-mask-image:radial-gradient(420px 220px at 100% 0%, #000 0%, transparent 70%); }
+.feat:hover{ transform:translateY(-2px); box-shadow:0 18px 38px -16px rgba(27,42,65,.65); }
+.feat .ficon{ position:relative; flex:none; width:58px; height:58px; border-radius:15px; display:flex; align-items:center; justify-content:center; color:#fdfbf6;
+  background:linear-gradient(180deg, var(--brass-lt), var(--brass)); box-shadow:0 8px 18px -8px rgba(0,0,0,.5); }
+.feat .ftx{ position:relative; flex:1; min-width:0; }
+.feat h4{ margin:0 0 4px; font-family:var(--font-display); font-size:21px; font-weight:600; letter-spacing:.005em; }
+.feat p{ margin:0; font-size:13.5px; color:#cfd7e3; line-height:1.45; }
+.feat .go{ position:relative; flex:none; background:#fdfbf6; color:var(--ink); font-weight:700; font-size:13.5px; padding:11px 20px; border-radius:10px; white-space:nowrap; box-shadow:0 8px 20px -8px rgba(0,0,0,.4); }
+
+.lcards{ display:grid; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:14px; }
+.lcards.wide{ grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); }
+.lcard{ display:flex; align-items:center; gap:14px; background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:16px 18px;
+  text-decoration:none; color:var(--ink); box-shadow:var(--shadow); transition:border-color .15s ease, transform .15s ease; }
+.lcard:hover{ border-color:var(--brass-lt); transform:translateY(-2px); }
+.lcard .lic{ flex:none; width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; color:var(--brass); background:linear-gradient(180deg, #f2e6cd, #e7d3a4); }
+.lcard .ltx{ flex:1; min-width:0; }
+.lcard .lnm{ font-family:var(--font-display); font-size:16px; font-weight:600; color:var(--ink); }
+.lcard .lds{ margin-top:2px; font-size:12.5px; color:var(--muted); line-height:1.4; }
+.lcard .lgo{ flex:none; color:#b9af97; transition:color .15s, transform .15s; }
+.lcard:hover .lgo{ color:var(--brass); transform:translateX(2px); }
+.lcard.cal .lic{ color:#ecd9a8; background:linear-gradient(180deg, var(--ink-2), var(--ink)); }
+
+@media (max-width:640px){
+  .feat{ flex-wrap:wrap; padding:22px; }
+  .feat .go{ width:100%; text-align:center; }
+  .lcards.wide{ grid-template-columns:1fr; }
+}
+@media (prefers-reduced-motion:reduce){ .feat, .lcard, .lcard .lgo{ transition:none; } }
