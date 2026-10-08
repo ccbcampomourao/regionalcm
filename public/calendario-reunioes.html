@@ -126,13 +126,14 @@ body.dgon .win{border-style:dashed}
 @media (max-width:980px){.rl{display:none}}
 /* ===== Páginas A4 ===== */
 .pg{width:210mm;height:297mm;background:#fff;color:#111;padding:11mm 12mm 9mm;display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.3);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.pg.mes{padding:11mm 7mm 9mm}
 .pg h2{margin:0;font-family:'Fraunces',Georgia,serif;font-weight:700;font-size:26pt;letter-spacing:.02em;line-height:1}
 .pg .top{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2.5px solid var(--primary);padding-bottom:6px;margin-bottom:4px}
 .pg .top span{font-size:9pt;font-weight:600;color:var(--primary-2);text-align:right}
 .dias{flex:1;display:grid;grid-auto-rows:minmax(min-content,1fr);min-height:0;font-size:9.5pt}
-.r{display:grid;grid-template-columns:27mm 1fr;border-bottom:.6pt solid #c9c2b0;align-items:center}
+.r{display:grid;grid-template-columns:31mm 1fr;border-bottom:.6pt solid #c9c2b0;align-items:center}
 .r .d{padding:1mm 2mm;font-size:.9em;display:flex;gap:1.5mm;align-items:baseline}
-.r .d b{font-size:1.2em;min-width:6mm;text-align:right}.r .d span{font-weight:600;font-size:.8em;color:#555}
+.r .d b{font-size:1.2em;min-width:6mm;text-align:right}.r .d span{font-weight:600;font-size:1em;color:#555}
 .r.dom{background:#f6efdd}.r.dom .d b{color:var(--brass)}
 .r.fer{background:#f8e4e0}.r.fer .d b{color:var(--accent)}
 .r .e{padding:.8mm 0;font-size:1em;line-height:1.25}
@@ -144,7 +145,7 @@ body.dgon .win{border-style:dashed}
 .leg em{font-style:normal;display:inline-flex;align-items:center;gap:1mm}.leg u{display:inline-block;width:2.5mm;height:2.5mm;border-radius:.6mm;text-decoration:none}
 .rod{margin-top:1.5mm;font-size:7pt;color:#666;text-align:center}
 .capa{align-items:center;justify-content:center;text-align:center;border:3pt double var(--primary);margin:0}
-.capa .capa-logo{display:block;width:130mm;height:auto;margin:0 auto 14mm}
+.capa .capa-logo{display:block;width:92mm;height:auto;margin:0 auto 14mm}
 .capa small{font-size:15pt;letter-spacing:.08em;font-weight:700}
 .capa h2{font-size:34pt;font-style:italic;margin:22mm 0 8mm}
 .capa p{font-family:'Fraunces',Georgia,serif;font-style:italic;font-size:24pt;margin:0}
@@ -203,7 +204,7 @@ textarea{width:100%;border:1.5px solid var(--line);border-radius:8px;padding:8px
       <button class="danger" onclick="if(confirm('Apagar todos os serviços?')){S.dias={};salvar();montar()}">Limpar tudo</button>
     </div>
     <div class="meta">
-      <div><label>Cabeçalho</label><input id="m_org" oninput="meta('org',this.value)"></div>
+      <div><label>Título</label><input id="m_org" oninput="meta('org',this.value)"></div>
       <div><label>Localidade</label><input id="m_sub" oninput="meta('sub',this.value)"></div>
       <div><label>Ano</label><input id="m_ano" type="number" oninput="meta('ano',this.value)"></div>
     </div>
@@ -240,7 +241,7 @@ function locais(y){const o={};o[anivCM(y)]=['Aniversário de Campo Mourão (feri
   return o}
 const CARGOS=[['Anc','ANCIÃES',1],['Dcn','DIÁCONOS',1],['Com','COOPERADORES DO OFÍCIO MINISTERIAL',1],['Cjm','COOPERADORES DE JOVENS E MENORES',1],['Ero','ENCARREGADOS REGIONAIS DE ORQUESTRA',1],['Elo','ENCARREGADOS LOCAIS DE ORQUESTRA',1],['Adm','ADMINISTRAÇÃO',1],['Adm (Convocados)','ADMINISTRAÇÃO CONVOCADOS',0],['Dcn da Regional (Convocados)','DIÁCONOS DA REGIONAL CONVOCADOS',0],['Dcn da Regional','DIÁCONOS DA REGIONAL',0],['Adm Regional','ADMINISTRAÇÃO DA REGIONAL',0],['Adm Casas de Oração','ADMINISTRAÇÃO DAS CASAS DE ORAÇÃO',0],['Dcn (Convocados)','DIÁCONOS CONVOCADOS',0],['Dcn do Estado (Todos)','DIÁCONOS DO ESTADO',0],['Anc e *Dcn do Estado (Todos)','ANCIÃES E DIÁCONOS DO ESTADO',0],['Adm Titulares e Vices','ADMINISTRAÇÃO TITULARES E VICES',0]].map(a=>({code:a[0],label:a[1],showInLegend:!!a[2],useAsterisk:true}));
 const KEY='ccb_calendario_reunioes_anual';
-let S={meta:{org:'',sub:'CAMPO MOURÃO/PR',ano:2026,rod:'As reuniões deste calendário estão sujeitas a alterações.'},dias:{}};
+let S={meta:{org:'Congregação Cristã no Brasil',sub:'CAMPO MOURÃO/PR',ano:2026,rod:'As reuniões deste calendário estão sujeitas a alterações.'},dias:{}};
 let cur=0; // 0..11 mês; -1 capa; -2 legenda; -3 ano
 
 try{const r=localStorage.getItem(KEY);if(r)S=JSON.parse(r)}catch(e){}
@@ -266,7 +267,7 @@ function paginaMes(m){
     rows+=`<div class="r${w==0?' dom':''}${f?' fer':''}"><div class="d"><b>${d}</b><span>${SEM[w]}</span></div><div class="e">${f?`<div class="f">${esc(f)}</div>`:''}${es.map(e=>`<div class="s" style="--c:${TIPOS[e.t][1]}">${esc(e.x)}${e.h?` - <i>${esc(hr(e.h))}</i>`:''}${e.a&&e.a.trim()?` <span class="at">Atende ${esc(e.a.trim())}</span>`:''}${cvHTML(e)}</div>`).join('')}</div></div>`;
   }
   const leg=Object.values(TIPOS).map(t=>`<em><u style="background:${t[1]}"></u>${t[0]}</em>`).join('')+`<em><u style="background:${HOL}"></u>Feriados</em>`;
-  return `<div class="pg"><div class="top"><h2>${MESES[m].toUpperCase()}</h2><span>${esc(S.meta.org)}<br>${esc(S.meta.sub)} · ${esc(S.meta.ano)}</span></div><div class="dias">${rows}</div><div class="leg">${leg}</div><div class="rod">${esc(S.meta.rod)}</div></div>`;
+  return `<div class="pg mes"><div class="top"><h2>${MESES[m].toUpperCase()}</h2><span>${esc(S.meta.org)}<br>${esc(S.meta.sub)} · ${esc(S.meta.ano)}</span></div><div class="dias">${rows}</div><div class="leg">${leg}</div><div class="rod">${esc(S.meta.rod)}</div></div>`;
 }
 function garantirCapa(){const m=S.meta;if(m.capaOrg===undefined)m.capaOrg=m.org||'';if(m.capaTitulo===undefined)m.capaTitulo='CALENDÁRIO DE REUNIÕES';if(m.capaSub===undefined)m.capaSub=m.sub||''}
 function paginaCapa(){
