@@ -144,7 +144,8 @@ body.dgon .win{border-style:dashed}
 .leg{display:flex;flex-wrap:wrap;gap:1mm 4mm;margin-top:2.5mm;font-size:6.8pt;color:#444}
 .leg em{font-style:normal;display:inline-flex;align-items:center;gap:1mm}.leg u{display:inline-block;width:2.5mm;height:2.5mm;border-radius:.6mm;text-decoration:none}
 .rod{margin-top:1.5mm;font-size:7pt;color:#666;text-align:center}
-.capa{align-items:center;justify-content:center;text-align:center;border:3pt double var(--primary);margin:0}
+.capa{position:relative;align-items:center;justify-content:center;text-align:center;margin:0}
+.capa::before{content:"";position:absolute;inset:8mm;border:3pt double var(--primary);pointer-events:none}
 .capa .capa-logo{display:block;width:92mm;height:auto;margin:0 auto 14mm}
 .capa small{font-size:15pt;letter-spacing:.08em;font-weight:700}
 .capa h2{font-size:34pt;font-style:italic;margin:22mm 0 8mm}
@@ -183,7 +184,7 @@ textarea{width:100%;border:1.5px solid var(--line);border-radius:8px;padding:8px
 .mm .g span.m{color:#fff;font-weight:700;text-shadow:0 0 2px rgba(0,0,0,.65)}
 @media (max-width:980px){.wrap{flex-direction:column}#prevHost{position:static;height:70vh;min-width:100%}#form{min-width:100%}.ent{grid-template-columns:auto auto 1fr 70px}.ent input.tx{grid-column:1/-1}}
 @page{size:A4 portrait;margin:0}
-@media print{body{background:#fff}body>*:not(#print){display:none!important}#print{display:block}#print .pg{box-shadow:none;break-after:page;zoom:1;height:296.4mm}#print .pg:last-child{break-after:auto}}
+@media print{html,body{margin:0!important;padding:0!important;background:#fff;height:auto}:root{padding:0!important}body>*:not(#print){display:none!important}#print{display:block}#print .pg{box-shadow:none;break-after:page;break-inside:avoid;zoom:1;width:210mm;height:296.4mm;max-height:296.4mm;overflow:hidden}#print .pg:last-child{break-after:auto}}
 #print.medindo{display:block;position:absolute;left:-99999px;top:0}
 </style>
 </head>
@@ -204,7 +205,7 @@ textarea{width:100%;border:1.5px solid var(--line);border-radius:8px;padding:8px
       <button class="danger" onclick="if(confirm('Apagar todos os serviços?')){S.dias={};salvar();montar()}">Limpar tudo</button>
     </div>
     <div class="meta">
-      <div><label>Título</label><input id="m_org" oninput="meta('org',this.value)"></div>
+      <div><label>Igreja / órgão</label><input id="m_org" oninput="meta('org',this.value)"></div>
       <div><label>Localidade</label><input id="m_sub" oninput="meta('sub',this.value)"></div>
       <div><label>Ano</label><input id="m_ano" type="number" oninput="meta('ano',this.value)"></div>
     </div>
@@ -385,15 +386,27 @@ function repetir(k,i,passo){
 /* ---------- Preview / impressão ---------- */
 function preview(){
   const el=document.getElementById('prev');el.innerHTML=pagina(cur);
-  ajustar(el);
+  ajustar(el);caber(el);
   const pg=el.firstChild,w=document.getElementById('prevScroll').clientWidth-20;pg.style.zoom=Math.min(1,w/794);
 }
+/* Garante que NENHUMA página passe da folha A4: se o conteúdo ultrapassar, reduz tudo proporcionalmente até caber */
+function caber(root){
+  let falhas=0;
+  root.querySelectorAll('.pg').forEach(pg=>{
+    const kids=[...pg.children].filter(c=>!c.classList.contains('dias'));kids.forEach(c=>{c.style.zoom=''});
+    let z=1,n=0;
+    const estoura=()=>pg.scrollHeight>pg.clientHeight+1||pg.scrollWidth>pg.clientWidth+1||[...pg.querySelectorAll('.dias')].some(d=>d.scrollHeight>d.clientHeight+1);
+    while(estoura()&&z>.35&&n++<80){z=Math.round((z-.01)*100)/100;kids.forEach(c=>{c.style.zoom=z})}
+    if(estoura())falhas++;
+  });
+  return falhas;
+}
 /* Cada mês deve caber numa única página: reduz a letra até o conteúdo caber */
-function ajustar(root){root.querySelectorAll('.dias').forEach(d=>{let fs=9.5,n=0;d.style.fontSize=fs+'pt';while(d.scrollHeight>d.clientHeight+1&&fs>4&&n++<60){fs-=.25;d.style.fontSize=fs+'pt'}})}
+function ajustar(root){root.querySelectorAll('.dias').forEach(d=>{let fs=9.5,n=0;d.style.fontSize=fs+'pt';while(d.scrollHeight>d.clientHeight+1&&fs>2&&n++<100){fs-=.25;d.style.fontSize=fs+'pt'}})}
 function prepararImpressao(){
   const el=document.getElementById('print');
   el.innerHTML=paginaCapa()+paginaLegenda()+paginaFeriados()+MESES.map((_,m)=>paginaMes(m)).join('');
-  el.classList.add('medindo');ajustar(el);el.classList.remove('medindo');
+  el.classList.add('medindo');ajustar(el);const f=caber(el);el.classList.remove('medindo');if(f)console.warn(f+' página(s) não coube(ram) totalmente.');
 }
 window.addEventListener('beforeprint',prepararImpressao);
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>preview());
