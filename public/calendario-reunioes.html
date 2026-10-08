@@ -203,7 +203,7 @@ textarea{width:100%;border:1.5px solid var(--line);border-radius:8px;padding:8px
       <button class="danger" onclick="if(confirm('Apagar todos os serviços?')){S.dias={};salvar();montar()}">Limpar tudo</button>
     </div>
     <div class="meta">
-      <div><label>Igreja / órgão</label><input id="m_org" oninput="meta('org',this.value)"></div>
+      <div><label>Cabeçalho</label><input id="m_org" oninput="meta('org',this.value)"></div>
       <div><label>Localidade</label><input id="m_sub" oninput="meta('sub',this.value)"></div>
       <div><label>Ano</label><input id="m_ano" type="number" oninput="meta('ano',this.value)"></div>
     </div>
@@ -232,7 +232,7 @@ function locais(y){const o={};o[anivCM(y)]=['Aniversário de Campo Mourão (feri
   return o}
 const CARGOS=[['Anc','ANCIÃES',1],['Dcn','DIÁCONOS',1],['Com','COOPERADORES DO OFÍCIO MINISTERIAL',1],['Cjm','COOPERADORES DE JOVENS E MENORES',1],['Ero','ENCARREGADOS REGIONAIS DE ORQUESTRA',1],['Elo','ENCARREGADOS LOCAIS DE ORQUESTRA',1],['Adm','ADMINISTRAÇÃO',1],['Adm (Convocados)','ADMINISTRAÇÃO CONVOCADOS',0],['Dcn da Regional (Convocados)','DIÁCONOS DA REGIONAL CONVOCADOS',0],['Dcn da Regional','DIÁCONOS DA REGIONAL',0],['Adm Regional','ADMINISTRAÇÃO DA REGIONAL',0],['Adm Casas de Oração','ADMINISTRAÇÃO DAS CASAS DE ORAÇÃO',0],['Dcn (Convocados)','DIÁCONOS CONVOCADOS',0],['Dcn do Estado (Todos)','DIÁCONOS DO ESTADO',0],['Anc e *Dcn do Estado (Todos)','ANCIÃES E DIÁCONOS DO ESTADO',0],['Adm Titulares e Vices','ADMINISTRAÇÃO TITULARES E VICES',0]].map(a=>({code:a[0],label:a[1],showInLegend:!!a[2],useAsterisk:true}));
 const KEY='ccb_calendario_reunioes_anual';
-let S={meta:{org:'Congregação Cristã no Brasil',sub:'CAMPO MOURÃO/PR',ano:2026,rod:'As reuniões deste calendário estão sujeitas a alterações.'},dias:{}};
+let S={meta:{org:'Congregação Cristã no Brasil',sub:'CAMPO MOURÃO/PR',ano:2026,'- Rua Prefeito Devete de Paula Xavier, 649',rod:'As reuniões deste calendário estão sujeitas a alterações.'},dias:{}};
 let cur=0; // 0..11 mês; -1 capa; -2 legenda; -3 ano
 
 try{const r=localStorage.getItem(KEY);if(r)S=JSON.parse(r)}catch(e){}
