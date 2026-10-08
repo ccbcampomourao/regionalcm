@@ -208,6 +208,14 @@ textarea{width:100%;border:1.5px solid var(--line);border-radius:8px;padding:8px
       <div><label>Ano</label><input id="m_ano" type="number" oninput="meta('ano',this.value)"></div>
     </div>
     <div class="meta" style="grid-template-columns:1fr">
+      <div><label>Texto da capa <span style="font-weight:400;color:#7a7466">(independente do restante do calendário; só o ano é o mesmo)</span></label></div>
+    </div>
+    <div class="meta">
+      <div><label>Texto sob o logo</label><input id="m_capaOrg" oninput="meta('capaOrg',this.value)"></div>
+      <div><label>Título da capa</label><input id="m_capaTitulo" oninput="meta('capaTitulo',this.value)"></div>
+      <div><label>Localidade na capa</label><input id="m_capaSub" oninput="meta('capaSub',this.value)"></div>
+    </div>
+    <div class="meta" style="grid-template-columns:1fr">
       <div><label>Observação no rodapé de cada página</label><input id="m_rod" oninput="meta('rod',this.value)"></div>
     </div>
     <div class="meses" id="meses"></div>
@@ -260,8 +268,10 @@ function paginaMes(m){
   const leg=Object.values(TIPOS).map(t=>`<em><u style="background:${t[1]}"></u>${t[0]}</em>`).join('')+`<em><u style="background:${HOL}"></u>Feriados</em>`;
   return `<div class="pg"><div class="top"><h2>${MESES[m].toUpperCase()}</h2><span>${esc(S.meta.org)}<br>${esc(S.meta.sub)} · ${esc(S.meta.ano)}</span></div><div class="dias">${rows}</div><div class="leg">${leg}</div><div class="rod">${esc(S.meta.rod)}</div></div>`;
 }
+function garantirCapa(){const m=S.meta;if(m.capaOrg===undefined)m.capaOrg=m.org||'';if(m.capaTitulo===undefined)m.capaTitulo='CALENDÁRIO DE REUNIÕES';if(m.capaSub===undefined)m.capaSub=m.sub||''}
 function paginaCapa(){
-  return `<div class="pg capa"><img class="capa-logo" src="/assets/ccb-logo.png" alt="Congregação Cristã no Brasil"><small>${esc(S.meta.org).toUpperCase()}</small><h2>CALENDÁRIO DE REUNIÕES</h2><p>${esc(S.meta.sub)}</p><div class="ano" style="font-family:Fraunces,serif;font-style:italic">${esc(S.meta.ano)}</div></div>`;
+  garantirCapa();
+  return `<div class="pg capa"><img class="capa-logo" src="/assets/ccb-logo.png" alt="Congregação Cristã no Brasil"><small>${esc(S.meta.capaOrg).toUpperCase()}</small><h2>${esc(S.meta.capaTitulo)}</h2><p>${esc(S.meta.capaSub)}</p><div class="ano" style="font-family:Fraunces,serif;font-style:italic">${esc(S.meta.ano)}</div></div>`;
 }
 
 function cvHTML(e){const a=(e.c||[]).map(code=>{const g=S.cargos.find(x=>x.code==code);return `<span class="cc">${g&&g.useAsterisk===false?'':'*'}${esc(code)}</span>`}).join('')+(e.o?`<span class="cv">${esc(e.o)}</span>`:'');return a?`<div class="cvb">${a}</div>`:''}
@@ -302,7 +312,8 @@ function pagina(c){return c==-4?paginaFeriados():c==-1?paginaCapa():c==-2?pagina
 
 /* ---------- Painel de edição ---------- */
 function montar(){
-  ['org','sub','ano','rod'].forEach(k=>document.getElementById('m_'+k).value=S.meta[k]||'');
+  garantirCapa();
+  ['org','sub','ano','rod','capaOrg','capaTitulo','capaSub'].forEach(k=>document.getElementById('m_'+k).value=S.meta[k]||'');
   document.getElementById('meses').innerHTML=[['Capa',-1],['Legenda',-2],['Calendário',-4]].map(a=>`<button class="${cur==a[1]?'on':''}" onclick="ir(${a[1]})">${a[0]}</button>`).join('')+MESES.map((n,i)=>`<button class="${cur==i?'on':''}" onclick="ir(${i})">${n}</button>`).join('');
   const box=document.getElementById('dias');
   if(cur<0){box.innerHTML='<p style="font-size:13px;color:#7a7466">'+(cur==-4?'Calendário do ano, com os feriados (nacionais, pontos facultativos, Paraná e Campo Mourão) e com os dias coloridos pelos tipos de reunião lançados nos meses. É gerado automaticamente.':cur==-1?'Esta é a capa. Ajuste os textos nos campos acima.':cur==-2?'Legenda dos tipos de reunião, dos convocados e dos feriados do ano.':'Calendário do ano: os dias são coloridos automaticamente pelos serviços lançados em cada mês. Passe o mouse sobre um dia para ver o que há nele.')+'</p>'+(cur==-2?cargosEditor():'');preview();return}
