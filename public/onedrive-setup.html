@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/theme.css">
+<link rel="stylesheet" href="/assets/ui.css">
+<script src="/assets/ui.js"></script>
 </head>
 <body class="theme">
 <div class="wrap narrow" style="margin-top:56px;">
@@ -29,14 +31,23 @@
   var div = document.getElementById('resultado');
 
   if (erro) {
-    div.innerHTML = '<p class="msg error">Erro retornado pela Microsoft: ' + erro + '</p>';
+    div.innerHTML = '<p class="msg error">' + ic('alert') + '<span>Erro retornado pela Microsoft: ' + UI.esc(erro) + '</span></p>';
   } else if (code) {
     div.innerHTML =
       '<p class="sub" style="margin-bottom:10px;">Copie este código (é de uso único e expira em poucos minutos) e siga o passo ' +
       '"Trocar o código por tokens" no README:</p>' +
-      '<textarea class="code-out" readonly onclick="this.select()">' + code + '</textarea>' +
+      '<textarea class="code-out" id="codigo" readonly onclick="this.select()">' + UI.esc(code) + '</textarea>' +
+      '<button type="button" class="cta-btn" id="btnCopiar">' + ic('file') + 'Copiar código</button>' +
       '<div class="notice">Não recarregue nem feche esta página antes de copiar — se o ' +
       'código expirar, é só refazer o link de autorização de novo.</div>';
+    document.getElementById('btnCopiar').addEventListener('click', function () {
+      var t = document.getElementById('codigo');
+      t.select();
+      (navigator.clipboard ? navigator.clipboard.writeText(t.value) : Promise.reject()).then(
+        function () { UI.toast('Código copiado.', 'ok'); },
+        function () { document.execCommand('copy'); UI.toast('Código copiado.', 'ok'); }
+      );
+    });
   } else {
     div.innerHTML = '<p class="sub">Nenhum código encontrado na URL. Isso é esperado se você abriu esta ' +
       'página diretamente — ela só mostra algo quando a Microsoft redireciona pra cá depois ' +

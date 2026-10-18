@@ -28,6 +28,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/theme.css">
+<link rel="stylesheet" href="/assets/ui.css">
+<script src="/assets/ui.js"></script>
 </head>
 <body class="theme">
 <header class="topbar">
@@ -35,9 +37,10 @@
     <img src="/assets/regionalcmlogo.png" alt="CCB" style="height:35px;">
     <h1>Listas e calendários</h1>
   </div>
-  <div style="display:flex; gap:8px; align-items:center;">
-    <a href="/admin.html" class="btn-ghost">← Painel admin</a>
-    <a href="#" id="btnSair" class="btn-ghost">Sair</a>
+  <div class="top-actions">
+    <span class="top-user" id="topUser" hidden><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-user"></use></svg><span id="topUserEmail"></span></span>
+    <a href="/admin.html" class="btn-ghost"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-users"></use></svg><span class="lbl-md">Painel admin</span></a>
+    <a href="#" id="btnSair" class="btn-ghost"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-logout"></use></svg><span class="lbl-md">Sair</span></a>
   </div>
 </header>
 
@@ -114,9 +117,24 @@
 <script>
 document.getElementById('btnSair').addEventListener('click', function (e) {
   e.preventDefault();
-  localStorage.removeItem('session_token');
-  window.location.href = '/login.html';
+  UI.sair();
 });
+/* Destaca a última lista aberta neste aparelho */
+(function () {
+  const u = UI.ultimaLista();
+  if (!u || !UI.LISTAS[u.k]) return;
+  const a = document.querySelector('a[href="' + UI.LISTAS[u.k].url + '"]');
+  if (!a) return;
+  a.classList.add('is-last');
+  const alvo = a.querySelector('.lnm, h4');
+  if (alvo) alvo.insertAdjacentHTML('beforeend', '<span class="last-tag">' + ic('clock') + 'Aberta por último</span>');
+})();
+/* Mostra quem está conectado */
+(function () {
+  const s = UI.sessao();
+  if (s && s.email) { document.getElementById('topUserEmail').textContent = s.email; document.getElementById('topUser').hidden = false; }
+})();
+
 </script>
 </body>
 </html>

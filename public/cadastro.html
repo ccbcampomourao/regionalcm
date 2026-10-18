@@ -3,59 +3,76 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cadastro</title>
+<title>Criar conta · Listas da Regional de Campo Mourão</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/theme.css">
+<link rel="stylesheet" href="/assets/ui.css">
+<script src="/assets/ui.js"></script>
 </head>
 <body class="theme">
-  <div class="auth-shell">
+  <main class="auth-shell">
     <div class="card">
-      <div style="display:flex; justify-content:center; margin-bottom:18px;">
-        <img src="/assets/regionalcmlogo.png" alt="CCB" style="height:200px; width:auto; display:block;">
+      <div class="auth-logo">
+        <img src="/assets/regionalcmlogo.png" alt="Congregação Cristã no Brasil">
       </div>
-      <div id="stepSignup">
-        <div class="brandmark">
+      <section id="stepSignup">
+        <div class="brandmark auth-brand">
           <span class="brandtext">Listas da Regional de Campo Mourão PR</span>
         </div>
         <h1 class="title">Criar conta</h1>
         <p class="sub">Depois de se cadastrar, aguarde um administrador liberar seu acesso.</p>
-        <form id="formSignup">
-          <label>E-mail</label>
-          <input type="email" id="email" required>
-          <label>Senha</label>
-          <input type="password" id="password" minlength="6" required>
-          <label>Confirmar senha</label>
-          <input type="password" id="confirmPassword" minlength="6" required>
-          <button type="submit" id="btnSignup">Criar conta</button>
+        <form id="formSignup" novalidate>
+          <label for="email">E-mail</label>
+          <input type="email" id="email" autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false" required autofocus>
+          <label for="password">Senha</label>
+          <input type="password" id="password" minlength="6" autocomplete="new-password" required>
+          <div class="pw-meter" id="medidor" aria-live="polite"></div>
+          <label for="confirmPassword">Confirmar senha</label>
+          <input type="password" id="confirmPassword" minlength="6" autocomplete="new-password" required>
+          <div class="pw-match" id="confere" aria-live="polite"></div>
+          <button type="submit" id="btnSignup"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-user"></use></svg>Criar conta</button>
         </form>
+        <div id="social" class="social" hidden></div>
         <div class="link">Já tem conta? <a href="login.html">Entrar</a></div>
-      </div>
+      </section>
 
-      <div id="feedback"></div>
+      <!-- Depois do cadastro -->
+      <section id="stepPronto" class="hidden done">
+        <div class="done__ic"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-check-circle"></use></svg></div>
+        <h1 class="title">Cadastro enviado</h1>
+        <p class="sub">Sua conta <strong id="emailPronto"></strong> foi criada. Assim que um administrador liberar o acesso, é só entrar com seu e-mail e senha.</p>
+        <a class="cta cta-block" href="login.html"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-arrow-right"></use></svg>Ir para o login</a>
+      </section>
+
+      <div id="feedback" aria-live="polite"></div>
     </div>
-  </div>
+  </main>
 
 <script>
-const feedback = document.getElementById('feedback');
+const $ = (id) => document.getElementById(id);
+const feedback = $('feedback');
 function showMsg(text, type){
-  feedback.innerHTML = `<div class="msg ${type}">${text}</div>`;
+  const icone = type === 'error' ? 'alert' : 'check-circle';
+  feedback.innerHTML = `<div class="msg ${type}">${ic(icone)}<span>${UI.esc(text)}</span></div>`;
 }
 
-document.getElementById('formSignup').addEventListener('submit', async (e) => {
+UI.botoesSocial($('social'), 'Cadastrar');
+UI.pronto(() => UI.medidorSenha($('password'), $('confirmPassword'), $('medidor'), $('confere')));
+
+$('formSignup').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const email = document.getElementById('email').value.trim();
-  const password = document.getElementById('password').value;
-  const confirmPassword = document.getElementById('confirmPassword').value;
-  const btn = document.getElementById('btnSignup');
+  feedback.innerHTML = '';
+  const email = $('email').value.trim();
+  const password = $('password').value;
+  const confirmPassword = $('confirmPassword').value;
 
-  if (password !== confirmPassword) {
-    showMsg('As senhas não conferem.', 'error');
-    return;
-  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showMsg('Digite um e-mail válido.', 'error'); $('email').focus(); return; }
+  if (password.length < 6) { showMsg('A senha precisa ter pelo menos 6 caracteres.', 'error'); $('password').focus(); return; }
+  if (password !== confirmPassword) { showMsg('As senhas não conferem.', 'error'); $('confirmPassword').focus(); return; }
 
-  btn.disabled = true; btn.textContent = 'Enviando...';
+  const fim = UI.busy($('btnSignup'), 'Enviando...');
   try {
     const res = await fetch('/api/signup', {
       method: 'POST',
@@ -65,12 +82,14 @@ document.getElementById('formSignup').addEventListener('submit', async (e) => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Erro ao cadastrar');
 
-    document.getElementById('formSignup').classList.add('hidden');
-    showMsg('Cadastro realizado! Aguarde um administrador liberar seu acesso e depois faça login. <a href="login.html">Ir para login</a>', 'ok');
+    try { localStorage.setItem('ultimo_email', email); } catch (e2) {}
+    $('emailPronto').textContent = email;
+    $('stepSignup').classList.add('hidden');
+    $('stepPronto').classList.remove('hidden');
   } catch (err) {
-    showMsg(err.message, 'error');
+    showMsg(err.message === 'Failed to fetch' ? 'Sem conexão com o servidor. Verifique sua internet.' : err.message, 'error');
   } finally {
-    btn.disabled = false; btn.textContent = 'Criar conta';
+    fim();
   }
 });
 </script>

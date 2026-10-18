@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/theme.css">
+<link rel="stylesheet" href="/assets/ui.css">
+<script src="/assets/ui.js"></script>
 <style>
 /* ===== Painel administrativo ===== */
 .adm{ max-width:1040px; }
@@ -66,6 +68,7 @@
 .tag{ font-size:11px; font-weight:700; padding:2px 9px; border-radius:20px; white-space:nowrap; }
 .tag.admin{ background:var(--warn-bg); color:var(--warn); }
 .tag.off{ background:var(--danger-bg); color:var(--danger); }
+.tag.via{ background:#eef1f6; color:#3a5170; }
 .uctl{ display:flex; align-items:center; gap:12px; flex:none; }
 .uctl select{ width:auto; padding:8px 30px 8px 11px; font-size:13px; font-weight:600; border-radius:9px; }
 
@@ -110,6 +113,20 @@
 .toast.error{ background:var(--danger); }
 .toast.ok{ background:var(--success); }
 
+.summary > div[data-f]{ cursor:pointer; transition:background .15s; }
+.summary > div[data-f]:hover{ background:#faf6ec; }
+.summary > div[data-f].on{ box-shadow:inset 0 -3px 0 var(--brass); }
+.seg .ct{ margin-left:5px; font-size:11px; font-weight:700; color:var(--muted); }
+.seg button[aria-pressed="true"] .ct{ color:var(--brass); }
+.search kbd{ position:absolute; right:10px; top:50%; transform:translateY(-50%); }
+.search input:focus ~ kbd, .search input:not(:placeholder-shown) ~ kbd{ display:none; }
+.top-actions{ display:flex; gap:8px; align-items:center; }
+.top-user{ display:flex; align-items:center; gap:6px; font-size:12.5px; color:#cfd8e5; margin-right:6px; }
+.top-user svg.ic{ width:15px; height:15px; }
+header.topbar a.btn-ghost{ display:inline-flex; align-items:center; gap:7px; }
+header.topbar a.btn-ghost svg.ic{ width:15px; height:15px; }
+@media (max-width:640px){ .top-user{ display:none; } header.topbar .lbl-md{ display:none; } }
+
 @media (max-width:820px){
   .summary{ grid-template-columns:repeat(2,1fr); }
   .summary > div{ border-left:none; border-top:1px solid var(--line); }
@@ -131,7 +148,11 @@
     <img src="/assets/regionalcmlogo.png" alt="CCB" style="height:35px;">
     <h1>Painel administrativo</h1>
   </div>
-  <a href="#" id="btnSairAdmin" class="btn-ghost">Sair</a>
+  <div class="top-actions">
+    <span class="top-user" id="topUser" hidden><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-user"></use></svg><span id="topUserEmail"></span></span>
+    <a href="/admin-listas.html" class="btn-ghost"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-grid"></use></svg><span class="lbl-md">Listas</span></a>
+    <a href="#" id="btnSairAdmin" class="btn-ghost"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-logout"></use></svg><span class="lbl-md">Sair</span></a>
+  </div>
 </header>
 
 <div class="wrap adm">
@@ -144,18 +165,18 @@
       <p>Acesse, edite e gere os documentos de cada região em um só lugar.</p>
       <div class="quickaccess-tags" id="quickaccessTags"></div>
     </div>
-    <a href="/admin-listas.html" class="quickaccess-cta">Acessar listas →</a>
+    <a href="/admin-listas.html" class="quickaccess-cta">Acessar listas<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-arrow-right"></use></svg></a>
   </div>
 
   <!-- Login do administrador -->
-  <div class="login-card" id="loginBox">
+  <div class="login-card" id="loginBox" style="display:none;">
     <h2>Acesso do administrador</h2>
     <p>Entre com sua conta de administrador para gerenciar os usuários e as listas que cada um pode ver.</p>
     <label for="adminEmail">E-mail</label>
     <input type="email" id="adminEmail" autocomplete="username">
     <label for="adminSenha">Senha</label>
     <input type="password" id="adminSenha" autocomplete="current-password">
-    <button class="adm-primary" id="btnEntrar">Entrar</button>
+    <button class="adm-primary" id="btnEntrar"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-lock"></use></svg>Entrar</button>
     <div id="loginMsg" class="msg" style="display:none;"></div>
   </div>
 
@@ -168,6 +189,7 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         <label class="sr" for="busca">Buscar usuário</label>
         <input type="search" id="busca" placeholder="Buscar por e-mail">
+        <kbd aria-hidden="true">/</kbd>
       </div>
       <div class="seg" id="filtros" role="group" aria-label="Filtrar usuários">
         <button data-f="todos" aria-pressed="true">Todos</button>
@@ -210,11 +232,7 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&a
 /* ---------- Aviso flutuante ---------- */
 let toastTimer;
 function toast(texto, tipo) {
-  const t = $('toast');
-  t.textContent = texto;
-  t.className = 'toast show ' + (tipo || '');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { t.className = 'toast ' + (tipo || ''); }, 4500);
+  UI.toast(texto, tipo || 'info');
 }
 
 /* ---------- Cabeçalho / login ---------- */
@@ -229,9 +247,42 @@ function toast(texto, tipo) {
 
 $('btnSairAdmin').addEventListener('click', function (e) {
   e.preventDefault();
-  localStorage.removeItem('session_token');
-  window.location.href = '/login.html';
+  if (temRascunho() && !confirm('Há alterações não salvas. Sair mesmo assim?')) return;
+  UI.sair();
 });
+
+function temRascunho() {
+  return users.some(u => drafts[u.email] && sujo(u, drafts[u.email]));
+}
+window.addEventListener('beforeunload', e => {
+  if (temRascunho()) { e.preventDefault(); e.returnValue = ''; }
+});
+
+/* Mostra a área de usuários (já autenticado) */
+function entrarNoPainel(token, email) {
+  adminToken = token;
+  $('loginBox').style.display = 'none';
+  $('tableBox').style.display = 'block';
+  if (email) { $('topUserEmail').textContent = email; $('topUser').hidden = false; }
+}
+function mostrarLogin(msg) {
+  $('tableBox').style.display = 'none';
+  $('loginBox').style.display = 'block';
+  if (msg) { const m = $('loginMsg'); m.textContent = msg; m.className = 'msg error'; m.style.display = 'block'; }
+  setTimeout(() => ($('adminEmail').value ? $('adminSenha') : $('adminEmail')).focus(), 30);
+}
+
+/* Se já entrou como administrador neste aparelho, não pede login de novo */
+(function () {
+  const s = UI.sessao();
+  try { $('adminEmail').value = localStorage.getItem('ultimo_email') || ''; } catch (e) {}
+  if (s && s.role === 'admin') {
+    entrarNoPainel(s.token, s.email);
+    carregarUsuarios();
+  } else {
+    mostrarLogin();
+  }
+})();
 
 $('btnEntrar').addEventListener('click', fazerLogin);
 ['adminEmail', 'adminSenha'].forEach(id => $(id).addEventListener('keydown', e => { if (e.key === 'Enter') fazerLogin(); }));
@@ -241,6 +292,7 @@ async function fazerLogin() {
   loginMsg.style.display = 'none';
   const email = $('adminEmail').value.trim();
   const senha = $('adminSenha').value;
+  const fim = UI.busy($('btnEntrar'), 'Entrando...');
 
   try {
     const res = await fetch('/api/login', {
@@ -252,14 +304,16 @@ async function fazerLogin() {
     if (!res.ok) throw new Error(data.error || 'Erro ao entrar');
     if (data.role !== 'admin') throw new Error('Essa conta não tem permissão de administrador.');
 
-    adminToken = data.token;
-    $('loginBox').style.display = 'none';
-    $('tableBox').style.display = 'block';
+    localStorage.setItem('session_token', data.token);
+    try { localStorage.setItem('ultimo_email', email); } catch (e) {}
+    entrarNoPainel(data.token, email);
     await carregarUsuarios();
   } catch (err) {
     loginMsg.textContent = err.message;
     loginMsg.className = 'msg error';
     loginMsg.style.display = 'block';
+  } finally {
+    fim();
   }
 }
 
@@ -274,9 +328,15 @@ function mesmasListas(set, arr) {
 function sujo(u, d) { return d.role !== u.role || !mesmasListas(d.lists, u.assignedLists); }
 
 async function carregarUsuarios() {
+  const fim = UI.busy($('btnAtualizar'), 'Atualizando...');
   try {
     const res = await fetch('/api/admin-list', { headers: { 'Authorization': 'Bearer ' + adminToken } });
     const data = await res.json();
+    if (res.status === 401 || res.status === 403) {
+      localStorage.removeItem('session_token');
+      mostrarLogin('Sua sessão expirou. Entre de novo para continuar.');
+      return;
+    }
     if (!res.ok) throw new Error(data.error || 'Erro ao carregar');
     // descarta rascunhos que não tinham alteração; mantém os que o admin ainda não salvou
     users.forEach(o => { const d = drafts[o.email]; if (d && !sujo(o, d)) delete drafts[o.email]; });
@@ -284,17 +344,34 @@ async function carregarUsuarios() {
     render();
   } catch (err) {
     toast(err.message, 'error');
+  } finally {
+    fim();
   }
 }
 
 /* ---------- Filtros ---------- */
 $('busca').addEventListener('input', e => { busca = e.target.value.trim().toLowerCase(); render(); });
+$('busca').addEventListener('keydown', e => {
+  if (e.key === 'Escape' && e.target.value) { e.target.value = ''; busca = ''; render(); }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) && $('tableBox').style.display !== 'none') {
+    e.preventDefault(); $('busca').focus();
+  }
+});
+function aplicarFiltro(f) {
+  filtro = f;
+  $('filtros').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x.dataset.f === f ? 'true' : 'false'));
+  render();
+}
+$('summary').addEventListener('click', e => {
+  const c = e.target.closest('[data-f]');
+  if (c) aplicarFiltro(filtro === c.dataset.f ? 'todos' : c.dataset.f);
+});
 $('filtros').addEventListener('click', e => {
   const b = e.target.closest('button[data-f]');
   if (!b) return;
-  filtro = b.dataset.f;
-  $('filtros').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
-  render();
+  aplicarFiltro(b.dataset.f);
 });
 
 function passaFiltro(u) {
@@ -315,13 +392,20 @@ function renderResumo() {
   const bloq = total - lib;
   const adm = users.filter(u => u.role === 'admin').length;
   const pend = users.filter(u => u.passwordReset === 'pending').length;
-  const cel = (n, t, cls) => `<div class="${cls || ''}"><div class="n">${n}</div><div class="t">${t}</div></div>`;
+  const cel = (n, t, cls, f) => `<div class="${cls || ''}${filtro === f ? ' on' : ''}" data-f="${f}" title="Mostrar só estes"><div class="n">${n}</div><div class="t">${t}</div></div>`;
   $('summary').innerHTML =
-    cel(total, total === 1 ? 'usuário cadastrado' : 'usuários cadastrados') +
-    cel(lib, lib === 1 ? 'com acesso liberado' : 'com acesso liberado') +
-    cel(bloq, bloq === 1 ? 'bloqueado' : 'bloqueados', bloq ? 'bad' : '') +
-    cel(adm, adm === 1 ? 'administrador' : 'administradores') +
-    cel(pend, pend === 1 ? 'pedido de nova senha' : 'pedidos de nova senha', pend ? 'warn' : '');
+    cel(total, total === 1 ? 'usuário cadastrado' : 'usuários cadastrados', '', 'todos') +
+    cel(lib, 'com acesso liberado', '', 'liberados') +
+    cel(bloq, bloq === 1 ? 'bloqueado' : 'bloqueados', bloq ? 'bad' : '', 'bloqueados') +
+    cel(adm, adm === 1 ? 'administrador' : 'administradores', '', 'admins') +
+    cel(pend, pend === 1 ? 'pedido de nova senha' : 'pedidos de nova senha', pend ? 'warn' : '', 'senha');
+  const senhaTotal = users.filter(u => u.passwordReset === 'pending' || u.passwordReset === 'approved').length;
+  const cont = { todos: total, liberados: lib, bloqueados: bloq, senha: senhaTotal, admins: adm };
+  $('filtros').querySelectorAll('button[data-f]').forEach(b => {
+    let ct = b.querySelector('.ct');
+    if (!ct) { ct = document.createElement('span'); ct.className = 'ct'; b.appendChild(ct); }
+    ct.textContent = cont[b.dataset.f];
+  });
 }
 
 function render() {
@@ -384,6 +468,7 @@ function cardUsuario(u) {
       <div class="uid">
         <div class="uemail"><span>${esc(u.email)}</span>
           ${u.role === 'admin' ? '<span class="tag admin">Administrador</span>' : ''}
+          ${u.provider ? `<span class="tag via">via ${u.provider === 'google' ? 'Google' : 'Microsoft'}</span>` : ''}
           ${u.active ? '' : '<span class="tag off">Bloqueado</span>'}
         </div>
         <div class="umeta">Cadastrado em ${esc(dataFmt)}</div>
@@ -444,7 +529,12 @@ function cardUsuario(u) {
       d.lists = act === 'todas' ? new Set(Object.keys(LISTAS)) : new Set();
       card.querySelectorAll('.chip input').forEach(i => { i.checked = d.lists.has(i.value); });
       sync();
-    } else if (act === 'acesso') alternarAcesso(u.email, !u.active, b);
+    } else if (act === 'acesso') {
+      if (u.active) {
+        UI.confirm('Bloquear acesso?', u.email + ' não vai mais conseguir entrar até ser liberado de novo.', { danger: true, ok: 'Bloquear', okIcon: 'lock' })
+          .then(ok => { if (ok) alternarAcesso(u.email, false, b); });
+      } else alternarAcesso(u.email, true, b);
+    }
     else if (act === 'aprovar') aprovarRedefinicao(u.email, b);
     else if (act === 'cancelar') cancelarRedefinicao(u.email, b);
     else if (act === 'salvar') salvar(u, d, b);
@@ -506,7 +596,7 @@ async function alternarAcesso(email, active, btn) {
 }
 
 async function salvar(u, d, btn) {
-  btn.disabled = true;
+  const fim = UI.busy(btn, 'Salvando...');
   try {
     const [resLista, resRole] = await Promise.all([
       postJSON('/api/admin-assign', { email: u.email, lists: [...d.lists] }),
@@ -522,7 +612,7 @@ async function salvar(u, d, btn) {
     await carregarUsuarios();
   } catch (err) {
     toast(err.message, 'error');
-    btn.disabled = false;
+    fim();
   }
 }
 </script>

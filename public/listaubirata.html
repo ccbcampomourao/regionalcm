@@ -21,14 +21,14 @@
         if (data.role === 'admin' || lists.length > 1) {
           var backBtn = document.createElement('a');
           backBtn.href = data.role === 'admin' ? '/admin-listas.html' : '/minhas-listas.html';
-          backBtn.textContent = '← Voltar';
+          backBtn.innerHTML = '<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-arrow-left"></use></svg>Voltar'; backBtn.className = 'topnav-btn';
           backBtn.style.cssText = 'background:#fff; color:#1b2a41; text-decoration:none; padding:8px 16px; border-radius:9px; font-size:13px; font-weight:600; font-family:Inter, Arial, Helvetica, sans-serif; border:1.5px solid #e4dcc9; box-shadow:0 4px 10px -4px rgba(27,42,65,.3);';
           bar.appendChild(backBtn);
         }
 
         var sairBtn = document.createElement('a');
         sairBtn.href = '#';
-        sairBtn.textContent = 'Sair';
+        sairBtn.innerHTML = '<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-logout"></use></svg>Sair'; sairBtn.className = 'topnav-btn';
         sairBtn.style.cssText = 'background:linear-gradient(180deg,#2c3f5c,#1b2a41); color:#fdfbf6; text-decoration:none; padding:8px 16px; border-radius:9px; font-size:13px; font-weight:600; font-family:Inter, Arial, Helvetica, sans-serif; box-shadow:0 6px 16px -6px rgba(27,42,65,.5);';
         sairBtn.onclick = function (e) {
           e.preventDefault();
@@ -124,6 +124,9 @@
 
   @media (max-width: 980px) { .wrap { flex-direction: column; } #previewHost { position: static; max-height: none; } }
 </style>
+<link rel="stylesheet" href="/assets/ui.css">
+<link rel="stylesheet" href="/assets/editor.css">
+<script src="/assets/ui.js"></script>
 </head>
 <body>
 <header>
@@ -134,13 +137,13 @@
 <div class="wrap">
   <div class="panel" id="formPanel">
     <div class="toolbar">
-      <button onclick="gerarPDF()">🖨️ Gerar / Imprimir PDF</button>
-      <button onclick="exportJSON()">⬇️ Salvar (.json)</button>
-      <button onclick="document.getElementById('importInput').click()">⬆️ Carregar (.json)</button>
+      <button onclick="gerarPDF()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-print"></use></svg>Gerar / Imprimir PDF</button>
+      <button onclick="exportJSON()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-download"></use></svg>Baixar backup</button>
+      <button onclick="document.getElementById('importInput').click()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-upload"></use></svg>Abrir backup</button>
       <input type="file" id="importInput" accept=".json" style="display:none" onchange="importJSON(event)">
-      <button id="btnListaSalvar" onclick="salvarLista()">☁️ Salvar</button>
-      <button id="btnListaCarregar" onclick="carregarLista()">☁️ Carregar</button>
-      <button class="danger" onclick="if(confirm('Limpar tudo?')) resetAll()">🗑️ Limpar Tudo</button>
+      <button id="btnListaSalvar" onclick="salvarLista()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-cloud-up"></use></svg>Salvar na nuvem</button>
+      <button id="btnListaCarregar" onclick="carregarLista()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-cloud-down"></use></svg>Carregar da nuvem</button>
+      <button class="danger" onclick="if(confirm('Limpar tudo?')) resetAll()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-trash"></use></svg>Limpar tudo</button>
     </div>
 
     <div class="field row-grid" style="grid-template-columns: 1fr 1fr;">
@@ -188,6 +191,8 @@ const LOGO_CCB_BASE64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAjgAAAEgC
 const newId = () => 'id_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
 let dragSrcEl = null;
 
+// Estado inicial (antes ficava sem declarar e a página quebrava num aparelho sem nada salvo)
+var STATE = { meta: { titulo: "CAMPO MOURÃO - PR", subtitulo: "LISTA DE SERVIÇOS - UBIRATÃ", data: "", colunas: "2", fonte: 11 }, sections: [] };
 function loadState() {
   const raw = localStorage.getItem('ccb_lista_simples_state');
   if (raw) { try { STATE = JSON.parse(raw); } catch(e){} }
@@ -335,7 +340,7 @@ function renderSections() {
     head.className = 'section-head';
     head.innerHTML = `
       <div style="display:flex; align-items:center;">
-        <span class="drag-handle" title="Arraste para reordenar">☰</span>
+        <span class="drag-handle" title="Arraste para reordenar"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-grip"></use></svg></span>
         <input type="text" value="${section.title}" style="font-weight:bold; width: 250px; text-transform:uppercase;" 
           oninput="STATE.sections[${sIdx}].title = this.value; saveState(); renderPreview();" onclick="event.stopPropagation()">
       </div>
@@ -364,12 +369,12 @@ function renderSections() {
       controls.className = 'entry-controls';
       if (STATE.sections.length > 1) {
         const btnMover = document.createElement('button');
-        btnMover.className = 'small primary'; btnMover.textContent = '⮀'; btnMover.title = 'Mover';
+        btnMover.className = 'small primary'; btnMover.innerHTML = '<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-move"></use></svg>'; btnMover.title = 'Mover';
         btnMover.onclick = () => moveEntry(section.id, entry.id);
         controls.appendChild(btnMover);
       }
       const btnRemover = document.createElement('button');
-      btnRemover.className = 'small danger'; btnRemover.textContent = '✕'; btnRemover.title = 'Excluir';
+      btnRemover.className = 'small danger'; btnRemover.innerHTML = '<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-x"></use></svg>'; btnRemover.title = 'Excluir';
       btnRemover.onclick = () => removeEntry(section.id, entry.id);
       controls.appendChild(btnRemover);
       eDiv.appendChild(controls);
@@ -688,104 +693,16 @@ window.onload = () => {
   renderPreview();
 };
 </script>
+<script src="/assets/editor.js"></script>
 <script>
-(function () {
-  var REGIAO = 'ubirata';
-
-  function tokenAtual() {
-    return localStorage.getItem('session_token');
-  }
-
-  function sugerirNomeArquivo() {
-    var d = new Date().toISOString().slice(0, 10);
-    return REGIAO + '_' + d;
-  }
-
-  window.salvarLista = async function () {
-    var btn = document.getElementById('btnListaSalvar');
-    var nome = prompt('Nome para salvar esta lista:', sugerirNomeArquivo());
-    if (nome === null) return; // cancelou
-    nome = nome.trim();
-    if (!nome) { alert('Informe um nome para o arquivo.'); return; }
-
-    if (btn) { btn.disabled = true; btn.textContent = '☁️ Salvando...'; }
-    try {
-      saveState();
-      var conteudo = JSON.stringify(STATE, null, 2);
-      var res = await fetch('/api/lista-save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: tokenAtual(), regiao: REGIAO, nome: nome, conteudo: conteudo })
-      });
-      var data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Erro ao salvar');
-      alert('Lista salva como: ' + data.nomeArquivo);
-    } catch (e) {
-      alert('Erro ao salvar: ' + e.message);
-    } finally {
-      if (btn) { btn.disabled = false; btn.textContent = '☁️ Salvar'; }
-    }
-  };
-
-  window.carregarLista = async function () {
-    var btn = document.getElementById('btnListaCarregar');
-    if (btn) { btn.disabled = true; btn.textContent = '☁️ Carregando...'; }
-    try {
-      var res = await fetch('/api/lista-list', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: tokenAtual(), regiao: REGIAO })
-      });
-      var data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Erro ao listar arquivos');
-      if (!data.arquivos.length) { alert('Ainda não existe nenhuma lista salva para ' + REGIAO + '.'); return; }
-      mostrarSeletorListas(data.arquivos);
-    } catch (e) {
-      alert('Erro ao acessar as listas salvas: ' + e.message);
-    } finally {
-      if (btn) { btn.disabled = false; btn.textContent = '☁️ Carregar'; }
-    }
-  };
-
-  function mostrarSeletorListas(arquivos) {
-    var overlay = document.createElement('div');
-    overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:99999; display:flex; align-items:center; justify-content:center;';
-    var box = document.createElement('div');
-    box.style.cssText = 'background:#fff; border-radius:10px; padding:20px; width:340px; max-height:70vh; overflow:auto; font-family:Arial, Helvetica, sans-serif;';
-    box.innerHTML = '<h3 style="margin:0 0 12px; font-size:16px;">Escolha o arquivo</h3>';
-
-    arquivos.forEach(function (f) {
-      var item = document.createElement('button');
-      item.textContent = f.nome;
-      item.style.cssText = 'display:block; width:100%; text-align:left; padding:9px 10px; margin-bottom:6px; border:1px solid #ccd3da; border-radius:6px; background:#f4f6f8; cursor:pointer; font-size:13px;';
-      item.onclick = async function () {
-        overlay.remove();
-        try {
-          var res = await fetch('/api/lista-load', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: tokenAtual(), regiao: REGIAO, nome: f.nome })
-          });
-          var data = await res.json();
-          if (!res.ok) throw new Error(data.error || 'Erro ao carregar');
-          loadStateFromJSON(data.conteudo);
-        } catch (e) {
-          alert('Erro ao carregar arquivo: ' + e.message);
-        }
-      };
-      box.appendChild(item);
-    });
-
-    var cancelar = document.createElement('button');
-    cancelar.textContent = 'Cancelar';
-    cancelar.style.cssText = 'display:block; width:100%; text-align:center; padding:9px 10px; margin-top:6px; border:1px solid #ccd3da; border-radius:6px; background:#fff; cursor:pointer; font-size:13px;';
-    cancelar.onclick = function () { overlay.remove(); };
-    box.appendChild(cancelar);
-
-    overlay.appendChild(box);
-    document.body.appendChild(overlay);
-  }
-})();
+/* Salvar / carregar na nuvem: lógica em /assets/editor.js */
+Nuvem.configurar({
+  regiao: 'ubirata',
+  tipo: 'lista',
+  sugerirNome: function () { return 'ubirata_' + new Date().toISOString().slice(0, 10); },
+  conteudo: function () { saveState(); return JSON.stringify(STATE, null, 2); },
+  aplicar: function (texto) { return loadStateFromJSON(texto); }
+});
 </script>
 </body>
 </html>

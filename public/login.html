@@ -3,109 +3,165 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Entrar</title>
+<title>Entrar · Listas da Regional de Campo Mourão</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/theme.css">
+<link rel="stylesheet" href="/assets/ui.css">
+<script src="/assets/ui.js"></script>
 </head>
 <body class="theme">
-  <div class="auth-shell">
+  <main class="auth-shell">
     <div class="card">
-		<div style="display:flex; justify-content:center; margin-bottom:18px;">
-        <img src="/assets/regionalcmlogo.png" alt="CCB" style="height:200px; width:auto; display:block;">
+      <div class="auth-logo">
+        <img src="/assets/regionalcmlogo.png" alt="Congregação Cristã no Brasil">
       </div>
-      <div class="brandmark">
+      <div class="brandmark auth-brand">
         <span class="brandtext">Listas da Regional de Campo Mourão PR</span>
       </div>
 
-      <!-- ETAPA 1: login normal -->
-      <div id="stepLogin">
-        <h1 class="title">Entrar</h1>
-        <p class="sub">Acesse com o e-mail e senha do seu cadastro.</p>
-        <form id="formLogin">
-          <label>E-mail</label>
-          <input type="email" id="email" required>
-          <label>Senha</label>
-          <input type="password" id="password" required>
-          <button type="submit" id="btnLogin">Entrar</button>
-        </form>
-        <div class="link"><a href="#" id="linkEsqueciSenha">Esqueceu sua senha?</a></div>
-        <div class="link">Ainda não tem conta? <a href="cadastro.html">Cadastre-se</a></div>
+      <!-- Sessão já aberta neste aparelho -->
+      <div id="sessaoAtiva" class="session-box hidden">
+        <div class="session-box__ic"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-user"></use></svg></div>
+        <div class="session-box__tx">
+          <strong>Você já está conectado</strong>
+          <span id="sessaoEmail"></span>
+        </div>
+        <a href="#" id="btnContinuar" class="session-box__go">Continuar<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-arrow-right"></use></svg></a>
       </div>
+
+      <!-- ETAPA 1: login normal -->
+      <section id="stepLogin">
+        <h1 class="title">Entrar</h1>
+        <p class="sub">Acesse com o e-mail e a senha do seu cadastro.</p>
+        <form id="formLogin" novalidate>
+          <label for="email">E-mail</label>
+          <input type="email" id="email" autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false" required>
+          <div class="label-row">
+            <label for="password">Senha</label>
+            <a href="#" id="linkEsqueciSenha" class="label-link">Esqueceu a senha?</a>
+          </div>
+          <input type="password" id="password" autocomplete="current-password" required>
+          <button type="submit" id="btnLogin"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-lock"></use></svg>Entrar</button>
+        </form>
+        <div id="social" class="social" hidden></div>
+        <div class="link">Ainda não tem conta? <a href="cadastro.html">Cadastre-se</a></div>
+      </section>
 
       <!-- ETAPA 2: solicitar redefinição -->
-      <div id="stepEsqueci" class="hidden">
+      <section id="stepEsqueci" class="hidden">
         <h1 class="title">Esqueceu sua senha?</h1>
         <p class="sub">Informe seu e-mail. Um administrador vai precisar aprovar o pedido antes que você possa definir uma nova senha.</p>
-        <form id="formEsqueci">
-          <label>E-mail</label>
-          <input type="email" id="emailEsqueci" required>
-          <button type="submit" id="btnEsqueci">Solicitar redefinição</button>
+        <form id="formEsqueci" novalidate>
+          <label for="emailEsqueci">E-mail</label>
+          <input type="email" id="emailEsqueci" autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false" required>
+          <button type="submit" id="btnEsqueci"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-mail"></use></svg>Solicitar redefinição</button>
         </form>
-        <div class="link"><a href="#" id="linkVoltarLogin1">← Voltar para o login</a></div>
-      </div>
+        <div class="link"><a href="#" id="linkVoltarLogin1" class="link-ic"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-arrow-left"></use></svg>Voltar para o login</a></div>
+      </section>
 
       <!-- ETAPA 3: definir nova senha (aparece quando o admin já aprovou) -->
-      <div id="stepNovaSenha" class="hidden">
+      <section id="stepNovaSenha" class="hidden">
         <h1 class="title">Defina sua nova senha</h1>
         <p class="sub">Sua redefinição de senha foi aprovada por um administrador. Escolha uma nova senha para continuar.</p>
-        <form id="formNovaSenha">
-          <label>Nova senha</label>
-          <input type="password" id="novaSenha" minlength="6" required>
-          <label>Confirmar nova senha</label>
-          <input type="password" id="confirmarNovaSenha" minlength="6" required>
-          <button type="submit" id="btnNovaSenha">Salvar nova senha</button>
+        <form id="formNovaSenha" novalidate>
+          <label for="novaSenha">Nova senha</label>
+          <input type="password" id="novaSenha" minlength="6" autocomplete="new-password" required>
+          <div class="pw-meter" id="medidorNova" aria-live="polite"></div>
+          <label for="confirmarNovaSenha">Confirmar nova senha</label>
+          <input type="password" id="confirmarNovaSenha" minlength="6" autocomplete="new-password" required>
+          <div class="pw-match" id="confereNova" aria-live="polite"></div>
+          <button type="submit" id="btnNovaSenha"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-check"></use></svg>Salvar nova senha</button>
         </form>
-      </div>
+        <div class="link"><a href="#" id="linkVoltarLogin2" class="link-ic"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-arrow-left"></use></svg>Voltar para o login</a></div>
+      </section>
 
-      <div id="feedback"></div>
+      <div id="feedback" aria-live="polite"></div>
     </div>
-  </div>
+  </main>
 
 <script>
-const feedback = document.getElementById('feedback');
-const stepLogin = document.getElementById('stepLogin');
-const stepEsqueci = document.getElementById('stepEsqueci');
-const stepNovaSenha = document.getElementById('stepNovaSenha');
+const $ = (id) => document.getElementById(id);
+const feedback = $('feedback');
+const stepLogin = $('stepLogin');
+const stepEsqueci = $('stepEsqueci');
+const stepNovaSenha = $('stepNovaSenha');
 let emailParaRedefinir = '';
 
-function showMsg(text, type) {
-  feedback.innerHTML = `<div class="msg ${type}">${text}</div>`;
+function showMsg(text, type, html) {
+  const icone = type === 'error' ? 'alert' : 'check-circle';
+  feedback.innerHTML = `<div class="msg ${type}">${ic(icone)}<span>${html ? text : UI.esc(text)}</span></div>`;
 }
 function clearMsg() { feedback.innerHTML = ''; }
 
-function irParaLogin() {
-  stepLogin.classList.remove('hidden');
-  stepEsqueci.classList.add('hidden');
-  stepNovaSenha.classList.add('hidden');
+function mostrar(passo, foco) {
+  [stepLogin, stepEsqueci, stepNovaSenha].forEach(s => s.classList.toggle('hidden', s !== passo));
   clearMsg();
+  if (foco) setTimeout(() => foco.focus(), 30);
 }
-function irParaEsqueci() {
-  stepLogin.classList.add('hidden');
-  stepEsqueci.classList.remove('hidden');
-  stepNovaSenha.classList.add('hidden');
-  clearMsg();
-}
-function irParaNovaSenha(email) {
-  emailParaRedefinir = email;
-  stepLogin.classList.add('hidden');
-  stepEsqueci.classList.add('hidden');
-  stepNovaSenha.classList.remove('hidden');
-  clearMsg();
+const irParaLogin = () => mostrar(stepLogin, $('email').value ? $('password') : $('email'));
+const irParaEsqueci = () => {
+  $('emailEsqueci').value = $('email').value.trim();
+  mostrar(stepEsqueci, $('emailEsqueci'));
+};
+const irParaNovaSenha = (email) => { emailParaRedefinir = email; mostrar(stepNovaSenha, $('novaSenha')); };
+
+$('linkEsqueciSenha').addEventListener('click', (e) => { e.preventDefault(); irParaEsqueci(); });
+$('linkVoltarLogin1').addEventListener('click', (e) => { e.preventDefault(); irParaLogin(); });
+$('linkVoltarLogin2').addEventListener('click', (e) => { e.preventDefault(); irParaLogin(); });
+
+const emailValido = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+
+/* ---- Sessão já aberta neste aparelho ---- */
+(function () {
+  const s = UI.sessao();
+  if (!s) return;
+  $('sessaoEmail').textContent = s.email || '';
+  $('sessaoAtiva').classList.remove('hidden');
+  $('btnContinuar').href = UI.destino(s);
+})();
+
+/* ---- Botões "Entrar com Google / Microsoft" ---- */
+UI.botoesSocial($('social'), 'Entrar');
+
+/* ---- Volta do login com Google / Microsoft (resultado vem no "#") ---- */
+window.addEventListener('hashchange', retornoSocial);
+retornoSocial();
+function retornoSocial() {
+  if (!location.hash || location.hash.length < 2) return;
+  const r = new URLSearchParams(location.hash.slice(1));
+  history.replaceState(null, '', location.pathname); // limpa o endereço
+  if (r.get('email')) { try { localStorage.setItem('ultimo_email', r.get('email')); } catch (e) {} }
+  if (r.get('token')) {
+    localStorage.setItem('session_token', r.get('token'));
+    const ir = r.get('ir') || '/';
+    // só aceita caminhos do próprio site
+    window.location.replace(/^\/(?!\/)[\w\-./]*$/.test(ir) ? ir : '/');
+    return;
+  }
+  if (r.get('erro')) setTimeout(() => showMsg(r.get('erro'), 'error'), 0);
+  else if (r.get('aviso')) setTimeout(() => showMsg(r.get('aviso'), 'ok'), 0);
 }
 
-document.getElementById('linkEsqueciSenha').addEventListener('click', (e) => { e.preventDefault(); irParaEsqueci(); });
-document.getElementById('linkVoltarLogin1').addEventListener('click', (e) => { e.preventDefault(); irParaLogin(); });
+/* ---- Lembra o último e-mail usado ---- */
+(function () {
+  let ultimo = '';
+  try { ultimo = localStorage.getItem('ultimo_email') || ''; } catch (e) {}
+  if (ultimo) { $('email').value = ultimo; $('password').focus(); }
+  else $('email').focus();
+})();
 
-document.getElementById('formLogin').addEventListener('submit', async (e) => {
+$('formLogin').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const email = document.getElementById('email').value.trim();
-  const password = document.getElementById('password').value;
-  const btn = document.getElementById('btnLogin');
-
-  btn.disabled = true; btn.textContent = 'Entrando...';
+  const email = $('email').value.trim();
+  const password = $('password').value;
   clearMsg();
+  if (!emailValido(email)) { showMsg('Digite um e-mail válido.', 'error'); $('email').focus(); return; }
+  if (!password) { showMsg('Digite sua senha.', 'error'); $('password').focus(); return; }
+
+  const fim = UI.busy($('btnLogin'), 'Entrando...');
+  let indo = false;
   try {
     const res = await fetch('/api/login', {
       method: 'POST',
@@ -114,6 +170,7 @@ document.getElementById('formLogin').addEventListener('submit', async (e) => {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Erro ao entrar');
+    try { localStorage.setItem('ultimo_email', email); } catch (e2) {}
 
     if (data.needsPasswordReset) {
       irParaNovaSenha(email);
@@ -122,21 +179,23 @@ document.getElementById('formLogin').addEventListener('submit', async (e) => {
     }
 
     localStorage.setItem('session_token', data.token);
+    indo = true;
     window.location.href = data.redirectUrl;
   } catch (err) {
-    showMsg(err.message, 'error');
+    showMsg(err.message === 'Failed to fetch' ? 'Sem conexão com o servidor. Verifique sua internet.' : err.message, 'error');
+    $('password').select();
   } finally {
-    btn.disabled = false; btn.textContent = 'Entrar';
+    if (!indo) fim();
   }
 });
 
-document.getElementById('formEsqueci').addEventListener('submit', async (e) => {
+$('formEsqueci').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const email = document.getElementById('emailEsqueci').value.trim();
-  const btn = document.getElementById('btnEsqueci');
-
-  btn.disabled = true; btn.textContent = 'Enviando...';
+  const email = $('emailEsqueci').value.trim();
   clearMsg();
+  if (!emailValido(email)) { showMsg('Digite um e-mail válido.', 'error'); $('emailEsqueci').focus(); return; }
+
+  const fim = UI.busy($('btnEsqueci'), 'Enviando...');
   try {
     const res = await fetch('/api/request-password-reset', {
       method: 'POST',
@@ -146,28 +205,29 @@ document.getElementById('formEsqueci').addEventListener('submit', async (e) => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Erro ao solicitar redefinição');
 
+    $('email').value = email;
     irParaLogin();
     showMsg(data.message, 'ok');
   } catch (err) {
     showMsg(err.message, 'error');
   } finally {
-    btn.disabled = false; btn.textContent = 'Solicitar redefinição';
+    fim();
   }
 });
 
-document.getElementById('formNovaSenha').addEventListener('submit', async (e) => {
+/* ---- Nova senha: força e conferência ---- */
+UI.pronto(() => UI.medidorSenha($('novaSenha'), $('confirmarNovaSenha'), $('medidorNova'), $('confereNova')));
+
+$('formNovaSenha').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const newPassword = document.getElementById('novaSenha').value;
-  const confirmPassword = document.getElementById('confirmarNovaSenha').value;
-  const btn = document.getElementById('btnNovaSenha');
-
-  if (newPassword !== confirmPassword) {
-    showMsg('As senhas não conferem.', 'error');
-    return;
-  }
-
-  btn.disabled = true; btn.textContent = 'Salvando...';
+  const newPassword = $('novaSenha').value;
+  const confirmPassword = $('confirmarNovaSenha').value;
   clearMsg();
+
+  if (newPassword.length < 6) { showMsg('A senha precisa ter pelo menos 6 caracteres.', 'error'); $('novaSenha').focus(); return; }
+  if (newPassword !== confirmPassword) { showMsg('As senhas não conferem.', 'error'); $('confirmarNovaSenha').focus(); return; }
+
+  const fim = UI.busy($('btnNovaSenha'), 'Salvando...');
   try {
     const res = await fetch('/api/reset-password', {
       method: 'POST',
@@ -177,13 +237,14 @@ document.getElementById('formNovaSenha').addEventListener('submit', async (e) =>
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Erro ao redefinir senha');
 
+    $('email').value = emailParaRedefinir;
+    $('password').value = '';
     irParaLogin();
-    document.getElementById('email').value = emailParaRedefinir;
     showMsg(data.message || 'Senha redefinida com sucesso! Faça login com a nova senha.', 'ok');
   } catch (err) {
     showMsg(err.message, 'error');
   } finally {
-    btn.disabled = false; btn.textContent = 'Salvar nova senha';
+    fim();
   }
 });
 </script>

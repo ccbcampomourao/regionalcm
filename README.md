@@ -143,3 +143,45 @@ não afeta o outro.
   (mais recentes primeiro) para escolher.
 - Só quem tem permissão de acesso àquela lista (ou é admin) consegue salvar/carregar os
   arquivos dela — a mesma regra de permissão que já protege a página em si.
+
+## Entrar com Google ou Microsoft (opcional)
+
+Os botões "Entrar com Google" e "Entrar com Microsoft" só aparecem depois que você
+configurar cada um. Dá para ativar só um deles. As regras são as mesmas do login com
+senha: o **e-mail** da conta Google/Microsoft é o que identifica a pessoa.
+
+- E-mail já cadastrado e liberado → entra direto.
+- E-mail novo → o cadastro é criado sozinho e aparece no painel admin (com a etiqueta
+  "via Google" / "via Microsoft") aguardando você liberar, como hoje.
+
+Em todos os passos abaixo, troque `SEU-SITE` pelo endereço do sistema
+(ex.: `listas.seudominio.com` ou `listas.xxxx.workers.dev`).
+
+### Google (uns 10 minutos)
+1. Acesse https://console.cloud.google.com e crie um projeto (ex.: "Listas CCB").
+2. Menu **APIs e serviços → Tela de permissão OAuth**: tipo **Externo**, preencha o nome
+   do app e seu e-mail, salve. Depois clique em **Publicar app** (senão só contas de teste entram).
+3. **APIs e serviços → Credenciais → Criar credenciais → ID do cliente OAuth**:
+   - Tipo: **Aplicativo da Web**
+   - URIs de redirecionamento autorizados: `https://SEU-SITE/api/oauth-callback`
+4. Copie o **ID do cliente** e a **Chave secreta do cliente**.
+
+### Microsoft — Outlook, Hotmail, Live (uns 10 minutos)
+1. Acesse https://entra.microsoft.com (ou portal.azure.com) → **Registros de aplicativo → Novo registro**.
+2. Tipos de conta: **Somente contas pessoais da Microsoft**.
+3. URI de redirecionamento: plataforma **Web**, `https://SEU-SITE/api/oauth-callback`. Registrar.
+4. Na página do app, copie o **ID do aplicativo (cliente)**.
+5. **Certificados e segredos → Novo segredo do cliente** → copie o **Valor** (aparece uma vez só).
+   Anote a data de validade: quando vencer, gere outro e atualize a variável.
+
+### Colocar as chaves no Cloudflare
+Em **Workers & Pages → listas → Settings → Variables and Secrets**, adicione como **Secret**:
+
+| Nome | Valor |
+|---|---|
+| `GOOGLE_CLIENT_ID` | ID do cliente do Google |
+| `GOOGLE_CLIENT_SECRET` | Chave secreta do Google |
+| `MICROSOFT_CLIENT_ID` | ID do aplicativo da Microsoft |
+| `MICROSOFT_CLIENT_SECRET` | Valor do segredo da Microsoft |
+
+Faça um novo deploy. Pronto: os botões aparecem no login e no cadastro.

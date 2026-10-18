@@ -1,0 +1,365 @@
+/* ============================================================
+   Refinamento visual das telas de edição (listas e calendários)
+
+   IMPORTANTE: este arquivo só mexe na "moldura" da tela de edição:
+   cabeçalho, fundo da página e o painel do formulário
+   (#formPanel / #form). Ele NÃO toca na pré-visualização
+   (#previewHost, #prevHost, iframe, .pg) nem na impressão/PDF —
+   tudo está dentro de @media screen, então nada aqui vale na hora
+   de imprimir.
+   ============================================================ */
+
+@media screen {
+
+  /* ---------- Fundo da página ---------- */
+  body{
+    background:
+      radial-gradient(1100px 620px at 100% -10%, #fbf7ef 0%, transparent 55%),
+      radial-gradient(900px 520px at -10% 110%, #ece4cf 0%, transparent 55%),
+      var(--bg, #f5f1e8);
+    background-attachment: fixed;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection{ background: rgba(201,154,85,.35); }
+
+  /* ---------- Cabeçalho ---------- */
+  body > header{
+    position: relative;
+    overflow: hidden;
+    display: block;
+    padding: 18px 210px 18px 86px;
+    min-height: 74px;
+    background:
+      linear-gradient(115deg, #15233a 0%, #22344f 55%, #2f4566 100%);
+    border-bottom: 3px solid transparent;
+    border-image: linear-gradient(90deg, #a97d3d, #e0bd84 50%, #a97d3d) 1;
+    box-shadow: 0 6px 24px -10px rgba(27,42,65,.55);
+  }
+  /* textura de pontinhos discreta no canto direito */
+  body > header::after{
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: radial-gradient(circle, rgba(255,255,255,.13) 1.3px, transparent 1.4px);
+    background-size: 20px 20px;
+    -webkit-mask-image: radial-gradient(520px 200px at 100% 0%, #000 0%, transparent 72%);
+            mask-image: radial-gradient(520px 200px at 100% 0%, #000 0%, transparent 72%);
+  }
+  /* selo com o logo da CCB */
+  body > header::before{
+    content: "";
+    position: absolute;
+    left: 22px;
+    top: 50%;
+    width: 50px;
+    height: 50px;
+    transform: translateY(-50%);
+    border-radius: 12px;
+    background: #fdfbf6 url("/assets/regionalcmlogo-sm.png") center / 84% auto no-repeat;
+    box-shadow: 0 0 0 1px rgba(255,255,255,.35), 0 8px 18px -8px rgba(0,0,0,.6);
+  }
+  body > header h1{
+    position: relative;
+    z-index: 1;
+    font-size: 20px;
+    line-height: 1.25;
+    letter-spacing: .005em;
+    text-wrap: balance;
+  }
+  body > header p{
+    position: relative;
+    z-index: 1;
+    margin-top: 5px;
+    max-width: 110ch;
+    color: #cfd8e5;
+    opacity: 1;
+    line-height: 1.45;
+  }
+
+  /* ---------- Painel do formulário ---------- */
+  #formPanel, #form{
+    border-color: #e6dec9;
+    border-radius: 16px;
+    box-shadow: 0 1px 2px rgba(27,42,65,.05), 0 18px 40px -22px rgba(27,42,65,.35);
+  }
+
+  /* Barra de ações */
+  #formPanel .toolbar, #form .bar{
+    padding: 10px;
+    margin-bottom: 14px;
+    background: linear-gradient(180deg, #fbf8f1, #f5efe1);
+    border: 1px solid #ebe3cf;
+    border-radius: 12px;
+    gap: 8px;
+  }
+
+  /* ---------- Botões (somente dentro do formulário) ---------- */
+  #formPanel button, #form button{
+    border-radius: 10px;
+    transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease, transform .08s ease, color .15s ease;
+  }
+  #formPanel button:hover, #form button:hover{
+    border-color: var(--brass-lt, #c99a55);
+    box-shadow: 0 4px 12px -6px rgba(27,42,65,.35);
+  }
+  #formPanel button:active, #form button:active{ transform: translateY(1px); box-shadow: none; }
+  #formPanel button:focus-visible, #form button:focus-visible{
+    outline: 2px solid var(--brass, #a97d3d);
+    outline-offset: 2px;
+  }
+
+  /* principal (Gerar PDF / Imprimir) */
+  #formPanel button.primary-action,
+  #formPanel button.primary,
+  #form button.primary{
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 8px 18px -10px rgba(27,42,65,.7), inset 0 1px 0 rgba(255,255,255,.18);
+  }
+  #formPanel button.primary-action{
+    background: linear-gradient(180deg, #d1a464, #a97d3d);
+    text-shadow: 0 1px 0 rgba(0,0,0,.15);
+  }
+  #formPanel button.primary-action:hover{
+    background: linear-gradient(180deg, #d8ad6f, #b0843f);
+    box-shadow: 0 10px 22px -10px rgba(169,125,61,.85), inset 0 1px 0 rgba(255,255,255,.2);
+  }
+  #formPanel button.primary, #form button.primary{
+    background: linear-gradient(180deg, #34496a, #1b2a41);
+  }
+  #formPanel button.primary:hover, #form button.primary:hover{
+    background: linear-gradient(180deg, #3d5478, #22344f);
+  }
+
+  /* perigo (Limpar tudo, remover) */
+  #formPanel button.danger, #form button.danger,
+  #formPanel .remove-btn{
+    background: #fff;
+    color: var(--accent, #b04b3c);
+    border-color: #e3b3a9;
+  }
+  #formPanel button.danger:hover, #form button.danger:hover,
+  #formPanel .remove-btn:hover{
+    background: #fbeae4;
+    border-color: var(--accent, #b04b3c);
+    box-shadow: 0 4px 12px -6px rgba(176,75,60,.45);
+  }
+
+  /* ---------- Aviso ---------- */
+  #formPanel .note{
+    position: relative;
+    padding: 10px 12px 10px 40px;
+    border: 1px solid #ecd49a;
+    border-left: 4px solid var(--brass, #a97d3d);
+    border-radius: 10px;
+    background: linear-gradient(180deg, #fdf6e4, #fbf0d6);
+    color: #5e4612;
+    line-height: 1.5;
+  }
+  #formPanel .note::before{
+    content: "i";
+    position: absolute;
+    left: 12px;
+    top: 10px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--brass, #a97d3d);
+    color: #fff;
+    font: italic 700 12px/18px Georgia, serif;
+    text-align: center;
+  }
+
+  /* ---------- Campos ---------- */
+  #formPanel input[type=text], #formPanel input[type=date], #formPanel input[type=time],
+  #formPanel input[type=number], #formPanel select, #formPanel textarea,
+  #form input:not([type=checkbox]):not([type=radio]), #form select, #form textarea{
+    background-color: #fffdf8;
+    border-color: #e2d9c4;
+    transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
+  }
+  #formPanel input[type=text]:hover, #formPanel input[type=date]:hover, #formPanel input[type=time]:hover,
+  #formPanel input[type=number]:hover, #formPanel select:hover, #formPanel textarea:hover,
+  #form input:not([type=checkbox]):not([type=radio]):hover, #form select:hover, #form textarea:hover{
+    border-color: #d3c4a2;
+  }
+  #formPanel input:focus, #formPanel select:focus, #formPanel textarea:focus,
+  #form input:focus, #form select:focus, #form textarea:focus{
+    outline: none;
+    background-color: #fff;
+    border-color: var(--brass, #a97d3d);
+    box-shadow: 0 0 0 3.5px rgba(169,125,61,.17);
+  }
+  /* campos travados (somente leitura) */
+  #formPanel input[readonly]{
+    background: repeating-linear-gradient(135deg, #f4f0e6 0 8px, #f0ebdf 8px 16px) !important;
+    color: #5f5a4c;
+    cursor: not-allowed;
+  }
+  #formPanel input::placeholder, #form input::placeholder, #formPanel textarea::placeholder{ color: #aaa18c; }
+  #formPanel input[type=checkbox], #form input[type=checkbox], #form input[type=radio]{
+    accent-color: var(--primary-2, #2c3f5c);
+    cursor: pointer;
+  }
+  #formPanel label, #form label{ color: #34476a; }
+
+  /* ---------- Seções (janelas recolhíveis) ---------- */
+  #formPanel .section{
+    background: #fff;
+    border-color: #e6dec9;
+    border-radius: 13px;
+    box-shadow: 0 1px 2px rgba(27,42,65,.04);
+  }
+  #formPanel .section:hover{ box-shadow: 0 6px 18px -12px rgba(27,42,65,.35); }
+  #formPanel .section.open{
+    border-color: #dccba5;
+    box-shadow: inset 3px 0 0 var(--brass, #a97d3d), 0 8px 22px -16px rgba(27,42,65,.4);
+  }
+  #formPanel .section-head{
+    background: linear-gradient(180deg, #fbf8f0, #f3ecdc);
+  }
+  #formPanel .section.open > .section-head{ border-bottom: 1px solid #ebe2cd; }
+  #formPanel .section-head h3{ letter-spacing: .005em; }
+  #formPanel .drag-handle{ border-radius: 6px; transition: color .15s, background-color .15s; }
+  #formPanel .drag-handle:hover{ color: var(--brass, #a97d3d); background: #f3ecdb; }
+
+  /* ---------- Itens dentro das seções ---------- */
+  #formPanel .entry{ border-color: #e6dec9; background: #fdfbf6; }
+  #formPanel .entry.open{
+    border-color: #d8c49a;
+    box-shadow: 0 6px 16px -12px rgba(27,42,65,.45);
+  }
+  #formPanel .entry-head{ background: linear-gradient(180deg, #f7f3e7, #f1ebda); }
+  #formPanel .entry-summary-date{
+    background: linear-gradient(180deg, #34496a, #22344f);
+    box-shadow: 0 2px 6px -3px rgba(27,42,65,.6);
+  }
+  #formPanel .city-group-header{
+    background: linear-gradient(90deg, #1b2a41, #2c3f5c);
+    border-left: 4px solid var(--brass, #a97d3d);
+    border-radius: 8px;
+  }
+  #formPanel .listgroup{ border-color: #ebe3cf; background: #fffdf8; }
+
+  /* ---------- "Adicionar seção" ---------- */
+  #formPanel .add-section-types{
+    position: relative;
+    padding: 30px 12px 12px;
+    background: linear-gradient(180deg, #fbf8f1, #f6f1e4);
+    border: 1.5px dashed #dccfae;
+    border-radius: 13px;
+  }
+  #formPanel .add-section-types::before{
+    content: "Adicionar seção";
+    position: absolute;
+    top: 9px;
+    left: 13px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--brass, #a97d3d);
+  }
+  /* telas que já têm um título próprio logo acima ("Adicionar tabela") */
+  #formPanel label + .add-section-types{ padding-top: 12px; }
+  #formPanel label + .add-section-types::before{ content: none; }
+  #formPanel .add-section-types button{ border-radius: 999px; }
+  #formPanel .add-section-types button:hover{
+    background: var(--primary, #1b2a41);
+    border-color: var(--primary, #1b2a41);
+    color: #fdfbf6;
+  }
+
+  /* ---------- Calendário de reuniões: meses e dias ---------- */
+  #form .meses button{ border-radius: 999px; }
+  #form .meses button.on{
+    background: linear-gradient(180deg, #34496a, #1b2a41);
+    border-color: transparent;
+    box-shadow: 0 6px 14px -8px rgba(27,42,65,.7);
+  }
+  #form .win{ border-color: #e6dec9; border-radius: 13px; }
+  #form .win.open{ box-shadow: 0 8px 22px -16px rgba(27,42,65,.4); }
+
+  /* ---------- Rolagem ---------- */
+  html{ scrollbar-color: #c9bb98 transparent; }
+  body::-webkit-scrollbar{ width: 11px; }
+  body::-webkit-scrollbar-thumb{ background: #cdbf9d; border-radius: 10px; border: 3px solid #f5f1e8; }
+  body::-webkit-scrollbar-thumb:hover{ background: #b8a476; }
+
+  /* ---------- Telas largas (computador) ---------- */
+  @media (min-width: 981px){
+    #formPanel label, #form label{
+      font-size: 12.5px;
+      letter-spacing: .01em;
+      margin-bottom: 4px;
+    }
+    /* barra de ações fica sempre à mão ao rolar a página */
+    #formPanel .toolbar, #form .bar{
+      position: sticky;
+      top: 10px;
+      z-index: 20;
+      background: rgba(250,246,236,.9);
+      -webkit-backdrop-filter: saturate(1.4) blur(8px);
+              backdrop-filter: saturate(1.4) blur(8px);
+      box-shadow: 0 10px 24px -18px rgba(27,42,65,.55);
+    }
+  }
+
+  /* ---------- Celular / tablet ---------- */
+  @media (max-width: 980px){
+    /* os botões "Voltar / Sair" ficam fixos no canto: abre espaço pra eles */
+    body > header{
+      padding: 64px 16px 16px 16px !important;
+      min-height: 0;
+    }
+    body > header::before{
+      top: 12px;
+      left: 14px;
+      width: 38px;
+      height: 38px;
+      transform: none;
+      border-radius: 10px;
+    }
+    body > header h1{ font-size: 16.5px; }
+  }
+
+  @media (max-width: 480px){
+    /* Ações em duas colunas: o botão principal ocupa a linha inteira */
+    #formPanel .toolbar button{ flex: 1 1 calc(50% - 5px); }
+    #formPanel .toolbar button.primary-action,
+    #formPanel .toolbar button.primary,
+    #formPanel .toolbar button.danger{ flex: 1 1 100%; }
+  }
+
+  /* ---------- Ícones SVG nos controles ---------- */
+  .topnav-btn{ display: inline-flex !important; align-items: center; gap: 7px; }
+  .topnav-btn svg.ic{ width: 16px; height: 16px; margin: 0 !important; }
+  #formPanel .toolbar button svg.ic, #form .bar button svg.ic{ width: 17px; height: 17px; }
+  #formPanel .drag-handle, #form .dg{ display: inline-flex; align-items: center; justify-content: center; }
+  #formPanel .drag-handle svg.ic{ width: 18px; height: 18px; }
+  #formPanel .section-caret, #formPanel .entry-caret, #formPanel .toggle-chevron,
+  #form .caret, #form .entc-caret{ display: inline-flex; align-items: center; justify-content: center; line-height: 0; }
+  #formPanel .section-caret svg.ic{ width: 15px; height: 15px; }
+  #formPanel .entry-caret svg.ic, #form .entc-caret svg.ic{ width: 14px; height: 14px; color: var(--brass, #a97d3d); }
+  #formPanel .toggle-chevron svg.ic{ width: 15px; height: 15px; }
+  #formPanel button.small:has(> svg.ic:only-child),
+  #formPanel .listitem button:has(> svg.ic:only-child){ min-width: 30px; }
+  .mobile-preview-fab svg.ic{ width: 19px; height: 19px; margin: 0 !important; }
+  .swipe-hint svg.ic{ width: 14px; height: 14px; vertical-align: -2px; }
+  /* calendário de reuniões: setinha dos convocados desenhada em CSS */
+  #form .cvd summary::before{
+    content: "";
+    width: 6px; height: 6px;
+    border-right: 2px solid var(--brass, #a97d3d);
+    border-bottom: 2px solid var(--brass, #a97d3d);
+    transform: rotate(-45deg);
+    margin: 0 3px 0 1px;
+    transition: transform .15s ease;
+  }
+  #form .cvd[open] summary::before{ content: ""; transform: rotate(45deg); }
+
+  @media (prefers-reduced-motion: reduce){
+    #formPanel *, #form *{ transition: none !important; animation: none !important; }
+  }
+}

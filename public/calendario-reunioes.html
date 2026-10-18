@@ -20,13 +20,13 @@
         if (data.role === 'admin' || lists.length > 1) {
           var backBtn = document.createElement('a');
           backBtn.href = data.role === 'admin' ? '/admin-listas.html' : '/minhas-listas.html';
-          backBtn.textContent = '\u2190 Voltar';
+          backBtn.innerHTML = '<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-arrow-left"></use></svg>Voltar'; backBtn.className = 'topnav-btn';
           backBtn.style.cssText = 'background:#fff; color:#1b2a41; text-decoration:none; padding:8px 16px; border-radius:9px; font-size:13px; font-weight:600; font-family:Inter, Arial, Helvetica, sans-serif; border:1.5px solid #e4dcc9; box-shadow:0 4px 10px -4px rgba(27,42,65,.3);';
           bar.appendChild(backBtn);
         }
         var sairBtn = document.createElement('a');
         sairBtn.href = '#';
-        sairBtn.textContent = 'Sair';
+        sairBtn.innerHTML = '<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-logout"></use></svg>Sair'; sairBtn.className = 'topnav-btn';
         sairBtn.style.cssText = 'background:linear-gradient(180deg,#2c3f5c,#1b2a41); color:#fdfbf6; text-decoration:none; padding:8px 16px; border-radius:9px; font-size:13px; font-weight:600; font-family:Inter, Arial, Helvetica, sans-serif; box-shadow:0 6px 16px -6px rgba(27,42,65,.5);';
         sairBtn.onclick = function (e) {
           e.preventDefault();
@@ -156,7 +156,7 @@ textarea{width:100%;border:1.5px solid var(--line);border-radius:8px;padding:8px
 .info{font-size:10pt;line-height:1.45;white-space:normal}
 .cvd{border:1px solid var(--line);border-radius:8px;margin:0 0 9px;background:#faf8f2}
 .cvd summary{cursor:pointer;padding:6px 10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;list-style:none}
-.cvd summary::-webkit-details-marker{display:none}.cvd summary::before{content:'▸';color:var(--brass)}.cvd[open] summary::before{content:'▾'}
+.cvd summary::-webkit-details-marker{display:none}.cvd summary::before{content:'';display:inline-block;color:var(--brass)}.cvd[open] summary::before{content:''}
 .cvd summary b{color:var(--primary-2)}.sel{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
 .cc2{background:#262626;color:#fff;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:600}.nenhum{opacity:.55;font-style:italic}.oo{font-size:11px}
 .cvp{padding:8px 10px 10px;border-top:1px solid var(--line)}.grp{font-size:11px;font-weight:700;color:var(--brass);margin:2px 0 5px}
@@ -187,6 +187,9 @@ textarea{width:100%;border:1.5px solid var(--line);border-radius:8px;padding:8px
 @media print{html,body{margin:0!important;padding:0!important;background:#fff;height:auto}:root{padding:0!important}body>*:not(#print){display:none!important}#print{display:block}#print .pg{box-shadow:none;break-after:page;break-inside:avoid;zoom:1;width:210mm;height:296.4mm;max-height:296.4mm;overflow:hidden}#print .pg:last-child{break-after:auto}}
 #print.medindo{display:block;position:absolute;left:-99999px;top:0}
 </style>
+<link rel="stylesheet" href="/assets/ui.css">
+<link rel="stylesheet" href="/assets/editor.css">
+<script src="/assets/ui.js"></script>
 </head>
 <body>
 <header>
@@ -196,13 +199,13 @@ textarea{width:100%;border:1.5px solid var(--line);border-radius:8px;padding:8px
 <div class="wrap">
   <div class="panel" id="form">
     <div class="bar">
-      <button class="primary" onclick="imprimir()">Imprimir / salvar PDF (capa + 12 meses)</button>
-      <button id="btnListaSalvar" onclick="salvarLista()">☁️ Salvar na nuvem</button>
-      <button id="btnListaCarregar" onclick="carregarLista()">☁️ Carregar da nuvem</button>
-      <button onclick="exportar()">Salvar backup</button>
-      <button onclick="document.getElementById('imp').click()">Carregar backup</button>
+      <button class="primary" onclick="imprimir()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-print"></use></svg>Imprimir / salvar PDF (capa + 12 meses)</button>
+      <button id="btnListaSalvar" onclick="salvarLista()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-cloud-up"></use></svg>Salvar na nuvem</button>
+      <button id="btnListaCarregar" onclick="carregarLista()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-cloud-down"></use></svg>Carregar da nuvem</button>
+      <button onclick="exportar()" title="Baixa um arquivo .json com tudo"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-download"></use></svg>Baixar backup</button>
+      <button onclick="document.getElementById('imp').click()" title="Abre um arquivo .json baixado antes"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-upload"></use></svg>Abrir backup</button>
       <input type="file" id="imp" accept=".json" style="display:none" onchange="importar(event)">
-      <button class="danger" onclick="if(confirm('Apagar todos os serviços?')){S.dias={};salvar();montar()}">Limpar tudo</button>
+      <button class="danger" onclick="if(confirm('Apagar todos os serviços?')){S.dias={};salvar();montar()}"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-trash"></use></svg>Limpar tudo</button>
     </div>
     <div class="meta">
       <div><label>Igreja / órgão</label><input id="m_org" oninput="meta('org',this.value)"></div>
@@ -322,7 +325,7 @@ function montar(){
   const y=+S.meta.ano,n=new Date(y,cur+1,0).getDate(),fer=feriados(y);let h='';
   for(let d=1;d<=n;d++){
     const w=new Date(y,cur,d).getDay(),k=kk(cur,d),es=S.dias[k]||[],ab=!!aDia[k];
-    h+=`<div class="win${ab?' open':''}${w==0?' dom':''}${fer[k]?' fer':''}${es.length?' tem':''}" ondragover="dgOver(event,this)" ondragleave="dgLeave(event,this)" ondrop="dgDrop(event,'${k}')"><div class="win-head" role="button" tabindex="0" aria-expanded="${ab}" onclick="togDia('${k}',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();togDia('${k}',this)}"><div class="wh-l"><span class="caret">▸</span><span class="wd">${d}</span><span class="ws">${SEM[w].charAt(0)+SEM[w].slice(1).toLowerCase()}</span>${fer[k]?`<span class="wf">${esc(fer[k])}</span>`:''}</div><div class="wh-r">${resumoHead(es)}</div></div><div class="win-body">${es.map((e,i)=>entHTML(k,i,e)).join('')}<button class="add" onclick="novo('${k}')">+ serviço</button></div></div>`;
+    h+=`<div class="win${ab?' open':''}${w==0?' dom':''}${fer[k]?' fer':''}${es.length?' tem':''}" ondragover="dgOver(event,this)" ondragleave="dgLeave(event,this)" ondrop="dgDrop(event,'${k}')"><div class="win-head" role="button" tabindex="0" aria-expanded="${ab}" onclick="togDia('${k}',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();togDia('${k}',this)}"><div class="wh-l"><span class="caret"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-chevron-right"></use></svg></span><span class="wd">${d}</span><span class="ws">${SEM[w].charAt(0)+SEM[w].slice(1).toLowerCase()}</span>${fer[k]?`<span class="wf">${esc(fer[k])}</span>`:''}</div><div class="wh-r">${resumoHead(es)}</div></div><div class="win-body">${es.map((e,i)=>entHTML(k,i,e)).join('')}<button class="add" onclick="novo('${k}')">+ serviço</button></div></div>`;
   }
   box.innerHTML=`<div class="bar2"><button onclick="tudo('d',1)">Recolher dias</button><button onclick="tudo('d',0)">Expandir dias</button><button onclick="tudo('e',1)">Recolher reuniões</button><button onclick="tudo('e',0)">Expandir reuniões</button></div>`+h;preview();
 }
@@ -354,8 +357,8 @@ function resumoHead(es){
   return `<span class="rl">${sh}${es.length>2?`<span class="mais">+${es.length-2}</span>`:''}</span><span class="qtd">${es.length}</span>`}
 function entHTML(k,i,e){
   const id=k+'#'+i;
-  if(fEnt[id])return `<div class="entc" onclick="togEnt('${id}')" title="Expandir"><span class="dg" draggable="true" title="Arraste para outro dia" onclick="event.stopPropagation()" ondragstart="dgStart(event,'${k}',${i})" ondragend="dgEnd()">⠿</span><span>▸</span><u style="background:${TIPOS[e.t][1]}"></u><span>${esc(hr(e.h))} ${esc(e.x)||'(sem descrição)'} ${esc((e.c||[]).map(c=>'*'+c).join(' '))}</span></div>`;
-  return `<div class="entw"><div class="ent"><span class="dg" draggable="true" title="Arraste para outro dia" ondragstart="dgStart(event,'${k}',${i})" ondragend="dgEnd()">⠿</span><button class="tg" title="Minimizar" onclick="togEnt('${id}')">▾</button><select onchange="edit('${k}',${i},'t',this.value)">${Object.entries(TIPOS).map(([v,t])=>`<option value="${v}"${e.t==v?' selected':''}>${t[0]}</option>`).join('')}</select><input value="${esc(e.h)}" placeholder="1930" inputmode="numeric" oninput="horaInput(this,'${k}',${i})" onblur="horaBlur(this,'${k}',${i})"><input class="tx" value="${esc(e.x)}" placeholder="Descrição do serviço" oninput="edit('${k}',${i},'x',this.value,1)"><button title="Repetir no mesmo dia da semana (mesma posição no mês) em todos os outros meses" onclick="repetir('${k}',${i})">↻</button><button title="Repetir a cada 2 meses (pula 1 mês), no mesmo dia da semana e na mesma posição no mês" onclick="repetir('${k}',${i},2)">↻ 2</button><button class="danger" title="Remover" onclick="remover('${k}',${i})">×</button></div><div class="atin"><input value="${esc(e.a||'')}" placeholder="Quem atende (opcional) – ex.: Ir. Carlos Roberto" oninput="edit('${k}',${i},'a',this.value)"></div>${cvEd(k,i,e)}</div>`}
+  if(fEnt[id])return `<div class="entc" onclick="togEnt('${id}')" title="Expandir"><span class="dg" draggable="true" title="Arraste para outro dia" onclick="event.stopPropagation()" ondragstart="dgStart(event,'${k}',${i})" ondragend="dgEnd()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-grip"></use></svg></span><span class="entc-caret"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-chevron-right"></use></svg></span><u style="background:${TIPOS[e.t][1]}"></u><span>${esc(hr(e.h))} ${esc(e.x)||'(sem descrição)'} ${esc((e.c||[]).map(c=>'*'+c).join(' '))}</span></div>`;
+  return `<div class="entw"><div class="ent"><span class="dg" draggable="true" title="Arraste para outro dia" ondragstart="dgStart(event,'${k}',${i})" ondragend="dgEnd()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-grip"></use></svg></span><button class="tg" title="Minimizar" onclick="togEnt('${id}')"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-chevron-down"></use></svg></button><select onchange="edit('${k}',${i},'t',this.value)">${Object.entries(TIPOS).map(([v,t])=>`<option value="${v}"${e.t==v?' selected':''}>${t[0]}</option>`).join('')}</select><input value="${esc(e.h)}" placeholder="1930" inputmode="numeric" oninput="horaInput(this,'${k}',${i})" onblur="horaBlur(this,'${k}',${i})"><input class="tx" value="${esc(e.x)}" placeholder="Descrição do serviço" oninput="edit('${k}',${i},'x',this.value,1)"><button title="Repetir no mesmo dia da semana (mesma posição no mês) em todos os outros meses" onclick="repetir('${k}',${i})"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-refresh"></use></svg></button><button title="Repetir a cada 2 meses (pula 1 mês), no mesmo dia da semana e na mesma posição no mês" onclick="repetir('${k}',${i},2)"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-refresh"></use></svg>2</button><button class="danger" title="Remover" onclick="remover('${k}',${i})"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-x"></use></svg></button></div><div class="atin"><input value="${esc(e.a||'')}" placeholder="Quem atende (opcional) – ex.: Ir. Carlos Roberto" oninput="edit('${k}',${i},'a',this.value)"></div>${cvEd(k,i,e)}</div>`}
 const fCv={};
 function cvSum(e){const c=e.c||[];const t=c.map(code=>{const g=S.cargos.find(x=>x.code==code);return `<span class="cc2">${g&&g.useAsterisk===false?'':'*'}${esc(code)}</span>`}).join('')+(e.o?`<em class="oo">${esc(e.o)}</em>`:'');return t||'<span class="nenhum">nenhum selecionado</span>'}
 function cvOpt(k,i,e,g,ci){return `<label class="opt" title="${esc(g.label)}"><input type="checkbox" ${(e.c||[]).includes(g.code)?'checked':''} onchange="cvTog('${k}',${i},${ci},this.checked)"><span>${g.useAsterisk!==false?'*':''}${esc(g.code)}</span></label>`}
@@ -366,7 +369,7 @@ function cvEd(k,i,e){
 function cvUp(k,i){const el=document.getElementById('cv_'+k+'_'+i);if(el)el.innerHTML=cvSum(S.dias[k][i]);preview()}
 function cvTog(k,i,ci,on){const e=S.dias[k][i],c=e.c=e.c||[],code=S.cargos[ci].code,p=c.indexOf(code);if(on&&p<0)c.push(code);if(!on&&p>=0)c.splice(p,1);salvar();cvUp(k,i)}
 function cvTxt(k,i,v){S.dias[k][i].o=v;salvar();cvUp(k,i)}
-function cargosEditor(){return `<label style="margin-top:14px">Informações na legenda (opcional — só aparece se você escrever)</label><textarea rows="4" placeholder="Ex.: avisos, observações gerais..." oninput="meta('info',this.value)">${esc(S.meta.info||'')}</textarea>`+`<h3 style="margin:16px 0 4px;font-size:14px;color:var(--primary)">Cargos e Ministérios</h3><p style="font-size:12px;color:#7a7466;margin:0 0 8px">Siglas disponíveis ao lançar um serviço. 1ª caixa: mostra na legenda · 2ª caixa: coloca * na frente.</p>`+S.cargos.map((g,i)=>`<div class="cg"><input value="${esc(g.code)}" oninput="cg(${i},'code',this.value)"><input value="${esc(g.label)}" oninput="cg(${i},'label',this.value)"><input type="checkbox" title="Mostrar na legenda" ${g.showInLegend!==false?'checked':''} onchange="cg(${i},'showInLegend',this.checked)"><input type="checkbox" title="Asterisco" ${g.useAsterisk!==false?'checked':''} onchange="cg(${i},'useAsterisk',this.checked)"><button class="danger" onclick="cgDel(${i})">×</button></div>`).join('')+`<button onclick="cgAdd()">+ cargo</button>`}
+function cargosEditor(){return `<label style="margin-top:14px">Informações na legenda (opcional — só aparece se você escrever)</label><textarea rows="4" placeholder="Ex.: avisos, observações gerais..." oninput="meta('info',this.value)">${esc(S.meta.info||'')}</textarea>`+`<h3 style="margin:16px 0 4px;font-size:14px;color:var(--primary)">Cargos e Ministérios</h3><p style="font-size:12px;color:#7a7466;margin:0 0 8px">Siglas disponíveis ao lançar um serviço. 1ª caixa: mostra na legenda · 2ª caixa: coloca * na frente.</p>`+S.cargos.map((g,i)=>`<div class="cg"><input value="${esc(g.code)}" oninput="cg(${i},'code',this.value)"><input value="${esc(g.label)}" oninput="cg(${i},'label',this.value)"><input type="checkbox" title="Mostrar na legenda" ${g.showInLegend!==false?'checked':''} onchange="cg(${i},'showInLegend',this.checked)"><input type="checkbox" title="Asterisco" ${g.useAsterisk!==false?'checked':''} onchange="cg(${i},'useAsterisk',this.checked)"><button class="danger" onclick="cgDel(${i})" title="Remover"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-x"></use></svg></button></div>`).join('')+`<button onclick="cgAdd()">+ cargo</button>`}
 function cg(i,f,v){S.cargos[i][f]=v;salvar();preview()}
 function cgDel(i){S.cargos.splice(i,1);salvar();montar()}
 function cgAdd(){S.cargos.push({code:'Nova',label:'NOVO CARGO',showInLegend:true,useAsterisk:true});salvar();montar()}
@@ -416,92 +419,20 @@ function importar(ev){const f=ev.target.files[0];if(!f)return;const r=new FileRe
 window.addEventListener('resize',preview);
 montar();
 </script>
+<script src="/assets/editor.js"></script>
 <script>
-(function () {
-  var REGIAO = 'calendarioanual';
-  function tokenAtual() { return localStorage.getItem('session_token'); }
-  function sugerirNome() { return 'calendario_reunioes_' + S.meta.ano; }
-
-  window.salvarLista = async function () {
-    var btn = document.getElementById('btnListaSalvar');
-    var nome = prompt('Nome para salvar este calendário:', sugerirNome());
-    if (nome === null) return;
-    if (btn) { btn.disabled = true; btn.textContent = '☁️ Salvando...'; }
-    try {
-      salvar();
-      var res = await fetch('/api/lista-save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: tokenAtual(), regiao: REGIAO, nome: nome, conteudo: JSON.stringify(S, null, 2) })
-      });
-      var data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Erro ao salvar');
-      alert('Calendário salvo como: ' + data.nomeArquivo);
-    } catch (e) {
-      alert('Erro ao salvar: ' + e.message);
-    } finally {
-      if (btn) { btn.disabled = false; btn.textContent = '☁️ Salvar na nuvem'; }
-    }
-  };
-
-  window.carregarLista = async function () {
-    var btn = document.getElementById('btnListaCarregar');
-    if (btn) { btn.disabled = true; btn.textContent = '☁️ Carregando...'; }
-    try {
-      var res = await fetch('/api/lista-list', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: tokenAtual(), regiao: REGIAO })
-      });
-      var data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Erro ao listar arquivos');
-      if (!data.arquivos.length) { alert('Ainda não existe nenhum calendário salvo.'); return; }
-      seletor(data.arquivos);
-    } catch (e) {
-      alert('Erro ao acessar os calendários salvos: ' + e.message);
-    } finally {
-      if (btn) { btn.disabled = false; btn.textContent = '☁️ Carregar da nuvem'; }
-    }
-  };
-
-  function seletor(arquivos) {
-    var overlay = document.createElement('div');
-    overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:99999; display:flex; align-items:center; justify-content:center;';
-    var box = document.createElement('div');
-    box.style.cssText = 'background:#fff; border-radius:10px; padding:20px; width:340px; max-height:70vh; overflow:auto;';
-    box.innerHTML = '<h3 style="margin:0 0 12px; font-size:16px;">Escolha o arquivo</h3>';
-    arquivos.forEach(function (f) {
-      var item = document.createElement('button');
-      item.textContent = f.nome + (f.modificado ? '  ·  ' + new Date(f.modificado).toLocaleDateString('pt-BR') : '');
-      item.style.cssText = 'display:block; width:100%; text-align:left; margin-bottom:6px;';
-      item.onclick = async function () {
-        overlay.remove();
-        try {
-          var res = await fetch('/api/lista-load', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: tokenAtual(), regiao: REGIAO, nome: f.nome })
-          });
-          var data = await res.json();
-          if (!res.ok) throw new Error(data.error || 'Erro ao carregar');
-          var novo = JSON.parse(data.conteudo);
-          if (!novo.cargos) novo.cargos = JSON.parse(JSON.stringify(CARGOS));
-          S = novo; salvar(); montar();
-        } catch (e) {
-          alert('Erro ao carregar arquivo: ' + e.message);
-        }
-      };
-      box.appendChild(item);
-    });
-    var cancelar = document.createElement('button');
-    cancelar.textContent = 'Cancelar';
-    cancelar.style.cssText = 'display:block; width:100%; text-align:center; margin-top:6px;';
-    cancelar.onclick = function () { overlay.remove(); };
-    box.appendChild(cancelar);
-    overlay.appendChild(box);
-    document.body.appendChild(overlay);
+/* Salvar / carregar na nuvem: lógica em /assets/editor.js */
+Nuvem.configurar({
+  regiao: 'calendarioanual',
+  tipo: 'calendario',
+  sugerirNome: function () { return 'calendario_reunioes_' + S.meta.ano; },
+  conteudo: function () { salvar(); return JSON.stringify(S, null, 2); },
+  aplicar: function (texto) {
+    var novo = JSON.parse(texto);
+    if (!novo.cargos) novo.cargos = JSON.parse(JSON.stringify(CARGOS));
+    S = novo; salvar(); montar();
   }
-})();
+});
 </script>
 </body>
 </html>

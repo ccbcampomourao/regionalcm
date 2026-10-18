@@ -21,14 +21,14 @@
         if (data.role === 'admin' || lists.length > 1) {
           var backBtn = document.createElement('a');
           backBtn.href = data.role === 'admin' ? '/admin-listas.html' : '/minhas-listas.html';
-          backBtn.textContent = '← Voltar';
+          backBtn.innerHTML = '<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-arrow-left"></use></svg>Voltar'; backBtn.className = 'topnav-btn';
           backBtn.style.cssText = 'background:#fff; color:#1b2a41; text-decoration:none; padding:8px 16px; border-radius:9px; font-size:13px; font-weight:600; font-family:Inter, Arial, Helvetica, sans-serif; border:1.5px solid #e4dcc9; box-shadow:0 4px 10px -4px rgba(27,42,65,.3);';
           bar.appendChild(backBtn);
         }
 
         var sairBtn = document.createElement('a');
         sairBtn.href = '#';
-        sairBtn.textContent = 'Sair';
+        sairBtn.innerHTML = '<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-logout"></use></svg>Sair'; sairBtn.className = 'topnav-btn';
         sairBtn.style.cssText = 'background:linear-gradient(180deg,#2c3f5c,#1b2a41); color:#fdfbf6; text-decoration:none; padding:8px 16px; border-radius:9px; font-size:13px; font-weight:600; font-family:Inter, Arial, Helvetica, sans-serif; box-shadow:0 6px 16px -6px rgba(27,42,65,.5);';
         sairBtn.onclick = function (e) {
           e.preventDefault();
@@ -108,6 +108,9 @@
 
   @media (max-width:980px){ .wrap{flex-direction:column;} #previewHost{position:static; height:auto; min-width:100%;} }
 </style>
+<link rel="stylesheet" href="/assets/ui.css">
+<link rel="stylesheet" href="/assets/editor.css">
+<script src="/assets/ui.js"></script>
 </head>
 <body>
 <header>
@@ -118,13 +121,13 @@
 <div class="wrap">
   <div class="panel" id="formPanel">
     <div class="toolbar">
-      <button class="primary" onclick="gerarPDF()">🖨️ Imprimir / PDF</button>
-      <button onclick="exportJSON()">⬇️ Salvar Backup (.json)</button>
-      <button onclick="document.getElementById('importInput').click()">⬆️ Carregar Backup</button>
+      <button class="primary" onclick="gerarPDF()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-print"></use></svg>Imprimir / PDF</button>
+      <button onclick="exportJSON()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-download"></use></svg>Baixar backup</button>
+      <button onclick="document.getElementById('importInput').click()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-upload"></use></svg>Abrir backup</button>
       <input type="file" id="importInput" accept=".json" style="display:none" onchange="importJSON(event)">
-      <button id="btnListaSalvar" onclick="salvarLista()">☁️ Salvar</button>
-      <button id="btnListaCarregar" onclick="carregarLista()">☁️ Carregar</button>
-      <button class="danger" onclick="if(confirm('Limpar tudo?')) resetAll()">🗑️ Limpar Tudo</button>
+      <button id="btnListaSalvar" onclick="salvarLista()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-cloud-up"></use></svg>Salvar na nuvem</button>
+      <button id="btnListaCarregar" onclick="carregarLista()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-cloud-down"></use></svg>Carregar da nuvem</button>
+      <button class="danger" onclick="if(confirm('Limpar tudo?')) resetAll()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-trash"></use></svg>Limpar tudo</button>
     </div>
 
     <div class="row-grid" style="grid-template-columns: 2fr 1fr 1fr;">
@@ -256,14 +259,14 @@ function renderSecoes() {
 
     const titleWrap = document.createElement('div');
     titleWrap.style.cssText = 'display:flex; gap:8px; align-items:center; flex:1;';
-    titleWrap.innerHTML = `<span class="drag-handle" title="Arraste para reordenar">☰</span><b id="rotulo-secao-${sIdx}">${sIdx + 1}. ${rotuloSecao(secao).toUpperCase()}</b>`;
+    titleWrap.innerHTML = `<span class="drag-handle" title="Arraste para reordenar"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-grip"></use></svg></span><b id="rotulo-secao-${sIdx}">${sIdx + 1}. ${rotuloSecao(secao).toUpperCase()}</b>`;
 
     const controls = document.createElement('div');
     controls.style.cssText = 'display:flex; gap:4px; align-items:center;';
 
     const toggleBtn = document.createElement('span');
     toggleBtn.className = 'toggle-chevron';
-    toggleBtn.textContent = '▸';
+    toggleBtn.innerHTML = '<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-chevron-right"></use></svg>';
     toggleBtn.title = 'Mostrar/ocultar';
     toggleBtn.onclick = () => { secao.isOpen = !secao.isOpen; renderSecoes(); saveData(); };
     controls.appendChild(toggleBtn);
@@ -337,7 +340,7 @@ function renderSecoes() {
       });
       sPeriodicidade.onchange = (e) => { loc.periodicidade = e.target.value; updatePreview(); saveData(); };
 
-      const rm = document.createElement('button'); rm.className = 'danger'; rm.textContent = '✕';
+      const rm = document.createElement('button'); rm.className = 'danger'; rm.innerHTML = '<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-x"></use></svg>'; rm.title = 'Remover';
       rm.onclick = () => { secao.localidades.splice(lIdx, 1); renderSecoes(); updatePreview(); saveData(); };
 
       item.appendChild(iNome); item.appendChild(iHorario); item.appendChild(sPeriodicidade); item.appendChild(rm);
@@ -711,101 +714,16 @@ window.onload = () => {
   setTimeout(scalePreview, 300);
 };
 </script>
+<script src="/assets/editor.js"></script>
 <script>
-(function () {
-  var REGIAO = 'calendario';
-
-  function tokenAtual() {
-    return localStorage.getItem('session_token');
-  }
-
-  function sugerirNomeArquivo() {
-    var d = new Date().toISOString().slice(0, 10);
-    return REGIAO + '_' + d;
-  }
-
-  window.salvarLista = async function () {
-    var btn = document.getElementById('btnListaSalvar');
-    var nome = prompt('Nome para salvar este calendário:', sugerirNomeArquivo());
-    if (nome === null) return; // cancelou
-    if (btn) { btn.disabled = true; btn.textContent = '☁️ Salvando...'; }
-    try {
-      saveState();
-      var conteudo = JSON.stringify(STATE, null, 2);
-      var res = await fetch('/api/lista-save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: tokenAtual(), regiao: REGIAO, nome: nome, conteudo: conteudo })
-      });
-      var data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Erro ao salvar');
-      alert('Calendário salvo como: ' + data.nomeArquivo);
-    } catch (e) {
-      alert('Erro ao salvar: ' + e.message);
-    } finally {
-      if (btn) { btn.disabled = false; btn.textContent = '☁️ Salvar'; }
-    }
-  };
-
-  window.carregarLista = async function () {
-    var btn = document.getElementById('btnListaCarregar');
-    if (btn) { btn.disabled = true; btn.textContent = '☁️ Carregando...'; }
-    try {
-      var res = await fetch('/api/lista-list', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: tokenAtual(), regiao: REGIAO })
-      });
-      var data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Erro ao listar arquivos');
-      if (!data.arquivos.length) { alert('Ainda não existe nenhum calendário salvo.'); return; }
-      mostrarSeletorListas(data.arquivos);
-    } catch (e) {
-      alert('Erro ao acessar os calendários salvos: ' + e.message);
-    } finally {
-      if (btn) { btn.disabled = false; btn.textContent = '☁️ Carregar'; }
-    }
-  };
-
-  function mostrarSeletorListas(arquivos) {
-    var overlay = document.createElement('div');
-    overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:99999; display:flex; align-items:center; justify-content:center;';
-    var box = document.createElement('div');
-    box.style.cssText = 'background:#fff; border-radius:10px; padding:20px; width:340px; max-height:70vh; overflow:auto; font-family:Arial, Helvetica, sans-serif;';
-    box.innerHTML = '<h3 style="margin:0 0 12px; font-size:16px;">Escolha o arquivo</h3>';
-
-    arquivos.forEach(function (f) {
-      var item = document.createElement('button');
-      item.textContent = f.nome;
-      item.style.cssText = 'display:block; width:100%; text-align:left; padding:9px 10px; margin-bottom:6px; border:1px solid #ccd3da; border-radius:6px; background:#f4f6f8; cursor:pointer; font-size:13px;';
-      item.onclick = async function () {
-        overlay.remove();
-        try {
-          var res = await fetch('/api/lista-load', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: tokenAtual(), regiao: REGIAO, nome: f.nome })
-          });
-          var data = await res.json();
-          if (!res.ok) throw new Error(data.error || 'Erro ao carregar');
-          loadStateFromJSON(data.conteudo);
-        } catch (e) {
-          alert('Erro ao carregar arquivo: ' + e.message);
-        }
-      };
-      box.appendChild(item);
-    });
-
-    var cancelar = document.createElement('button');
-    cancelar.textContent = 'Cancelar';
-    cancelar.style.cssText = 'display:block; width:100%; text-align:center; padding:9px 10px; margin-top:6px; border:1px solid #ccd3da; border-radius:6px; background:#fff; cursor:pointer; font-size:13px;';
-    cancelar.onclick = function () { overlay.remove(); };
-    box.appendChild(cancelar);
-
-    overlay.appendChild(box);
-    document.body.appendChild(overlay);
-  }
-})();
+/* Salvar / carregar na nuvem: lógica em /assets/editor.js */
+Nuvem.configurar({
+  regiao: 'calendario',
+  tipo: 'calendario',
+  sugerirNome: function () { return 'calendario_' + new Date().toISOString().slice(0, 10); },
+  conteudo: function () { saveState(); return JSON.stringify(STATE, null, 2); },
+  aplicar: function (texto) { return loadStateFromJSON(texto); }
+});
 </script>
 </body>
 </html>
