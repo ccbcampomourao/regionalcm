@@ -282,12 +282,14 @@ function linhaRegional(ano, seqMeses) {
     const [a, m, d] = r.data.split('-').map(Number);
     return { a, m, d, h: r.horario || '' };
   }).filter(x => x.a === ano);
-  const horarios = [...new Set(datas.map(x => x.h).filter(Boolean))];
-  const unico = horarios.length <= 1 ? (horarios[0] || '') : null; // mesmo horário em todas as datas?
+  // Horário mais usado vai ao lado do nome; só as datas com horário diferente mostram o próprio.
+  const contagem = {};
+  datas.forEach(x => { if (x.h) contagem[x.h] = (contagem[x.h] || 0) + 1; });
+  const unico = Object.keys(contagem).sort((p, q) => contagem[q] - contagem[p] || p.localeCompare(q))[0] || '';
   const valores = seqMeses.map(({ mes }) => {
     const doMes = datas.filter(x => x.m === mes).sort((p, q) => p.d - q.d);
     if (!doMes.length) return 'X';
-    return doMes.map(x => (unico === null && x.h) ? `${x.d} (${horaCurta(x.h)})` : String(x.d)).join(' e ');
+    return doMes.map(x => (x.h && x.h !== unico) ? `${x.d} (${horaCurta(x.h)})` : String(x.d)).join(' e ');
   });
   const temAlguma = valores.some(v => v !== 'X');
   return { valores, temAlguma, horarioUnico: unico };
@@ -688,23 +690,27 @@ if (totalLocalidades === 0 && !reg.temAlguma) {
 
     /* ---------- Tabela ---------- */
     .tabelas-wrapper { flex: 1; min-height: 0; overflow: hidden; }
-    table.cal-table { width: 100%; table-layout: fixed; border-collapse: collapse; }
-    table.cal-table th, table.cal-table td { border: .6pt solid #c4cad4; padding: 1.3px 3px; text-align: center; vertical-align: middle; overflow-wrap: break-word; }
-    table.cal-table thead th { background: #1b2a41; color: #fff; font-weight: 700; font-size: 8.4px; letter-spacing: .06em; text-transform: uppercase; padding: 2.2px 2px; border-color: #1b2a41; }
+    table.cal-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: var(--fs, 9.5px); }
+    table.cal-table th, table.cal-table td { border: .6pt solid #c4cad4; padding: var(--pad, 1.3px) 3px; text-align: center; vertical-align: middle; overflow-wrap: break-word; }
+    table.cal-table thead th { background: #1b2a41; color: #fff; font-weight: 700; font-size: .884em; letter-spacing: .06em; text-transform: uppercase; padding: calc(var(--pad, 1.3px) + .9px) 2px; border-color: #1b2a41; }
     table.cal-table th.th-nome { width: 54mm; text-align: left; padding-left: 2.4mm; }
 
     table.cal-table td.col-nome { text-align: left; padding-left: 2.4mm; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #1b2433; }
     table.cal-table td.col-nome .hr { font-weight: 400; color: #8a6430; font-size: .92em; }
-    table.cal-table td.col-dia { font-weight: 700; font-size: 10px; color: #1b2a41; }
+    table.cal-table td.col-dia { font-weight: 700; font-size: 1.053em; color: #1b2a41; }
     table.cal-table td.col-x { color: #c3c8d0; font-weight: 400; }
 
-    table.cal-table td.regra-row { text-align: left; padding: 1.5px 2.4mm; background: #e9edf3; color: #1b2a41; font-weight: 700; font-size: 8.6px; letter-spacing: .1em; border-left: 2.6pt solid #1b2a41; }
+    table.cal-table td.regra-row { text-align: left; padding: calc(var(--pad, 1.3px) + .2px) 2.4mm; background: #e9edf3; color: #1b2a41; font-weight: 700; font-size: .905em; letter-spacing: .1em; border-left: 2.6pt solid #1b2a41; }
     table.cal-table td.regra-regional { background: #f6ecd6; color: #6b4a14; border-left-color: #a97d3d; }
     table.cal-table tbody.grupo-regional td.col-nome { font-weight: 700; }
     table.cal-table tbody.grupo-regional td.col-dia { color: #6b4a14; }
-    table.cal-table tr.espaco-grupo td { border: none; padding: 0; height: 2.2mm; background: #fff; }
+    table.cal-table tr.espaco-grupo td { border: none; padding: 0; height: var(--gap, 2.2mm); background: #fff; }
 
     .grupo-tabela { break-inside: avoid; page-break-inside: avoid; }
+    /* conteúdo demais para uma folha: segue para a próxima página (nunca corta) */
+    html.duas-paginas .list-wrapper { height: auto; min-height: 285mm; overflow: visible; }
+    html.duas-paginas .tabelas-wrapper { flex: none; overflow: visible; }
+    html.duas-paginas table.cal-table thead { display: table-header-group; }
 
     /* ---------- Rodapé ---------- */
     .rodape { display: flex; justify-content: space-between; align-items: flex-end; gap: 4mm; margin-top: 2mm; padding-top: 1.6mm; border-top: .6pt solid #c4cad4; font-size: 7.8px; color: #5b6475; }
@@ -738,6 +744,53 @@ if (totalLocalidades === 0 && !reg.temAlguma) {
         <div class="atu">${m.atualizado ? 'Atualizado em ' + escapeHTML(m.atualizado) : ''}</div>
       </div>
     </div>
+    <script>
+    /* Ajuste automático: se a tabela não couber na folha, reduz primeiro o
+       espaço entre os grupos, depois o espaçamento das linhas e, só se ainda
+       precisar, o tamanho da letra. Com pouco conteúdo, nada muda. */
+    (function () {
+      var raiz = document.documentElement;
+      function ajustar() {
+        var w = document.querySelector('.tabelas-wrapper');
+        if (!w) return;
+        var gap = 2.2, pad = 1.3, fs = 9.5, n = 0;
+        function aplica() {
+          raiz.style.setProperty('--gap', gap + 'mm');
+          raiz.style.setProperty('--pad', pad + 'px');
+          raiz.style.setProperty('--fs', fs + 'px');
+        }
+        raiz.classList.remove('duas-paginas');
+        aplica();
+        while (w.scrollHeight > w.clientHeight + 1 && n++ < 120) {
+          if (gap > 0.8) gap = Math.max(0.8, gap - 0.35);
+          else if (pad > 0.3) pad = Math.max(0.3, pad - 0.2);
+          else if (fs > 6.8) fs = Math.max(6.8, fs - 0.2);
+          else break;
+          aplica();
+        }
+        /* nem no tamanho mínimo coube: em vez de cortar, continua na página seguinte */
+        if (w.scrollHeight > w.clientHeight + 1) {
+          gap = 1.5; pad = 1; fs = 8.6; aplica();
+          raiz.classList.add('duas-paginas');
+          /* margem de página para que a 2ª folha também tenha respiro em cima e embaixo */
+          if (!document.getElementById('pgMargem')) {
+            var st = document.createElement('style');
+            st.id = 'pgMargem';
+            st.textContent = '@page { size: A4 portrait; margin: 8mm 0; } html.duas-paginas .list-wrapper { padding-top: 1mm; padding-bottom: 1mm; min-height: 0; }';
+            document.head.appendChild(st);
+          }
+        } else {
+          var pm = document.getElementById('pgMargem');
+          if (pm) pm.remove();
+        }
+      }
+      ajustar();
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(ajustar);
+      window.addEventListener('load', ajustar);
+      /* a pré-visualização troca o conteúdo sem recarregar: reajusta a cada troca */
+      if (window.MutationObserver) new MutationObserver(ajustar).observe(document.body, { childList: true });
+    })();
+    <\/script>
   </body></html>`;
 }
 
