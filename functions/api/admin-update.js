@@ -44,7 +44,8 @@ export async function onRequestPost({ request, env }) {
     }
   }
 
-  record.assignedLists = lists;
+  // Administrador sempre tem acesso a todas as listas.
+  record.assignedLists = role === 'admin' ? Object.keys(LISTAS) : lists;
   record.role = role;
   if (role === 'admin') {
     record.active = true;

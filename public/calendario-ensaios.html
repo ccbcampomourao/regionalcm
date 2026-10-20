@@ -85,6 +85,20 @@
 
   .entry { border: 1px dashed var(--line); border-radius: 8px; padding: 10px; margin-bottom: 10px; position: relative; background: #fafaf5; }
   .remove-btn { position: absolute; top: 6px; right: 6px; padding: 2px 8px; font-size: 11px; font-weight: bold; background: #fff; color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; cursor: pointer;}
+  .regional{ border:1px solid var(--line); border-left:4px solid var(--brass); border-radius:12px; margin-bottom:14px; background:#fff; overflow:hidden; }
+  .regional-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px 12px; background:linear-gradient(180deg,#fbf6e8,#f4ead2); }
+  .regional-head b{ font-size:13.5px; color:var(--primary); letter-spacing:.02em; }
+  .regional-head .qt{ font-size:11.5px; font-weight:700; color:var(--brass); background:#fff; border:1px solid #ead9b4; padding:1px 9px; border-radius:20px; }
+  .regional-body{ padding:12px; }
+  .regional-local{ display:flex; align-items:center; gap:8px; font-size:13px; color:#3c4659; margin-bottom:10px; }
+  .regional-local strong{ color:var(--primary); }
+  .regional-local svg.ic{ color:var(--brass); }
+  .regional-item{ display:grid; grid-template-columns: 1.3fr 0.9fr 1fr auto; gap:6px; align-items:center; margin-bottom:6px; }
+  .regional-item input{ border:1.5px solid var(--line); border-radius:8px; padding:7px 9px; font-size:13px; width:100%; background:#fff; color:#24304a; font-family:inherit; }
+  .regional-item .dia-sem{ font-size:12px; color:#6d6652; font-weight:600; }
+  .regional-item .dia-sem.fora{ color:var(--accent); }
+  .regional-vazio{ font-size:12.5px; color:#8a8371; font-style:italic; margin-bottom:8px; }
+  @media (max-width:600px){ .regional-item{ grid-template-columns:1fr 1fr auto; } .regional-item .dia-sem{ grid-column:1/-1; order:9; } }
   .regra-preview { font-size: 11.5px; color: var(--brass); font-weight: 700; margin-top: 6px; }
 
   .section { border: 1px solid var(--line); border-radius: 12px; margin-bottom: 14px; background: #fff; overflow:hidden; transition: 0.2s; }
@@ -143,6 +157,8 @@
       <div><label>Atualizado em (rodapé)</label><input type="text" id="meta_atualizado" placeholder="julho/2026" oninput="updateMeta('atualizado', this.value)"></div>
     </div>
 
+    <div id="regionalContainer"></div>
+
     <div style="margin-bottom: 10px; padding-top: 6px; border-top: 1px solid var(--line);">
       <button onclick="addSecao()">+ Adicionar Seção (regra do dia)</button>
     </div>
@@ -152,7 +168,7 @@
 
   <div class="panel" id="previewHost">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-      <h3 style="margin:0;color:var(--primary)">Pré-visualização (Folha A4 paisagem)</h3>
+      <h3 style="margin:0;color:var(--primary)">Pré-visualização (Folha A4)</h3>
     </div>
     <div id="previewScaleWrapper">
       <div id="iframeSizer">
@@ -187,8 +203,99 @@ let STATE = {
   secoes: []
 };
 
+/* ================= ENSAIO REGIONAL =================
+   Datas avulsas escolhidas à mão. A localidade é sempre a mesma. */
+const REGIONAL_LOCAL = 'Campo Mourão - Central';
+
+function regionalLista() {
+  if (!Array.isArray(STATE.regional)) STATE.regional = [];
+  return STATE.regional;
+}
+
+function addRegional() {
+  regionalLista().push({ data: '', horario: '' });
+  renderRegional(); updatePreview(); saveData();
+  const datas = document.querySelectorAll('#regionalContainer input[type=date]');
+  if (datas.length) datas[datas.length - 1].focus();
+}
+
+function ordenarRegional() {
+  regionalLista().sort((a, b) => (a.data || '9999').localeCompare(b.data || '9999'));
+}
+
+function renderRegional() {
+  const host = document.getElementById('regionalContainer');
+  if (!host) return;
+  const lista = regionalLista();
+  const ano = parseInt(STATE.meta.ano, 10) || new Date().getFullYear();
+  const mesIni = Number(STATE.meta.mesInicial) || 1;
+
+  host.innerHTML = `<div class="regional">
+    <div class="regional-head"><b>ENSAIO REGIONAL</b><span class="qt">${lista.length} ${lista.length === 1 ? 'data' : 'datas'}</span></div>
+    <div class="regional-body">
+      <div class="regional-local"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-lock"></use></svg><span>Localidade: <strong>${REGIONAL_LOCAL}</strong></span></div>
+      <div id="regionalLista"></div>
+      <button type="button" onclick="addRegional()">+ Adicionar data do Ensaio Regional</button>
+    </div></div>`;
+
+  const box = host.querySelector('#regionalLista');
+  if (!lista.length) box.innerHTML = '<div class="regional-vazio">Nenhuma data ainda. Adicione as datas do ano.</div>';
+
+  lista.forEach((r, i) => {
+    const item = document.createElement('div');
+    item.className = 'regional-item';
+
+    const iData = document.createElement('input'); iData.type = 'date'; iData.value = r.data || ''; iData.title = 'Data';
+    const iHora = document.createElement('input'); iHora.type = 'time'; iHora.value = r.horario || ''; iHora.title = 'Horário';
+    const info = document.createElement('span'); info.className = 'dia-sem';
+
+    const atualizarInfo = () => {
+      if (!r.data) { info.textContent = 'escolha a data'; info.classList.remove('fora'); return; }
+      const [a, m, d] = r.data.split('-').map(Number);
+      const dt = new Date(a, m - 1, d);
+      const fora = a !== ano || m < mesIni;
+      info.textContent = fora ? 'fora do período do calendário' : DIAS_SEMANA[dt.getDay()].nome;
+      info.classList.toggle('fora', fora);
+    };
+    atualizarInfo();
+
+    iData.onchange = () => { r.data = iData.value; ordenarRegional(); renderRegional(); updatePreview(); saveData(); };
+    iHora.oninput = () => { r.horario = iHora.value; updatePreview(); saveData(); };
+
+    const rm = document.createElement('button'); rm.className = 'danger'; rm.title = 'Remover data';
+    rm.innerHTML = '<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-x"></use></svg>';
+    rm.onclick = () => { lista.splice(i, 1); renderRegional(); updatePreview(); saveData(); };
+
+    item.appendChild(iData); item.appendChild(iHora); item.appendChild(info); item.appendChild(rm);
+    box.appendChild(item);
+  });
+}
+
+/* Linha do Ensaio Regional na tabela: um valor por mês ('X' quando não há ensaio). */
+function horaCurta(h) {
+  const [hh, mm] = String(h || '').split(':');
+  if (!hh) return '';
+  return mm && mm !== '00' ? `${Number(hh)}:${mm}h` : `${Number(hh)}h`;
+}
+function linhaRegional(ano, seqMeses) {
+  const datas = regionalLista().filter(r => r.data).map(r => {
+    const [a, m, d] = r.data.split('-').map(Number);
+    return { a, m, d, h: r.horario || '' };
+  }).filter(x => x.a === ano);
+  const horarios = [...new Set(datas.map(x => x.h).filter(Boolean))];
+  const unico = horarios.length <= 1 ? (horarios[0] || '') : null; // mesmo horário em todas as datas?
+  const valores = seqMeses.map(({ mes }) => {
+    const doMes = datas.filter(x => x.m === mes).sort((p, q) => p.d - q.d);
+    if (!doMes.length) return 'X';
+    return doMes.map(x => (unico === null && x.h) ? `${x.d} (${horaCurta(x.h)})` : String(x.d)).join(' e ');
+  });
+  const temAlguma = valores.some(v => v !== 'X');
+  return { valores, temAlguma, horarioUnico: unico };
+}
+
 function updateMeta(key, val) {
   STATE.meta[key] = val;
+  if (key === 'ano' || key === 'mesInicial') renderRegional();
   updatePreview();
   saveData();
 }
@@ -458,7 +565,8 @@ function celulasDaLinhaComPlano(plano, r, numCols) {
     const attrs = [];
     if (cell.colspan > 1) attrs.push(`colspan="${cell.colspan}"`);
     if (cell.rowspan > 1) attrs.push(`rowspan="${cell.rowspan}"`);
-    html += `<td${attrs.length ? ' ' + attrs.join(' ') : ''} class="${cell.val === 'X' ? 'col-x' : ''}">${cell.val}</td>`;
+    const txt = cell.val === 'X' ? '–' : cell.val;
+    html += `<td${attrs.length ? ' ' + attrs.join(' ') : ''} class="${cell.val === 'X' ? 'col-x' : 'col-dia'}">${txt}</td>`;
   }
   return html;
 }
@@ -482,13 +590,23 @@ function buildDocumentHTML() {
   // ímpar e outra par) e/ou entre meses seguidos, a mesclagem acontece -
   // mesmo que o resto da linha não coincida.
 let tbodyHtml = '';
+
+// Ensaio Regional: grupo próprio no topo, só quando há data no ano do calendário
+const reg = linhaRegional(ano, seqMeses);
+if (reg.temAlguma) {
+  const nomeReg = escapeHTML(REGIONAL_LOCAL) + (reg.horarioUnico ? ` <span class="hr">(${escapeHTML(horaCurta(reg.horarioUnico))})</span>` : '');
+  const planoReg = planoCelulasMescladas([reg.valores]);
+  tbodyHtml += `<tbody class="grupo-tabela grupo-regional"><tr><td colspan="${colTotal}" class="regra-row regra-regional">ENSAIO REGIONAL</td></tr>` +
+    `<tr><td class="col-nome">${nomeReg}</td>${celulasDaLinhaComPlano(planoReg, 0, seqMeses.length)}</tr></tbody>`;
+}
+
 STATE.secoes.forEach((secao, idx) => {
   if (!secao.localidades || secao.localidades.length === 0) return;
 
   const rotuloRegra = rotuloSecao(secao).toUpperCase();
 
   // Linha espaçadora entre grupos (não aparece no primeiro grupo)
-  const espacador = idx > 0
+  const espacador = (idx > 0 || reg.temAlguma)
     ? `<tr class="espaco-grupo"><td colspan="${colTotal}"></td></tr>`
     : '';
 
@@ -502,7 +620,7 @@ STATE.secoes.forEach((secao, idx) => {
   secao.localidades.forEach((loc, r) => {
     const horarioLoc = (loc.horario || '').trim();
     const nomeExibido = horarioLoc && horarioLoc !== horarioPadrao
-      ? `${escapeHTML(loc.nome)} (${escapeHTML(horarioLoc)}h)`
+      ? `${escapeHTML(loc.nome)} <span class="hr">(${escapeHTML(horarioLoc)}h)</span>`
       : escapeHTML(loc.nome);
     linhasGrupo += `<tr><td class="col-nome">${nomeExibido}</td>`;
     linhasGrupo += celulasDaLinhaComPlano(plano, r, seqMeses.length);
@@ -514,7 +632,7 @@ STATE.secoes.forEach((secao, idx) => {
 
 const totalLocalidades = STATE.secoes.reduce((acc, s) => acc + (s.localidades ? s.localidades.length : 0), 0);
 let tabelasHtml;
-if (totalLocalidades === 0) {
+if (totalLocalidades === 0 && !reg.temAlguma) {
   tabelasHtml = `<table class="cal-table">${theadHtml}<tbody><tr><td colspan="${colTotal}" style="padding:10px; color:#666;">(Nenhuma localidade adicionada)</td></tr></tbody></table>`;
 } else {
   tabelasHtml = `<table class="cal-table">${theadHtml}${tbodyHtml}</table>`;
@@ -522,62 +640,77 @@ if (totalLocalidades === 0) {
 
   // Observação fixa sobre o horário padrão, mostrada no topo. As exceções de horário
   // já aparecem "explícitas" ao lado do nome da localidade (ex: "Roncador (20h)").
-  const obsHorario = `Obs. Os ensaios locais são realizados às ${escapeHTML(horarioPadrao)} hs, com exceção das que estão explícitas.`;
+  const obsHorario = `Os ensaios locais são realizados às <b>${escapeHTML(horarioPadrao)}h</b>, com exceção dos horários indicados ao lado de cada localidade.`;
+
+  const logoUrl = location.origin + '/assets/regionalcmlogo-sm.png';
+  const regiao = m.subtitulo ? escapeHTML(m.subtitulo) : '';
 
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escapeHTML(m.titulo)}</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght=400;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
 
     @page { size: A4 portrait; margin: 0; }
     html, body { margin: 0; padding: 0; box-sizing: border-box; }
+    * { box-sizing: border-box; }
 
     body {
       font-family: 'Roboto', Arial, sans-serif;
-      color: #000; font-size: 9.5px;
+      color: #1b2433; font-size: 9.5px;
       width: 210mm;
       margin: 0 auto;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
     }
 
     .list-wrapper {
       position: relative;
       height: 285mm;
       min-height: 285mm;
-      padding: 6mm;
-      box-sizing: border-box;
+      padding: 9mm 9mm 7mm;
       display: flex;
       flex-direction: column;
       overflow: hidden;
     }
 
-    .page-border {
-      position: absolute;
-      inset: 0;
-      margin: 5mm;
-      border: 1px solid #262626;
-      pointer-events: none;
-      box-sizing: border-box;
-    }
+    /* ---------- Cabeçalho ---------- */
+    .doc-header { display: flex; align-items: center; gap: 4mm; padding-bottom: 3mm; border-bottom: 1.6pt solid #1b2a41; }
+    .doc-header .logo { height: 15mm; width: auto; flex: none; }
+    .doc-header .tx { flex: 1; min-width: 0; }
+    .doc-header .org { font-size: 7.6px; font-weight: 700; letter-spacing: .18em; color: #a97d3d; text-transform: uppercase; }
+    .doc-header .ttl { margin-top: 1mm; font-size: 15px; font-weight: 700; color: #1b2a41; letter-spacing: .01em; line-height: 1.15; }
+    .doc-header .reg { margin-top: .6mm; font-size: 9.5px; font-weight: 500; color: #4a5568; letter-spacing: .04em; }
+    .doc-header .ano { flex: none; text-align: center; background: #1b2a41; color: #fff; border-radius: 2mm; padding: 1.6mm 3.6mm 1.8mm; }
+    .doc-header .ano small { display: block; font-size: 6.5px; font-weight: 500; letter-spacing: .2em; color: #d8c08f; text-transform: uppercase; }
+    .doc-header .ano b { display: block; font-size: 17px; font-weight: 700; line-height: 1.05; letter-spacing: .02em; }
+    .faixa { height: .9mm; background: #a97d3d; margin: .6mm 0 0; }
 
-    .doc-header { text-align: center; margin-bottom: 2px; }
-    .doc-header .ttl { font-weight: bold; font-size: 13px; }
-    .doc-header .subttl { font-weight: bold; font-size: 11px; margin-top: 2px; }
+    .obs-topo { margin: 2.6mm 0 2.4mm; padding: 1.4mm 2.6mm; border-left: 2.4pt solid #a97d3d; background: #f7f3ea; font-size: 8.6px; color: #3a4252; }
+    .obs-topo b { color: #1b2a41; }
 
-    .obs-topo { font-size: 9px; font-weight: bold; text-align: center; margin-bottom: 8px; }
-
-    table.cal-table { width: 100%; table-layout: fixed; border-collapse: collapse; border: 1px solid #262626; }
+    /* ---------- Tabela ---------- */
     .tabelas-wrapper { flex: 1; min-height: 0; overflow: hidden; }
-    table.cal-table th, table.cal-table td { border: 1px solid #262626; padding: 1px 3px; text-align: center; vertical-align: middle; overflow-wrap: break-word; }
-    table.cal-table th { font-weight: bold; background: #eee; font-size: 9px; padding: 1px 3px; line-height: 1.1; }
-	table.cal-table tr.espaco-grupo td { border: none; padding: 0; height: 5px; background: #fff; }
-    table.cal-table th.th-nome { width: 52mm; }
-    table.cal-table td.col-nome { text-align: center; font-weight: bold; white-space: nowrap; }
-    table.cal-table td.col-x { color: #999; }
+    table.cal-table { width: 100%; table-layout: fixed; border-collapse: collapse; }
+    table.cal-table th, table.cal-table td { border: .6pt solid #c4cad4; padding: 1.3px 3px; text-align: center; vertical-align: middle; overflow-wrap: break-word; }
+    table.cal-table thead th { background: #1b2a41; color: #fff; font-weight: 700; font-size: 8.4px; letter-spacing: .06em; text-transform: uppercase; padding: 2.2px 2px; border-color: #1b2a41; }
+    table.cal-table th.th-nome { width: 54mm; text-align: left; padding-left: 2.4mm; }
 
-    table.cal-table td.regra-row { text-align: center; background: #d9d9d9; color: #000; font-weight: bold; font-size: 10px; letter-spacing: .02em; padding: 0px 4px; }
-    .grupo-tabela { margin-bottom: 1mm; break-inside: avoid; page-break-inside: avoid; }
-    .grupo-tabela:last-child { margin-bottom: 0; }
+    table.cal-table td.col-nome { text-align: left; padding-left: 2.4mm; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #1b2433; }
+    table.cal-table td.col-nome .hr { font-weight: 400; color: #8a6430; font-size: .92em; }
+    table.cal-table td.col-dia { font-weight: 700; font-size: 10px; color: #1b2a41; }
+    table.cal-table td.col-x { color: #c3c8d0; font-weight: 400; }
 
-    .rodape { text-align: right; margin-top: 6px; font-size: 9px; font-style: italic; }
+    table.cal-table td.regra-row { text-align: left; padding: 1.5px 2.4mm; background: #e9edf3; color: #1b2a41; font-weight: 700; font-size: 8.6px; letter-spacing: .1em; border-left: 2.6pt solid #1b2a41; }
+    table.cal-table td.regra-regional { background: #f6ecd6; color: #6b4a14; border-left-color: #a97d3d; }
+    table.cal-table tbody.grupo-regional td.col-nome { font-weight: 700; }
+    table.cal-table tbody.grupo-regional td.col-dia { color: #6b4a14; }
+    table.cal-table tr.espaco-grupo td { border: none; padding: 0; height: 2.2mm; background: #fff; }
+
+    .grupo-tabela { break-inside: avoid; page-break-inside: avoid; }
+
+    /* ---------- Rodapé ---------- */
+    .rodape { display: flex; justify-content: space-between; align-items: flex-end; gap: 4mm; margin-top: 2mm; padding-top: 1.6mm; border-top: .6pt solid #c4cad4; font-size: 7.8px; color: #5b6475; }
+    .rodape .leg span { margin-right: 4mm; }
+    .rodape .leg b { color: #1b2a41; }
+    .rodape .atu { font-style: italic; white-space: nowrap; }
 
     @media print {
       * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
@@ -585,16 +718,25 @@ if (totalLocalidades === 0) {
   </style></head>
   <body>
     <div class="list-wrapper">
-      <div class="page-border"></div>
       <div class="doc-header">
-        <div class="ttl">${escapeHTML(m.titulo)}${m.subtitulo ? ' - ' + escapeHTML(m.subtitulo) : ''} - ${ano}</div>
+        <img class="logo" src="${logoUrl}" alt="">
+        <div class="tx">
+          <div class="org">Congregação Cristã no Brasil</div>
+          <div class="ttl">${escapeHTML(m.titulo)}</div>
+          ${regiao ? `<div class="reg">${regiao}</div>` : ''}
+        </div>
+        <div class="ano"><small>Ano</small><b>${ano}</b></div>
       </div>
+      <div class="faixa"></div>
 
       <div class="obs-topo">${obsHorario}</div>
 
       <div class="tabelas-wrapper">${tabelasHtml}</div>
 
-      <div class="rodape">${m.atualizado ? 'Atualizado ' + escapeHTML(m.atualizado) : ''}</div>
+      <div class="rodape">
+        <div class="leg"><span><b>–</b> sem ensaio no mês</span><span>Horário entre parênteses: diferente do padrão</span></div>
+        <div class="atu">${m.atualizado ? 'Atualizado em ' + escapeHTML(m.atualizado) : ''}</div>
+      </div>
     </div>
   </body></html>`;
 }
@@ -703,6 +845,7 @@ function init() {
     selMes.appendChild(opt);
   });
 
+  renderRegional();
   renderSecoes();
   updatePreview();
 }

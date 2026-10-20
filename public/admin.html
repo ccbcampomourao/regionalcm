@@ -95,6 +95,11 @@
 .chip input:checked + .box{ background:var(--ink); border-color:var(--ink); }
 .chip input:checked + .box svg{ opacity:1; transform:none; }
 .chip:has(input:checked){ background:#f3ecdb; border-color:var(--brass); font-weight:600; }
+.chip:has(input:disabled){ cursor:not-allowed; opacity:.75; }
+.chip:has(input:disabled):hover{ border-color:var(--brass); }
+.admin-note{ display:flex; align-items:center; gap:8px; margin:-2px 0 12px; padding:9px 12px; border-radius:9px; background:var(--warn-bg); color:#6b4a00; font-size:12.5px; font-weight:500; line-height:1.4; }
+.admin-note[hidden]{ display:none; }
+.admin-note svg.ic{ width:15px; height:15px; flex:none; }
 .chip input:focus-visible + .box{ outline:2px solid var(--brass); outline-offset:2px; }
 
 .ufoot{ display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; padding:14px 20px; border-top:1px solid var(--line); }
@@ -325,7 +330,11 @@ function mesmasListas(set, arr) {
   const b = [...(arr || [])].sort().join('|');
   return a === b;
 }
-function sujo(u, d) { return d.role !== u.role || !mesmasListas(d.lists, u.assignedLists); }
+function sujo(u, d) {
+  if (d.role !== u.role) return true;
+  if (d.role === 'admin') return false; // administrador sempre tem todas as listas
+  return !mesmasListas(d.lists, u.assignedLists);
+}
 
 async function carregarUsuarios() {
   const fim = UI.busy($('btnAtualizar'), 'Atualizando...');
@@ -488,8 +497,9 @@ function cardUsuario(u) {
     <div class="ulists">
       <div class="ulists-top">
         <div class="ttl">Listas liberadas<span class="cnt" data-cnt></span></div>
-        <div><button class="adm-text" data-act="todas">Marcar todas</button><button class="adm-text" data-act="nenhuma">Limpar</button></div>
+        <div data-lote><button class="adm-text" data-act="todas">Marcar todas</button><button class="adm-text" data-act="nenhuma">Limpar</button></div>
       </div>
+      <div class="admin-note" data-admin-note><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-lock"></use></svg><span>Administradores têm acesso a todas as listas. Para escolher listas, mude o papel para "Usuário padrão".</span></div>
       ${chipsHTML}
     </div>
 
@@ -504,8 +514,16 @@ function cardUsuario(u) {
   card.className = 'ucard' + (u.active ? '' : ' is-blocked') + (u.passwordReset === 'pending' ? ' is-pending' : '');
 
   const sync = () => {
-    const n = d.lists.size;
-    card.querySelector('[data-cnt]').textContent = n + ' de ' + total;
+    const adm = d.role === 'admin';
+    card.classList.toggle('is-admin', adm);
+    card.querySelectorAll('.chip input').forEach(i => {
+      i.disabled = adm;
+      i.checked = adm || d.lists.has(i.value);
+    });
+    card.querySelector('[data-lote]').hidden = adm;
+    card.querySelector('[data-admin-note]').hidden = !adm;
+    const n = adm ? total : d.lists.size;
+    card.querySelector('[data-cnt]').textContent = n + ' de ' + total + (adm ? ' (todas)' : '');
     const s = sujo(u, d);
     card.classList.toggle('is-dirty', s);
     card.querySelector('[data-act="salvar"]').disabled = !s;
@@ -513,6 +531,7 @@ function cardUsuario(u) {
 
   card.addEventListener('change', e => {
     if (e.target.matches('.chip input')) {
+      if (d.role === 'admin') return;
       e.target.checked ? d.lists.add(e.target.value) : d.lists.delete(e.target.value);
       sync();
     } else if (e.target.matches('[data-role]')) {
@@ -526,6 +545,7 @@ function cardUsuario(u) {
     if (!b) return;
     const act = b.dataset.act;
     if (act === 'todas' || act === 'nenhuma') {
+      if (d.role === 'admin') return;
       d.lists = act === 'todas' ? new Set(Object.keys(LISTAS)) : new Set();
       card.querySelectorAll('.chip input').forEach(i => { i.checked = d.lists.has(i.value); });
       sync();
@@ -598,14 +618,12 @@ async function alternarAcesso(email, active, btn) {
 async function salvar(u, d, btn) {
   const fim = UI.busy(btn, 'Salvando...');
   try {
-    const [resLista, resRole] = await Promise.all([
-      postJSON('/api/admin-assign', { email: u.email, lists: [...d.lists] }),
-      postJSON('/api/admin-set-role', { email: u.email, role: d.role })
-    ]);
-    const dataLista = await resLista.json();
-    const dataRole = await resRole.json();
-    if (!resLista.ok) throw new Error(dataLista.error || 'Erro ao salvar listas');
-    if (!resRole.ok) throw new Error(dataRole.error || 'Erro ao salvar papel');
+    // Uma chamada só: grava listas e papel juntos (antes eram duas ao mesmo
+    // tempo, e a que terminava por último apagava a alteração da outra).
+    const lists = d.role === 'admin' ? Object.keys(LISTAS) : [...d.lists];
+    const res = await postJSON('/api/admin-update', { email: u.email, role: d.role, lists });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Erro ao salvar alterações');
 
     delete drafts[u.email];
     toast(`${u.email} atualizado com sucesso.`, 'ok');

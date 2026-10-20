@@ -304,6 +304,7 @@
 <link rel="stylesheet" href="/assets/ui.css">
 <link rel="stylesheet" href="/assets/editor.css">
 <script src="/assets/ui.js"></script>
+<script src="/assets/lista-modelo-novo.js"></script>
 </head>
 <body>
 <header>
@@ -328,6 +329,14 @@
 	  <div><label>Título</label><input type="text" id="meta_titulo" value="LISTA DE SERVIÇOS" readonly style="background:#eee"></div>
       <div><label>Região</label><input type="text" id="meta_regiao" value="CAMPO MOURÃO - PR" readonly style="background:#eee"></div>
 	  <div><label>Período</label><select id="meta_periodo"></select></div>
+    </div>
+
+    <div class="modelo-switch">
+      <span class="ms-lbl">Modelo da folha</span>
+      <div class="ms-opts" role="group" aria-label="Modelo da folha">
+        <button type="button" data-modelo="atual" aria-pressed="true"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-file"></use></svg>Atual</button>
+        <button type="button" data-modelo="novo" aria-pressed="false"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-print"></use></svg>Novo (preto e branco)</button>
+      </div>
     </div>
 
     <div class="field row-grid" style="grid-template-columns: 1fr 1fr; margin-top: 10px; margin-bottom: 16px; align-items: start;">
@@ -1327,7 +1336,15 @@ function getWeekdayAbbr(dStr) {
 }
 function fmtTime(t){ return t || ''; }
 
+/* Escolhe o modelo da folha: "Atual" sai exatamente como sempre;
+   "Novo" aplica o visual preto e branco por cima (assets/lista-modelo-novo.js). */
 function buildDocumentHTML(){
+  const html = buildDocumentHTMLClassico();
+  if (window.ModeloLista) { ModeloLista.sincronizar(); if (ModeloLista.ativo() === 'novo') return ModeloLista.aplicar(html); }
+  return html;
+}
+
+function buildDocumentHTMLClassico(){
   sortStateDates(); 
   const titulo = document.getElementById('meta_titulo').value || 'LISTA DE SERVIÇOS';
   const regiao = document.getElementById('meta_regiao').value || 'CAMPO MOURÃO - PR';

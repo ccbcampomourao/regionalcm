@@ -332,6 +332,29 @@
     #formPanel .toolbar button.danger{ flex: 1 1 100%; }
   }
 
+  /* ---------- Seletor "Modelo da folha" ---------- */
+  .modelo-switch{
+    display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+    margin:4px 0 14px; padding:10px 12px;
+    border:1px solid #e6dec9; border-radius:12px;
+    background:linear-gradient(180deg,#fbf8f1,#f5efe1);
+  }
+  .modelo-switch .ms-lbl{ font-size:12.5px; font-weight:700; color:#34476a; }
+  .modelo-switch .ms-opts{ display:flex; gap:4px; background:#ece6d6; padding:4px; border-radius:11px; flex-wrap:wrap; }
+  #formPanel .modelo-switch .ms-opts button{
+    border:none; background:transparent; box-shadow:none; transform:none;
+    padding:7px 12px; border-radius:8px; font-size:12.5px; font-weight:600; color:#6d6652; min-height:0;
+  }
+  #formPanel .modelo-switch .ms-opts button:hover{ color:#1b2a41; box-shadow:none; }
+  #formPanel .modelo-switch .ms-opts button[aria-pressed="true"]{
+    background:#fff; color:#1b2a41; box-shadow:0 1px 3px rgba(27,42,65,.18);
+  }
+  #formPanel .modelo-switch .ms-opts button svg.ic{ width:15px; height:15px; }
+  @media (max-width:480px){
+    .modelo-switch .ms-opts{ width:100%; }
+    #formPanel .modelo-switch .ms-opts button{ flex:1 1 0; justify-content:center; }
+  }
+
   /* ---------- Ícones SVG nos controles ---------- */
   .topnav-btn{ display: inline-flex !important; align-items: center; gap: 7px; }
   .topnav-btn svg.ic{ width: 16px; height: 16px; margin: 0 !important; }
