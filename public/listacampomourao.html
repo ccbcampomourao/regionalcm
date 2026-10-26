@@ -336,6 +336,7 @@
       <div class="ms-opts" role="group" aria-label="Modelo da folha">
         <button type="button" data-modelo="atual" aria-pressed="true"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-file"></use></svg>Atual</button>
         <button type="button" data-modelo="novo" aria-pressed="false"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-print"></use></svg>Novo (preto e branco)</button>
+        <button type="button" data-modelo="cor" aria-pressed="false"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-download"></use></svg>Colorido (PDF)</button>
       </div>
     </div>
 
@@ -657,6 +658,12 @@ function sanitizeState() {
   });
 }
 
+// Hora em minutos para ordenar ("13:30", "13h30", "1330", "19:30hs"); sem hora vai para o fim do dia
+function minutosDaHora(h) {
+  const m = String(h || '').match(/(\d{1,2})\s*[:hH.]?\s*(\d{2})?/);
+  if (!m) return 24 * 60 + 1;
+  return (+m[1]) * 60 + (+(m[2] || 0));
+}
 function sortStateDates() {
   STATE.sections.forEach(section => {
     if (section.entries && section.entries.length > 0) {
@@ -671,13 +678,14 @@ function sortStateDates() {
           if (cidCompare !== 0) return cidCompare;
           const dateA = a.data && a.data.data ? a.data.data : "9999-12-31";
           const dateB = b.data && b.data.data ? b.data.data : "9999-12-31";
-          return dateA.localeCompare(dateB);
+          return dateA.localeCompare(dateB) || (minutosDaHora(a.data && a.data.hora) - minutosDaHora(b.data && b.data.hora));
         });
       } else {
         section.entries.sort((a, b) => {
           const dateA = a.data && a.data.data ? a.data.data : "9999-12-31";
           const dateB = b.data && b.data.data ? b.data.data : "9999-12-31";
-          return dateA.localeCompare(dateB);
+          // mesmo dia: ordena pelo horário
+          return dateA.localeCompare(dateB) || (minutosDaHora(a.data && a.data.hora) - minutosDaHora(b.data && b.data.hora));
         });
       }
     }
@@ -1290,6 +1298,8 @@ function buildSectionElement(section, sIdx){
               };
             } else {
               inp.oninput = ()=>{ entry.data[f.key] = inp.value; saveState(); renderPreview(); };
+              // hora: quando sai do campo, a lista na tela se reorganiza (mesmo dia, ordem de horário)
+              if (f.type === 'time') inp.onblur = ()=>{ renderSection(section.id); };
               if(f.type === 'text') {
                   inp.onchange = ()=>{ 
                       const formatado = formatarTextoCapitalizado(inp.value);
@@ -1340,7 +1350,7 @@ function fmtTime(t){ return t || ''; }
    "Novo" aplica o visual preto e branco por cima (assets/lista-modelo-novo.js). */
 function buildDocumentHTML(){
   const html = buildDocumentHTMLClassico();
-  if (window.ModeloLista) { ModeloLista.sincronizar(); if (ModeloLista.ativo() === 'novo') return ModeloLista.aplicar(html); }
+  if (window.ModeloLista) { ModeloLista.sincronizar(); if (ModeloLista.ativo() !== 'atual') return ModeloLista.aplicar(html); }
   return html;
 }
 
@@ -2202,7 +2212,8 @@ function displayCurrentPreviewPage(){
       oldStyle.textContent = newStyle.textContent;
     }
 
-    doc.body.innerHTML = newDoc.body.innerHTML;
+    if (window.atualizarSemPiscar) atualizarSemPiscar(doc.body, newDoc.body);
+    else doc.body.innerHTML = newDoc.body.innerHTML;
     scalePreview();
     attachSwipeListeners(frame);
   } else {

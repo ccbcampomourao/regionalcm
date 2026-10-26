@@ -213,6 +213,12 @@ function addSectionOfType(typeKey) {
   renderSections(); updatePreview(); saveData();
 }
 
+// Hora em minutos para ordenar ("13:30", "13h30", "1330", "19:30hs"); sem hora vai para o fim do dia
+function minutosDaHora(h) {
+  const m = String(h || '').match(/(\d{1,2})\s*[:hH.]?\s*(\d{2})?/);
+  if (!m) return 24 * 60 + 1;
+  return (+m[1]) * 60 + (+(m[2] || 0));
+}
 function sortStateDates() {
   STATE.sections.forEach(section => {
     const def = SECTION_TYPES[section.typeKey];
@@ -221,7 +227,7 @@ function sortStateDates() {
       section.entries.sort((a, b) => {
         const dateA = a.data || "9999-12-31";
         const dateB = b.data || "9999-12-31";
-        return dateA.localeCompare(dateB);
+        return dateA.localeCompare(dateB) || (minutosDaHora(a.hora || a.horario) - minutosDaHora(b.hora || b.horario));
       });
     }
   });
@@ -697,7 +703,8 @@ function updatePreview() {
     }
     
     // Atualiza o conteúdo das tabelas e textos no <body>
-    doc.body.innerHTML = newDoc.body.innerHTML;
+    if (window.atualizarSemPiscar) atualizarSemPiscar(doc.body, newDoc.body);
+    else doc.body.innerHTML = newDoc.body.innerHTML;
     
     scalePreview();
   } else {

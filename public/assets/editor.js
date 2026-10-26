@@ -290,3 +290,33 @@
     });
   });
 })();
+
+/* ------------------------------------------------------------
+   Atualização da pré-visualização sem piscar.
+   Em vez de apagar e recriar todo o conteúdo (innerHTML), compara
+   o novo com o que já está na tela e só troca o que mudou: imagens
+   (ex.: logo) não recarregam e o texto não "pisca" a cada tecla.
+   O resultado final é exatamente o mesmo HTML.
+   ------------------------------------------------------------ */
+window.atualizarSemPiscar = function (alvo, origem) {
+  function filhos(a, b) {
+    var av = Array.prototype.slice.call(a.childNodes), bv = Array.prototype.slice.call(b.childNodes), i;
+    for (i = 0; i < bv.length; i++) {
+      var n = bv[i], o = av[i];
+      if (n.ownerDocument !== a.ownerDocument) n = a.ownerDocument.importNode(n, true);
+      if (!o) { a.appendChild(n); continue; }
+      if (o.nodeType !== n.nodeType || o.nodeName !== n.nodeName) { a.replaceChild(n, o); continue; }
+      if (o.nodeType === 3 || o.nodeType === 8) { if (o.nodeValue !== n.nodeValue) o.nodeValue = n.nodeValue; continue; }
+      if (o.nodeName === 'SCRIPT' || o.nodeName === 'STYLE') { if (o.outerHTML !== n.outerHTML) a.replaceChild(n, o); continue; }
+      no(o, n);
+    }
+    for (i = av.length - 1; i >= bv.length; i--) a.removeChild(av[i]);
+  }
+  function no(o, n) {
+    var k, at;
+    for (k = o.attributes.length - 1; k >= 0; k--) { at = o.attributes[k]; if (!n.hasAttribute(at.name)) o.removeAttribute(at.name); }
+    for (k = 0; k < n.attributes.length; k++) { at = n.attributes[k]; if (o.getAttribute(at.name) !== at.value) o.setAttribute(at.name, at.value); }
+    filhos(o, n);
+  }
+  filhos(alvo, origem);
+};

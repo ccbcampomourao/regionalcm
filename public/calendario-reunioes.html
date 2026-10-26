@@ -53,6 +53,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Calendário de Reuniões</title>
+<link rel="preload" as="image" href="/assets/ccb-logo.png">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--primary:#1b2a41;--primary-2:#2c3f5c;--brass:#a97d3d;--brass-lt:#c99a55;--accent:#b04b3c;--bg:#f5f1e8;--line:#e4dcc9;--ink:#24304a;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -121,6 +122,11 @@ label{font-size:12px;font-weight:700;color:var(--primary-2);display:block;margin
 .dg:active{cursor:grabbing}
 body.dgon .win{border-style:dashed}
 .win.dgover{outline:2px dashed var(--brass);outline-offset:-2px;background:#fbf6e8}
+.dg{touch-action:none}
+body.dgon{user-select:none;-webkit-user-select:none;cursor:grabbing}
+.dg-origem{opacity:.4}
+.dg-ghost{position:fixed;left:0;top:0;z-index:99999;pointer-events:none;display:flex;align-items:center;gap:7px;max-width:300px;padding:6px 11px;background:#fff;border:1.5px solid var(--brass);border-radius:9px;box-shadow:0 12px 28px -10px rgba(27,42,65,.5);font-size:12.5px;font-weight:600;color:var(--primary);white-space:nowrap}
+.dg-ghost span{overflow:hidden;text-overflow:ellipsis}.dg-ghost u{width:9px;height:9px;border-radius:50%;flex:none}
 .win-body{display:none;padding:12px 14px;border-top:1px solid var(--line)}
 .win.open .win-body{display:block}
 @media (max-width:980px){.rl{display:none}}
@@ -130,7 +136,11 @@ body.dgon .win{border-style:dashed}
 .pg h2{margin:0;font-family:'Fraunces',Georgia,serif;font-weight:700;font-size:26pt;letter-spacing:.02em;line-height:1}
 .pg .top{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2.5px solid var(--primary);padding-bottom:6px;margin-bottom:4px}
 .pg .top span{font-size:9pt;font-weight:600;color:var(--primary-2);text-align:right}
-.dias{flex:1;display:grid;grid-auto-rows:minmax(min-content,1fr);min-height:0;font-size:9.5pt}
+.dias{flex:1;display:flex;flex-direction:column;min-height:0;font-size:9.5pt}
+/* dias com reunião crescem para ocupar o espaço; dias sem reunião ficam compactos */
+.dias>.r{flex:1 0 auto}.dias>.r.r-vazio{flex:0 0 auto}.dias>.r.r-vazio .d{padding-top:.55mm;padding-bottom:.55mm}
+/* mês sem nenhuma reunião: todos os dias dividem a página por igual */
+.dias.sem-serv>.r.r-vazio{flex:1 0 auto}
 .r{display:grid;grid-template-columns:31mm 1fr;border-bottom:.6pt solid #c9c2b0;align-items:center}
 .r .d{padding:1mm 2mm;font-size:.9em;display:flex;gap:1.5mm;align-items:baseline}
 .r .d b{font-size:1.2em;min-width:6mm;text-align:right}.r .d span{font-weight:600;font-size:1em;color:#555}
@@ -152,6 +162,10 @@ body.dgon .win{border-style:dashed}
 .capa p{font-family:'Fraunces',Georgia,serif;font-style:italic;font-size:24pt;margin:0}
 .capa .ano{font-size:44pt;font-weight:700;margin-top:40mm;color:var(--brass)}
 #print{display:none}
+/* troca de mês sem "piscar" a cor do botão */
+#meses button{transition:none}
+/* na abertura, a folha só aparece com as fontes já carregadas (sem trocar de letra na frente do usuário) */
+html.fontes-carregando #prev{visibility:hidden}
 textarea{width:100%;border:1.5px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;resize:vertical;background:#fff;color:var(--ink)}
 .info{font-size:10pt;line-height:1.45;white-space:normal}
 .cvd{border:1px solid var(--line);border-radius:8px;margin:0 0 9px;background:#faf8f2}
@@ -245,6 +259,8 @@ function locais(y){const o={};o[anivCM(y)]=['Aniversário de Campo Mourão (feri
   return o}
 const CARGOS=[['Anc','ANCIÃES',1],['Dcn','DIÁCONOS',1],['Com','COOPERADORES DO OFÍCIO MINISTERIAL',1],['Cjm','COOPERADORES DE JOVENS E MENORES',1],['Ero','ENCARREGADOS REGIONAIS DE ORQUESTRA',1],['Elo','ENCARREGADOS LOCAIS DE ORQUESTRA',1],['Adm','ADMINISTRAÇÃO',1],['Adm (Convocados)','ADMINISTRAÇÃO CONVOCADOS',0],['Dcn da Regional (Convocados)','DIÁCONOS DA REGIONAL CONVOCADOS',0],['Dcn da Regional','DIÁCONOS DA REGIONAL',0],['Adm Regional','ADMINISTRAÇÃO DA REGIONAL',0],['Adm Casas de Oração','ADMINISTRAÇÃO DAS CASAS DE ORAÇÃO',0],['Dcn (Convocados)','DIÁCONOS CONVOCADOS',0],['Dcn do Estado (Todos)','DIÁCONOS DO ESTADO',0],['Anc e *Dcn do Estado (Todos)','ANCIÃES E DIÁCONOS DO ESTADO',0],['Adm Titulares e Vices','ADMINISTRAÇÃO TITULARES E VICES',0]].map(a=>({code:a[0],label:a[1],showInLegend:!!a[2],useAsterisk:true}));
 const KEY='ccb_calendario_reunioes_anual';
+/* logo da capa já carregado e decodificado: a capa aparece sem piscar */
+const LOGO_CAPA=new Image();LOGO_CAPA.src='/assets/ccb-logo.png';if(LOGO_CAPA.decode)LOGO_CAPA.decode().catch(()=>{});
 let S={meta:{org:'Congregação Cristã no Brasil',sub:'CAMPO MOURÃO/PR',ano:2026,rod:'As reuniões deste calendário estão sujeitas a alterações.'},dias:{}};
 let cur=0; // 0..11 mês; -1 capa; -2 legenda; -3 ano
 
@@ -254,6 +270,38 @@ const p2=n=>String(n).padStart(2,'0');
 const kk=(m,d)=>p2(m+1)+'-'+p2(d);
 const esc=s=>String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function salvar(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+/* Atualiza um trecho da tela SEM recriar o que já existe: compara o HTML novo com
+   o atual e só mexe no que mudou. Imagens e ícones não são recarregados (sem piscar),
+   e o campo em que se está digitando mantém o foco e o cursor. */
+function patch(alvo,html){
+  const t=document.createElement('template');t.innerHTML=html;
+  patchFilhos(alvo,t.content);
+}
+function patchFilhos(a,b){
+  const av=[...a.childNodes],bv=[...b.childNodes];
+  for(let i=0;i<bv.length;i++){
+    const n=bv[i],o=av[i];
+    if(!o){a.appendChild(n);continue}
+    if(o.nodeType!==n.nodeType||o.nodeName!==n.nodeName){a.replaceChild(n,o);continue}
+    if(o.nodeType===3||o.nodeType===8){if(o.nodeValue!==n.nodeValue)o.nodeValue=n.nodeValue;continue}
+    patchNo(o,n);
+  }
+  for(let i=av.length-1;i>=bv.length;i--)av[i].remove();
+}
+function patchNo(o,n){
+  for(const at of [...o.attributes])if(!n.hasAttribute(at.name))o.removeAttribute(at.name);
+  for(const at of [...n.attributes])if(o.getAttribute(at.name)!==at.value)o.setAttribute(at.name,at.value);
+  const tag=o.nodeName;
+  if(tag==='INPUT'||tag==='TEXTAREA'){
+    const v=tag==='TEXTAREA'?n.textContent:(n.getAttribute('value')||'');
+    if(o.type==='checkbox'||o.type==='radio')o.checked=n.hasAttribute('checked');
+    else if(o!==document.activeElement&&o.value!==v)o.value=v;
+    if(tag==='TEXTAREA')return;
+  }
+  if(tag==='DETAILS')o.open=n.hasAttribute('open');
+  patchFilhos(o,n);
+  if(tag==='SELECT'){const sel=[...n.querySelectorAll('option')].findIndex(x=>x.hasAttribute('selected'));if(sel>=0&&o.selectedIndex!==sel)o.selectedIndex=sel}
+}
 
 function pascoa(y){const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),mes=Math.floor((h+l-7*m+114)/31),dia=((h+l-7*m+114)%31)+1;return new Date(y,mes-1,dia)}
 function feriados(y){
@@ -266,12 +314,14 @@ function feriados(y){
 /* ---------- Páginas ---------- */
 function paginaMes(m){
   const y=+S.meta.ano,n=new Date(y,m+1,0).getDate(),fer=feriados(y);let rows='';
+  let temServ=false;
   for(let d=1;d<=n;d++){
     const w=new Date(y,m,d).getDay(),k=kk(m,d),f=fer[k],es=S.dias[k]||[];
-    rows+=`<div class="r${w==0?' dom':''}${f?' fer':''}"><div class="d"><b>${d}</b><span>${SEM[w]}</span></div><div class="e">${f?`<div class="f">${esc(f)}</div>`:''}${es.map(e=>`<div class="s" style="--c:${TIPOS[e.t][1]}">${esc(e.x)}${e.h?` - <i>${esc(hr(e.h))}</i>`:''}${e.a&&e.a.trim()?` <span class="at">Atende ${esc(e.a.trim())}</span>`:''}${cvHTML(e)}</div>`).join('')}</div></div>`;
+    if(es.length)temServ=true;
+    rows+=`<div class="r${w==0?' dom':''}${f?' fer':''}${es.length?'':' r-vazio'}"><div class="d"><b>${d}</b><span>${SEM[w]}</span></div><div class="e">${f?`<div class="f">${esc(f)}</div>`:''}${es.map(e=>`<div class="s" style="--c:${TIPOS[e.t][1]}">${esc(e.x)}${e.h?` - <i>${esc(hr(e.h))}</i>`:''}${e.a&&e.a.trim()?` <span class="at">Atende ${esc(e.a.trim())}</span>`:''}${cvHTML(e)}</div>`).join('')}</div></div>`;
   }
   const leg=Object.values(TIPOS).map(t=>`<em><u style="background:${t[1]}"></u>${t[0]}</em>`).join('')+`<em><u style="background:${HOL}"></u>Feriados</em>`;
-  return `<div class="pg mes"><div class="top"><h2>${MESES[m].toUpperCase()}</h2><span>${esc(S.meta.org)}<br>${esc(S.meta.sub)} · ${esc(S.meta.ano)}</span></div><div class="dias">${rows}</div><div class="leg">${leg}</div><div class="rod">${esc(S.meta.rod)}</div></div>`;
+  return `<div class="pg mes"><div class="top"><h2>${MESES[m].toUpperCase()}</h2><span>${esc(S.meta.org)}<br>${esc(S.meta.sub)} · ${esc(S.meta.ano)}</span></div><div class="dias${temServ?'':' sem-serv'}">${rows}</div><div class="leg">${leg}</div><div class="rod">${esc(S.meta.rod)}</div></div>`;
 }
 function garantirCapa(){const m=S.meta;if(m.capaOrg===undefined)m.capaOrg=m.org||'';if(m.capaTitulo===undefined)m.capaTitulo='CALENDÁRIO DE REUNIÕES';if(m.capaSub===undefined)m.capaSub=m.sub||''}
 function paginaCapa(){
@@ -319,15 +369,15 @@ function pagina(c){return c==-4?paginaFeriados():c==-1?paginaCapa():c==-2?pagina
 function montar(){
   garantirCapa();
   ['org','sub','ano','rod','capaOrg','capaTitulo','capaSub'].forEach(k=>document.getElementById('m_'+k).value=S.meta[k]||'');
-  document.getElementById('meses').innerHTML=[['Capa',-1],['Legenda',-2],['Calendário',-4]].map(a=>`<button class="${cur==a[1]?'on':''}" onclick="ir(${a[1]})">${a[0]}</button>`).join('')+MESES.map((n,i)=>`<button class="${cur==i?'on':''}" onclick="ir(${i})">${n}</button>`).join('');
+  patch(document.getElementById('meses'),[['Capa',-1],['Legenda',-2],['Calendário',-4]].map(a=>`<button class="${cur==a[1]?'on':''}" onclick="ir(${a[1]})">${a[0]}</button>`).join('')+MESES.map((n,i)=>`<button class="${cur==i?'on':''}" onclick="ir(${i})">${n}</button>`).join(''));
   const box=document.getElementById('dias');
-  if(cur<0){box.innerHTML='<p style="font-size:13px;color:#7a7466">'+(cur==-4?'Calendário do ano, com os feriados (nacionais, pontos facultativos, Paraná e Campo Mourão) e com os dias coloridos pelos tipos de reunião lançados nos meses. É gerado automaticamente.':cur==-1?'Esta é a capa. Ajuste os textos nos campos acima.':cur==-2?'Legenda dos tipos de reunião, dos convocados e dos feriados do ano.':'Calendário do ano: os dias são coloridos automaticamente pelos serviços lançados em cada mês. Passe o mouse sobre um dia para ver o que há nele.')+'</p>'+(cur==-2?cargosEditor():'');preview();return}
+  if(cur<0){patch(box,'<p style="font-size:13px;color:#7a7466">'+(cur==-4?'Calendário do ano, com os feriados (nacionais, pontos facultativos, Paraná e Campo Mourão) e com os dias coloridos pelos tipos de reunião lançados nos meses. É gerado automaticamente.':cur==-1?'Esta é a capa. Ajuste os textos nos campos acima.':cur==-2?'Legenda dos tipos de reunião, dos convocados e dos feriados do ano.':'Calendário do ano: os dias são coloridos automaticamente pelos serviços lançados em cada mês. Passe o mouse sobre um dia para ver o que há nele.')+'</p>'+(cur==-2?cargosEditor():''));preview();return}
   const y=+S.meta.ano,n=new Date(y,cur+1,0).getDate(),fer=feriados(y);let h='';
   for(let d=1;d<=n;d++){
     const w=new Date(y,cur,d).getDay(),k=kk(cur,d),es=S.dias[k]||[],ab=!!aDia[k];
-    h+=`<div class="win${ab?' open':''}${w==0?' dom':''}${fer[k]?' fer':''}${es.length?' tem':''}" ondragover="dgOver(event,this)" ondragleave="dgLeave(event,this)" ondrop="dgDrop(event,'${k}')"><div class="win-head" role="button" tabindex="0" aria-expanded="${ab}" onclick="togDia('${k}',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();togDia('${k}',this)}"><div class="wh-l"><span class="caret"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-chevron-right"></use></svg></span><span class="wd">${d}</span><span class="ws">${SEM[w].charAt(0)+SEM[w].slice(1).toLowerCase()}</span>${fer[k]?`<span class="wf">${esc(fer[k])}</span>`:''}</div><div class="wh-r">${resumoHead(es)}</div></div><div class="win-body">${es.map((e,i)=>entHTML(k,i,e)).join('')}<button class="add" onclick="novo('${k}')">+ serviço</button></div></div>`;
+    h+=`<div class="win${ab?' open':''}${w==0?' dom':''}${fer[k]?' fer':''}${es.length?' tem':''}" data-k="${k}"><div class="win-head" role="button" tabindex="0" aria-expanded="${ab}" onclick="togDia('${k}',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();togDia('${k}',this)}"><div class="wh-l"><span class="caret"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-chevron-right"></use></svg></span><span class="wd">${d}</span><span class="ws">${SEM[w].charAt(0)+SEM[w].slice(1).toLowerCase()}</span>${fer[k]?`<span class="wf">${esc(fer[k])}</span>`:''}</div><div class="wh-r">${resumoHead(es)}</div></div><div class="win-body">${es.map((e,i)=>entHTML(k,i,e)).join('')}<button class="add" onclick="novo('${k}')">+ serviço</button></div></div>`;
   }
-  box.innerHTML=`<div class="bar2"><button onclick="tudo('d',1)">Recolher dias</button><button onclick="tudo('d',0)">Expandir dias</button><button onclick="tudo('e',1)">Recolher reuniões</button><button onclick="tudo('e',0)">Expandir reuniões</button></div>`+h;preview();
+  patch(box,`<div class="bar2"><button onclick="tudo('d',1)">Recolher dias</button><button onclick="tudo('d',0)">Expandir dias</button><button onclick="tudo('e',1)">Recolher reuniões</button><button onclick="tudo('e',0)">Expandir reuniões</button></div>`+h);preview();
 }
 function hr(v){v=String(v||'').trim();const m=v.match(/^(\d{1,2})[:.hH]?(\d{2})?$/);if(!m)return v;const h=+m[1],mi=m[2];if(h>23||(mi&&+mi>59))return v;return h+'h'+(mi&&mi!='00'?mi+'min':'')}
 function horaInput(el,k,i){edit(k,i,'h',el.value);if(/^\d{4}$/.test(el.value.trim()))horaBlur(el,k,i)}
@@ -343,9 +393,56 @@ function dgStart(ev,k,i){DG={k,i};ev.dataTransfer.effectAllowed='move';ev.dataTr
 function dgEnd(){DG=null;document.body.classList.remove('dgon');document.querySelectorAll('.win.dgover').forEach(x=>x.classList.remove('dgover'))}
 function dgOver(ev,el){if(!DG)return;ev.preventDefault();ev.dataTransfer.dropEffect='move';el.classList.add('dgover')}
 function dgLeave(ev,el){if(!el.contains(ev.relatedTarget))el.classList.remove('dgover')}
+/* ---- Arraste por ponteiro: a página continua rolando (rodinha do mouse ou
+   encostando na borda da tela) enquanto o serviço está sendo arrastado ---- */
+let DGP=null;
+function dgDown(ev,k,i){
+  if(ev.button!==undefined&&ev.button!==0)return;
+  ev.preventDefault();ev.stopPropagation();
+  DGP={k,i,x0:ev.clientX,y0:ev.clientY,x:ev.clientX,y:ev.clientY,src:ev.target.closest('.entw,.entc'),on:false,ghost:null,alvo:null,raf:0};
+  document.addEventListener('pointermove',dgMove);document.addEventListener('pointerup',dgUp);
+  document.addEventListener('pointercancel',dgLimpar);document.addEventListener('keydown',dgKey);
+  window.addEventListener('scroll',dgScroll,true);
+}
+function dgMove(ev){
+  if(!DGP)return;DGP.x=ev.clientX;DGP.y=ev.clientY;
+  if(!DGP.on){if(Math.hypot(DGP.x-DGP.x0,DGP.y-DGP.y0)<4)return;dgIniciar()}
+  ev.preventDefault();dgPos();
+}
+function dgIniciar(){
+  DGP.on=true;DG={k:DGP.k,i:DGP.i};document.body.classList.add('dgon');
+  const e=(S.dias[DGP.k]||[])[DGP.i],g=document.createElement('div');g.className='dg-ghost';
+  g.innerHTML='<u style="background:'+(e&&TIPOS[e.t]?TIPOS[e.t][1]:'#999')+'"></u><span>'+esc(e?((e.h?hr(e.h)+' ':'')+e.x):'Serviço')+'</span>';
+  document.body.appendChild(g);DGP.ghost=g;if(DGP.src)DGP.src.classList.add('dg-origem');
+  DGP.raf=requestAnimationFrame(dgAuto);
+}
+function dgPos(){
+  if(DGP.ghost)DGP.ghost.style.transform='translate('+(DGP.x+14)+'px,'+(DGP.y+12)+'px)';
+  const el=document.elementFromPoint(DGP.x,DGP.y),w=el&&el.closest?el.closest('#dias .win'):null;
+  if(w!==DGP.alvo){if(DGP.alvo)DGP.alvo.classList.remove('dgover');DGP.alvo=w;if(w&&w.dataset.k!==DGP.k)w.classList.add('dgover')}
+}
+/* encostou perto da borda de cima/baixo da tela: rola sozinho */
+function dgAuto(){
+  if(!DGP||!DGP.on)return;const m=70,h=window.innerHeight;let v=0;
+  if(DGP.y<m)v=-Math.ceil((m-DGP.y)/4);else if(DGP.y>h-m)v=Math.ceil((DGP.y-(h-m))/4);
+  if(v)window.scrollBy(0,v);
+  DGP.raf=requestAnimationFrame(dgAuto);
+}
+function dgScroll(){if(DGP&&DGP.on)dgPos()}
+function dgKey(e){if(e.key==='Escape')dgLimpar()}
+function dgUp(){if(!DGP)return;const st=DGP;dgLimpar();if(st.on&&st.alvo)dgMover(st.k,st.i,st.alvo.dataset.k)}
+function dgLimpar(){
+  if(!DGP)return;cancelAnimationFrame(DGP.raf);
+  if(DGP.ghost)DGP.ghost.remove();if(DGP.src)DGP.src.classList.remove('dg-origem');if(DGP.alvo)DGP.alvo.classList.remove('dgover');
+  document.removeEventListener('pointermove',dgMove);document.removeEventListener('pointerup',dgUp);
+  document.removeEventListener('pointercancel',dgLimpar);document.removeEventListener('keydown',dgKey);
+  window.removeEventListener('scroll',dgScroll,true);DGP=null;dgEnd();
+}
 function dgDrop(ev,k2){
-  if(!DG)return;ev.preventDefault();const {k,i}=DG;dgEnd();
-  if(k==k2||!S.dias[k]||!S.dias[k][i])return;
+  if(!DG)return;ev.preventDefault();const {k,i}=DG;dgEnd();dgMover(k,i,k2);
+}
+function dgMover(k,i,k2){
+  if(!k2||k==k2||!S.dias[k]||!S.dias[k][i])return;
   const e=S.dias[k].splice(i,1)[0];
   if(!S.dias[k].length)delete S.dias[k];
   Object.keys(fEnt).forEach(x=>{if(x.startsWith(k+'#'))delete fEnt[x]});
@@ -357,8 +454,8 @@ function resumoHead(es){
   return `<span class="rl">${sh}${es.length>2?`<span class="mais">+${es.length-2}</span>`:''}</span><span class="qtd">${es.length}</span>`}
 function entHTML(k,i,e){
   const id=k+'#'+i;
-  if(fEnt[id])return `<div class="entc" onclick="togEnt('${id}')" title="Expandir"><span class="dg" draggable="true" title="Arraste para outro dia" onclick="event.stopPropagation()" ondragstart="dgStart(event,'${k}',${i})" ondragend="dgEnd()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-grip"></use></svg></span><span class="entc-caret"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-chevron-right"></use></svg></span><u style="background:${TIPOS[e.t][1]}"></u><span>${esc(hr(e.h))} ${esc(e.x)||'(sem descrição)'} ${esc((e.c||[]).map(c=>'*'+c).join(' '))}</span></div>`;
-  return `<div class="entw"><div class="ent"><span class="dg" draggable="true" title="Arraste para outro dia" ondragstart="dgStart(event,'${k}',${i})" ondragend="dgEnd()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-grip"></use></svg></span><button class="tg" title="Minimizar" onclick="togEnt('${id}')"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-chevron-down"></use></svg></button><select onchange="edit('${k}',${i},'t',this.value)">${Object.entries(TIPOS).map(([v,t])=>`<option value="${v}"${e.t==v?' selected':''}>${t[0]}</option>`).join('')}</select><input value="${esc(e.h)}" placeholder="1930" inputmode="numeric" oninput="horaInput(this,'${k}',${i})" onblur="horaBlur(this,'${k}',${i})"><input class="tx" value="${esc(e.x)}" placeholder="Descrição do serviço" oninput="edit('${k}',${i},'x',this.value,1)"><button title="Repetir no mesmo dia da semana (mesma posição no mês) em todos os outros meses" onclick="repetir('${k}',${i})"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-refresh"></use></svg></button><button title="Repetir a cada 2 meses (pula 1 mês), no mesmo dia da semana e na mesma posição no mês" onclick="repetir('${k}',${i},2)"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-refresh"></use></svg>2</button><button class="danger" title="Remover" onclick="remover('${k}',${i})"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-x"></use></svg></button></div><div class="atin"><input value="${esc(e.a||'')}" placeholder="Quem atende (opcional) – ex.: Ir. Carlos Roberto" oninput="edit('${k}',${i},'a',this.value)"></div>${cvEd(k,i,e)}</div>`}
+  if(fEnt[id])return `<div class="entc" onclick="togEnt('${id}')" title="Expandir"><span class="dg" title="Arraste para outro dia (a rodinha do mouse rola a página)" onclick="event.stopPropagation()" onpointerdown="dgDown(event,'${k}',${i})"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-grip"></use></svg></span><span class="entc-caret"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-chevron-right"></use></svg></span><u style="background:${TIPOS[e.t][1]}"></u><span>${esc(hr(e.h))} ${esc(e.x)||'(sem descrição)'} ${esc((e.c||[]).map(c=>'*'+c).join(' '))}</span></div>`;
+  return `<div class="entw"><div class="ent"><span class="dg" title="Arraste para outro dia (a rodinha do mouse rola a página)" onpointerdown="dgDown(event,'${k}',${i})"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-grip"></use></svg></span><button class="tg" title="Minimizar" onclick="togEnt('${id}')"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-chevron-down"></use></svg></button><select onchange="edit('${k}',${i},'t',this.value)">${Object.entries(TIPOS).map(([v,t])=>`<option value="${v}"${e.t==v?' selected':''}>${t[0]}</option>`).join('')}</select><input value="${esc(e.h)}" placeholder="1930" inputmode="numeric" oninput="horaInput(this,'${k}',${i})" onblur="horaBlur(this,'${k}',${i})"><input class="tx" value="${esc(e.x)}" placeholder="Descrição do serviço" oninput="edit('${k}',${i},'x',this.value,1)"><button title="Repetir no mesmo dia da semana (mesma posição no mês) em todos os outros meses" onclick="repetir('${k}',${i})"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-refresh"></use></svg></button><button title="Repetir a cada 2 meses (pula 1 mês), no mesmo dia da semana e na mesma posição no mês" onclick="repetir('${k}',${i},2)"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-refresh"></use></svg>2</button><button class="danger" title="Remover" onclick="remover('${k}',${i})"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-x"></use></svg></button></div><div class="atin"><input value="${esc(e.a||'')}" placeholder="Quem atende (opcional) – ex.: Ir. Carlos Roberto" oninput="edit('${k}',${i},'a',this.value)"></div>${cvEd(k,i,e)}</div>`}
 const fCv={};
 function cvSum(e){const c=e.c||[];const t=c.map(code=>{const g=S.cargos.find(x=>x.code==code);return `<span class="cc2">${g&&g.useAsterisk===false?'':'*'}${esc(code)}</span>`}).join('')+(e.o?`<em class="oo">${esc(e.o)}</em>`:'');return t||'<span class="nenhum">nenhum selecionado</span>'}
 function cvOpt(k,i,e,g,ci){return `<label class="opt" title="${esc(g.label)}"><input type="checkbox" ${(e.c||[]).includes(g.code)?'checked':''} onchange="cvTog('${k}',${i},${ci},this.checked)"><span>${g.useAsterisk!==false?'*':''}${esc(g.code)}</span></label>`}
@@ -388,10 +485,13 @@ function repetir(k,i,passo){
 
 /* ---------- Preview / impressão ---------- */
 function preview(){
-  const el=document.getElementById('prev');el.innerHTML=pagina(cur);
+  if(cur>=0)calcularFonteMes();
+  const el=document.getElementById('prev');patch(el,pagina(cur));
   ajustar(el);caber(el);
   const pg=el.firstChild,w=document.getElementById('prevScroll').clientWidth-20;pg.style.zoom=Math.min(1,w/794);
 }
+/* redimensionar a janela: no máximo uma atualização por quadro */
+let rzPend=0;function previewRz(){if(!rzPend)rzPend=requestAnimationFrame(()=>{rzPend=0;preview()})}
 /* Garante que NENHUMA página passe da folha A4: se o conteúdo ultrapassar, reduz tudo proporcionalmente até caber */
 function caber(root){
   let falhas=0;
@@ -404,19 +504,49 @@ function caber(root){
   });
   return falhas;
 }
-/* Cada mês deve caber numa única página: reduz a letra até o conteúdo caber */
-function ajustar(root){root.querySelectorAll('.dias').forEach(d=>{let fs=9.5,n=0;d.style.fontSize=fs+'pt';while(d.scrollHeight>d.clientHeight+1&&fs>2&&n++<100){fs-=.25;d.style.fontSize=fs+'pt'}})}
+/* Mesmo tamanho de letra em TODOS os meses: o maior (até FONTE_MAX) que faz todos caberem na página.
+   FONTE_PISO: um mês cheio demais não puxa o ano todo para baixo desse tamanho; só ele diminui (exceção). */
+const FONTE_MAX=11,FONTE_PISO=9;
+let FONTE_MES=FONTE_MAX;
+let FONTE_CHAVE='';
+function calcularFonteMes(forcar){
+  // só refaz a medição (pesada: monta os 12 meses) quando algo que muda os meses mudou
+  const ch=JSON.stringify([S.meta.ano,S.meta.org,S.meta.sub,S.meta.rod,S.dias,S.cargos,document.fonts?document.fonts.status:'']);
+  if(!forcar&&ch===FONTE_CHAVE)return FONTE_MES;
+  FONTE_CHAVE=ch;
+  const el=document.getElementById('print');
+  el.innerHTML=MESES.map((_,m)=>paginaMes(m)).join('');
+  el.classList.add('medindo');
+  let fs=FONTE_MAX;
+  el.querySelectorAll('.dias').forEach(d=>{
+    // maior tamanho em que ESTE mês cabe (sem passar do piso)
+    let f=fs;d.style.fontSize=f+'pt';
+    while(f>FONTE_PISO&&d.scrollHeight>d.clientHeight+1){f=Math.round((f-.25)*100)/100;d.style.fontSize=f+'pt'}
+    // se nem no piso coube, o mês é exceção e não puxa os outros para baixo
+    if(d.scrollHeight<=d.clientHeight+1)fs=f;
+  });
+  el.classList.remove('medindo');el.innerHTML='';
+  FONTE_MES=fs;return fs;
+}
+/* Aplica o tamanho único; só se algum mês ainda não couber (não deveria), reduz aquele mês */
+function ajustar(root){root.querySelectorAll('.dias').forEach(d=>{let fs=FONTE_MES,n=0;d.style.fontSize=fs+'pt';while(d.scrollHeight>d.clientHeight+1&&fs>2&&n++<100){fs-=.25;d.style.fontSize=fs+'pt'}})}
 function prepararImpressao(){
+  calcularFonteMes(true);
   const el=document.getElementById('print');
   el.innerHTML=paginaCapa()+paginaLegenda()+paginaFeriados()+MESES.map((_,m)=>paginaMes(m)).join('');
   el.classList.add('medindo');ajustar(el);const f=caber(el);el.classList.remove('medindo');if(f)console.warn(f+' página(s) não coube(ram) totalmente.');
 }
 window.addEventListener('beforeprint',prepararImpressao);
-if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>preview());
+if(document.fonts&&document.fonts.ready){
+  document.documentElement.classList.add('fontes-carregando');
+  const mostrar=()=>document.documentElement.classList.remove('fontes-carregando');
+  setTimeout(mostrar,1500); // rede lenta: não deixa a folha escondida
+  document.fonts.ready.then(()=>{preview();mostrar()});
+}
 function imprimir(){prepararImpressao();setTimeout(()=>window.print(),150)}
 function exportar(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:'application/json'}));a.download='calendario_reunioes_'+S.meta.ano+'.json';a.click()}
 function importar(ev){const f=ev.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{S=JSON.parse(r.result);if(!S.cargos)S.cargos=JSON.parse(JSON.stringify(CARGOS));salvar();montar()}catch(e){alert('Arquivo inválido.')}};r.readAsText(f)}
-window.addEventListener('resize',preview);
+window.addEventListener('resize',previewRz);
 montar();
 </script>
 <script src="/assets/editor.js"></script>

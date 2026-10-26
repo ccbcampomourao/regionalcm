@@ -806,11 +806,21 @@ function updatePreview() {
 
     doc.title = newDoc.title;
 
-    if (doc.head && newDoc.head) {
+    // Cabeçalho (estilos/fontes) só é trocado quando realmente muda: trocar a
+    // cada tecla recarregava as fontes e fazia a folha piscar.
+    if (doc.head && newDoc.head && frame._ultimoHead !== newDoc.head.innerHTML) {
+      frame._ultimoHead = newDoc.head.innerHTML;
       doc.head.innerHTML = newDoc.head.innerHTML;
     }
 
-    doc.body.innerHTML = newDoc.body.innerHTML;
+    if (window.atualizarSemPiscar) {
+      atualizarSemPiscar(doc.body, newDoc.body);
+      // avisa o ajuste automático da folha (ele observa as trocas no <body>)
+      var marca = doc.createTextNode('');
+      doc.body.appendChild(marca); doc.body.removeChild(marca);
+    } else {
+      doc.body.innerHTML = newDoc.body.innerHTML;
+    }
 
     scalePreview();
   } else {
