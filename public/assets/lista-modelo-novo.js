@@ -201,7 +201,7 @@
       cab.innerHTML =
         '<img class="nv-logo" src="' + LOGO + '" alt="">' +
         '<div class="nv-tx"><div class="org">CONGREGAÇÃO CRISTÃ NO BRASIL</div>' +
-        '<div class="ttl">' + esc(titulo) + (regiao ? ' <span class="nv-pt">·</span> REGIÃO ' + esc(regiao) : '') + '</div></div>' +
+        '<div class="ttl">' + esc(titulo) + (regiao ? ' <span class="nv-pt">·</span> REGIÃO <span class="nv-pt">·</span> ' + esc(regiao) : '') + '</div></div>' +
         (periodo ? '<div class="nv-per"><span>' + esc(p[0] || '') + '</span>' + (p[1] ? '<b>' + esc(p[1]) + '</b>' : '') + '</div>' : '');
     }
 
@@ -248,15 +248,17 @@
     /* o 1º bloco logo abaixo do cabeçalho encosta mais: no total, o mesmo espaço do cabeçalho atual (44px + 8px) */
     '.doc-header + *{ padding-top:3px !important; }',
     /* ornamento embaixo do cabeçalho (só cores sólidas, sem transparência: alguns leitores de PDF mostram preto nas pontas): filete grosso + fino que afinam nas pontas, com um losango no centro */
-    '.doc-header::after{ content:""; position:absolute; left:0; right:0; bottom:3px; height:4px; background:linear-gradient(90deg, #fff 0%, #000 12%, #000 46%, #fff 46%, #fff 54%, #000 54%, #000 88%, #fff 100%) top/100% 1.6px no-repeat, linear-gradient(90deg, #fff 0%, #000 6%, #000 46%, #fff 46%, #fff 54%, #000 54%, #000 94%, #fff 100%) bottom/100% .6px no-repeat; }',
+    '.doc-header::after{ content:""; position:absolute; left:19mm; right:19mm; bottom:3px; height:4px; background:linear-gradient(90deg, #fff 0%, #000 12%, #000 46%, #fff 46%, #fff 54%, #000 54%, #000 88%, #fff 100%) top/100% 1.6px no-repeat, linear-gradient(90deg, #fff 0%, #000 6%, #000 46%, #fff 46%, #fff 54%, #000 54%, #000 94%, #fff 100%) bottom/100% .6px no-repeat; }',
     '.doc-header::before{ content:""; z-index:2; position:absolute; left:50%; bottom:2.5px; width:5px; height:5px; margin-left:-2.5px; background:#000; transform:rotate(45deg); box-shadow:-8px 8px 0 -1.2px #000, 8px -8px 0 -1.2px #000; }',
-    '.doc-header .nv-logo{ height:35px; width:auto; flex:none; }',
-    '.doc-header .nv-tx{ flex:1; min-width:0; }',
+    /* logo grande à esquerda (desce até a base do cabeçalho; o filete começa depois dele) */
+    '.doc-header .nv-logo{ position:absolute; left:0; top:0; height:48px; width:auto; }',
+    /* textos centralizados na largura da folha, independente do logo e do selo */
+    '.doc-header .nv-tx{ position:absolute; left:0; right:0; top:0; text-align:center; }',
     '.doc-header .org{ letter-spacing:.16em !important; line-height:1.05; white-space:nowrap; }',
-    '.doc-header .ttl{ letter-spacing:.03em; margin-top:1px !important; line-height:1.05; white-space:nowrap; }',
-    '.doc-header .nv-pt{ padding:0 .15em; }',
-    '.doc-header .nv-per{ flex:none; border:1.2pt solid #000; border-radius:2mm; padding:1px 9px; line-height:1.1; font-size:16px; font-weight:700; text-align:center; }',
-    '.doc-header .nv-per span{ display:block; }',
+    '.doc-header .ttl{ letter-spacing:0; margin-top:1px !important; line-height:1.05; white-space:nowrap; }',
+    '.doc-header .nv-pt{ padding:0 .12em; }',
+    '.doc-header .nv-per{ position:absolute; right:0; top:0; border:1.2pt solid #000; border-radius:2mm; padding:2px 5px 1px; line-height:1.1; font-size:14px; font-weight:700; text-align:center; }',
+    '.doc-header .nv-per span{ display:block; letter-spacing:-.01em; }',
     '.doc-header .nv-per b{ display:block; font-size:16px; letter-spacing:.12em; }',
 
     /* blocos: o espaço entre blocos fica DENTRO do bloco (a paginação da prévia mede só a altura) */
