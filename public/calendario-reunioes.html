@@ -324,10 +324,14 @@ textarea{width:100%;border:1.5px solid var(--line);border-radius:8px;padding:8px
 .leg u{border-radius:50%}
 .rod{font-style:italic;font-family:'Fraunces',Georgia,serif;color:#8a8371}
 /* capa */
-.capa::before{inset:9mm;border:1.4pt solid var(--primary);border-radius:3mm}
-.capa::after{content:"";position:absolute;inset:11.5mm;border:.6pt solid var(--brass);border-radius:2mm;pointer-events:none}
-.capa small{color:var(--primary);letter-spacing:.22em;font-size:13pt}
-.capa h2{font-style:normal;color:var(--primary);letter-spacing:.04em;margin:18mm 0 6mm}
+.capa::before{display:none}
+.capa-moldura{position:absolute;left:8mm;top:8mm;width:194mm;height:281mm;pointer-events:none;overflow:visible}
+.capa .capa-peca{position:absolute;left:50%;width:72.8mm;height:14.338mm;margin-left:-36.4mm;pointer-events:none}
+.capa-peca-topo{top:8mm}.capa-peca-base{top:calc(8mm + 281mm - 14.338mm)}
+.capa::after{display:none}
+.capa-org{font-family:Arial,'Helvetica Neue',Helvetica,'Liberation Sans',sans-serif;font-weight:700;color:var(--primary);font-size:31pt;line-height:1.12;letter-spacing:-.005em;text-align:center}
+.capa-org span{display:block}
+.capa h2{font-style:normal;color:var(--primary);letter-spacing:.01em;margin:24mm 0 6mm}
 .capa p{color:var(--primary-2)}
 .capa .orn{display:flex;align-items:center;gap:4mm;width:110mm;margin:7mm auto 0}
 .capa .orn::before,.capa .orn::after{content:"";flex:1;height:0;border-top:.8pt solid var(--brass)}
@@ -400,7 +404,7 @@ textarea{width:100%;border:1.5px solid var(--line);border-radius:8px;padding:8px
       <div class="cfg">
         <h4><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-file"></use></svg>Capa <small>independente do restante; só o ano é o mesmo</small></h4>
         <div class="meta">
-          <div><label>Texto sob o logo</label><input id="m_capaOrg" oninput="meta('capaOrg',this.value)"></div>
+          <div><label>Nome da igreja na capa</label><input id="m_capaOrg" oninput="meta('capaOrg',this.value)"></div>
           <div><label>Título da capa</label><input id="m_capaTitulo" oninput="meta('capaTitulo',this.value)"></div>
           <div><label>Localidade na capa</label><input id="m_capaSub" oninput="meta('capaSub',this.value)"></div>
         </div>
@@ -447,6 +451,7 @@ const CARGOS=[['Anc','ANCIÃES',1],['Dcn','DIÁCONOS',1],['Com','COOPERADORES DO
 const KEY='ccb_calendario_reunioes_anual';
 /* logo da capa já carregado e decodificado: a capa aparece sem piscar */
 const LOGO_CAPA=new Image();LOGO_CAPA.src='/assets/ccb-logo.png';if(LOGO_CAPA.decode)LOGO_CAPA.decode().catch(()=>{});
+const PECAS_CAPA=['/assets/capa-moldura-topo.png','/assets/capa-moldura-base.png'].map(u=>{const i=new Image();i.src=u;if(i.decode)i.decode().catch(()=>{});return i});
 let S={meta:{org:'Congregação Cristã no Brasil',sub:'CAMPO MOURÃO/PR',ano:2026,rod:'As reuniões deste calendário estão sujeitas a alterações.'},dias:{}};
 let cur=0; // 0..11 mês; -1 capa; -2 legenda; -3 ano
 
@@ -526,9 +531,27 @@ function paginaMes(m){
   return `<div class="pg mes"><div class="top"><h2>${MESES[m].toUpperCase()}</h2><span>${esc(S.meta.org)}<br>${esc(S.meta.sub)} · ${esc(S.meta.ano)}</span></div><div class="dias${temServ?'':' sem-serv'}">${rows}</div><div class="leg">${leg}</div><div class="rod">${esc(S.meta.rod)}</div></div>`;
 }
 function garantirCapa(){const m=S.meta;if(m.capaOrg===undefined)m.capaOrg=m.org||'';if(m.capaTitulo===undefined)m.capaTitulo='CALENDÁRIO DE REUNIÕES';if(m.capaSub===undefined)m.capaSub=m.sub||''}
+const MOLDURA_CAPA=(()=>{
+  // Moldura da capa feita a partir do próprio logo da CCB: a placa "CCB" com as faixas em
+  // arco (em cima) e o recorte de baixo são recortes do logo; as linhas retas da moldura
+  // seguem a mesma espessura e a mesma distância entre a linha de fora e a de dentro.
+  // Escala: 13,6 px do logo = 1 mm.  Área da moldura: 194 x 281 mm.
+  const W=194,H=281,k=13.6,ex=1.1,                 // espessura das linhas (15 px)
+        hy=(52+7)/k, hx=(56+7.5)/k;                // centro da linha de dentro (horizontal / vertical)
+  const p1=97-36.4,p2=97+36.4, o=ex/2;           // as linhas param onde começam os recortes do logo
+  const traco=(d)=>`<path d="${d}" fill="none" stroke="#1b2a41" stroke-width="${ex}" stroke-linecap="butt" stroke-linejoin="miter"/>`;
+  const linhas=`<svg class="capa-moldura" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">`+
+    traco(`M${p2},${o} H${W-o} V${H-o} H${p2} M${p1},${H-o} H${o} V${o} H${p1}`)+
+    traco(`M${p2},${hy} H${W-hx} V${H-hy} H${p2} M${p1},${H-hy} H${hx} V${hy} H${p1}`)+`</svg>`;
+  return linhas+`<img class="capa-peca capa-peca-topo" src="/assets/capa-moldura-topo.png" alt="">`+
+                `<img class="capa-peca capa-peca-base" src="/assets/capa-moldura-base.png" alt="">`;
+})();
+/* nome da igreja na capa, escrito como no logo: "CONGREGAÇÃO CRISTÃ / NO / BRASIL" */
+function orgCapa(t){const u=String(t||'').trim().toUpperCase();const m=u.match(/^(.+?)\s+(NO|NA|EM|DO|DA)\s+(\S+)$/);
+  return m?`<span>${esc(m[1])}</span><span>${esc(m[2])}</span><span>${esc(m[3])}</span>`:`<span>${esc(u)}</span>`}
 function paginaCapa(){
   garantirCapa();
-  return `<div class="pg capa"><img class="capa-logo" src="/assets/ccb-logo.png" alt="Congregação Cristã no Brasil"><small>${esc(S.meta.capaOrg).toUpperCase()}</small><h2>${esc(S.meta.capaTitulo)}</h2><p>${esc(S.meta.capaSub)}</p><div class="orn"><i></i></div><div class="ano" style="font-family:Fraunces,serif;font-style:italic">${esc(S.meta.ano)}</div></div>`;
+  return `<div class="pg capa">${MOLDURA_CAPA}<div class="capa-org">${orgCapa(S.meta.capaOrg)}</div><h2>${esc(S.meta.capaTitulo)}</h2><p>${esc(S.meta.capaSub)}</p><div class="orn"><i></i></div><div class="ano" style="font-family:Fraunces,serif;font-style:italic">${esc(S.meta.ano)}</div></div>`;
 }
 
 function cvHTML(e){const a=(e.c||[]).map(code=>{const g=S.cargos.find(x=>x.code==code);return `<span class="cc">${g&&g.useAsterisk===false?'':'*'}${esc(code)}</span>`}).join('')+(e.o?`<span class="cv">${esc(e.o)}</span>`:'');return a?`<div class="cvb">${a}</div>`:''}
@@ -575,7 +598,7 @@ function montar(){
   const nt=document.getElementById('nmTit');if(nt)nt.innerHTML=cur>=0?`<b>${MESES[cur]}</b><span>${S.meta.ano} · ${qtdMes(cur)} serviço${qtdMes(cur)==1?'':'s'}</span>`:`<b>${cur==-1?'Capa':cur==-2?'Legenda':'Calendário do ano'}</b><span>${S.meta.ano}</span>`;
   const fe=document.getElementById('ferr');if(fe)fe.style.display=cur>=0?'':'none';
   const box=document.getElementById('dias');
-  if(cur<0){patch(box,'<p style="font-size:13px;color:#7a7466">'+(cur==-4?'Calendário do ano, com os feriados (nacionais, pontos facultativos, Paraná e Campo Mourão) e com os dias coloridos pelos tipos de reunião lançados nos meses. É gerado automaticamente.':cur==-1?'Esta é a capa. Ajuste os textos nos campos acima.':cur==-2?'Legenda dos tipos de reunião, dos convocados e dos feriados do ano.':'Calendário do ano: os dias são coloridos automaticamente pelos serviços lançados em cada mês. Passe o mouse sobre um dia para ver o que há nele.')+'</p>'+(cur==-2?cargosEditor():''));preview();return}
+  if(cur<0){patch(box,'<p style="font-size:13px;color:#7a7466">'+(cur==-4?'Calendário do ano, com os feriados (nacionais, pontos facultativos, Paraná e Campo Mourão) e com os dias coloridos pelos tipos de reunião lançados nos meses. É gerado automaticamente.':cur==-1?'Esta é a capa. Os textos dela ficam na aba Configurações.':cur==-2?'Legenda dos tipos de reunião, dos convocados e dos feriados do ano.':'Calendário do ano: os dias são coloridos automaticamente pelos serviços lançados em cada mês. Passe o mouse sobre um dia para ver o que há nele.')+'</p>'+(cur==-2?cargosEditor():''));preview();return}
   const y=+S.meta.ano,n=new Date(y,cur+1,0).getDate(),fer=feriados(y);let h='';
   for(let d=1;d<=n;d++){
     const w=new Date(y,cur,d).getDay(),k=kk(cur,d),es=S.dias[k]||[],ab=!!aDia[k];
