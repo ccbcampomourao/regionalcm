@@ -167,6 +167,69 @@ body.dgon{user-select:none;-webkit-user-select:none;cursor:grabbing}
 .meses button{padding:8px 13px;font-size:13.5px}
 .cg{grid-template-columns:150px 1fr 22px 22px auto;gap:8px}
 #form .cg input[type=checkbox]{width:20px;height:20px;min-height:0;padding:0}
+
+/* ===== Painel de edição reorganizado ===== */
+.wrap.sem-prev #prevHost{display:none}
+.wrap.sem-prev #form{max-width:980px;margin:0 auto}
+.topo-ed{position:sticky;top:10px;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:-4px -4px 16px;padding:8px;border-radius:12px;background:rgba(250,246,236,.92);backdrop-filter:blur(8px);border:1px solid var(--line);box-shadow:0 10px 24px -18px rgba(27,42,65,.55)}
+.abas{display:flex;gap:4px;background:#ece6d6;padding:4px;border-radius:10px}
+.abas button{display:inline-flex;align-items:center;gap:7px;border:none;background:transparent;padding:8px 14px;font-size:14px;color:#6d6652;border-radius:8px}
+.abas button.on{background:#fff;color:var(--primary);box-shadow:0 1px 3px rgba(27,42,65,.18)}
+.abas svg.ic,.acoes-ed svg.ic{width:16px;height:16px}
+.acoes-ed{display:flex;align-items:center;gap:8px}
+.acoes-ed>button,.menu>button{display:inline-flex;align-items:center;gap:7px;font-size:13.5px;padding:9px 13px}
+.salvo{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:#3d7a57;font-weight:600;padding:0 4px}
+.salvo.pulsa{animation:pulsa 1.2s ease}@keyframes pulsa{0%{opacity:.3}100%{opacity:1}}
+.ic-btn{padding:9px 10px!important}.ic-btn.on{background:var(--primary);color:#fdfbf6}
+.menu{position:relative}
+.menu-box{display:none;position:absolute;right:0;top:calc(100% + 6px);min-width:260px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 18px 40px -16px rgba(27,42,65,.45);padding:6px;z-index:40}
+.menu.open .menu-box{display:block}
+.menu-box button{display:flex;align-items:center;justify-content:flex-start;gap:10px;width:100%;white-space:nowrap;border:none;background:none;text-align:left;padding:10px 12px;font-size:14px;border-radius:8px}
+.menu-box button:hover{background:#f6f1e4}
+.menu-box hr{border:none;border-top:1px solid var(--line);margin:5px 4px}
+.menu-box .danger{color:var(--accent)}
+.cfg{border:1px solid var(--line);border-radius:12px;padding:14px 16px 16px;margin-bottom:14px;background:#fdfbf6}
+.cfg h4{display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:15px;color:var(--primary)}
+.cfg h4 small{font-weight:500;font-size:12px;color:#8a8371}
+.cfg h4 svg.ic{width:17px;height:17px;color:var(--brass)}
+.cfg .meta{margin:0}
+.dica{font-size:13px;color:#7a7466;margin:4px 2px}
+.nav-mes{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.nav-mes .seta{padding:10px 12px;border-radius:10px}
+.nm-tit{text-align:center}.nm-tit b{display:block;font-family:'Fraunces',Georgia,serif;font-size:24px;color:var(--primary);line-height:1.1}
+.nm-tit span{font-size:13px;color:#8a8371;font-weight:600}
+#form .meses{display:block;margin:0 0 14px;padding:12px 0 0;border-top:1px solid var(--line)}
+.pg-ext{display:flex;gap:6px;margin-bottom:8px}
+.pg-ext button{font-size:13px;padding:7px 12px}
+.pg-mes{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.pg-mes button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 0;font-size:13.5px}
+.pg-mes button em{font-style:normal;font-size:11px;font-weight:700;background:#f3ecdb;color:var(--brass);border-radius:10px;padding:0 7px;min-width:20px}
+.pg-mes button.vazio em{background:transparent;color:#b9b19c}
+.meses button.on em{background:rgba(255,255,255,.2);color:#fdfbf6}
+.ferr{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 12px;margin-bottom:12px;border:1px solid var(--line);border-radius:12px;background:#fdfbf6}
+.chave{display:inline-flex!important;align-items:center;gap:10px;font-size:14px!important;font-weight:600!important;color:var(--primary)!important;cursor:pointer;margin:0!important}
+.chave input{display:none}
+.chave span{width:38px;height:22px;border-radius:12px;background:#d9d1bd;position:relative;transition:background .15s}
+.chave span::after{content:"";position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .15s;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.chave input:checked+span{background:var(--primary)}.chave input:checked+span::after{left:19px}
+.novo-serv{display:flex;gap:8px;align-items:center}
+#form .novo-serv input{width:170px;min-height:40px}
+.novo-serv button{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;padding:10px 14px}
+.bar2{align-items:center;font-size:13px;color:#8a8371}
+.bar2 span{font-weight:700;margin-left:4px}
+.bar2 button{border:none;background:none;color:var(--primary-2);text-decoration:underline;text-underline-offset:3px;padding:4px 4px!important}
+.nada{text-align:center;color:#8a8371;padding:28px 10px;border:1.5px dashed var(--line);border-radius:12px}
+.tipo-cor{width:14px;height:14px;border-radius:50%;background:var(--c);flex:none}
+.rep{position:relative}
+.rep summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:8px 11px;font-size:13px;font-weight:600;border:1.5px solid var(--line);border-radius:9px;background:#fff;color:var(--primary)}
+.rep summary::-webkit-details-marker{display:none}
+.rep[open] summary{border-color:var(--brass-lt)}
+.rep-box{position:absolute;right:0;top:calc(100% + 6px);z-index:35;min-width:220px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 18px 40px -16px rgba(27,42,65,.45);padding:6px}
+.rep-box button{display:flex;justify-content:flex-start;width:100%;text-align:left;border:none;background:none;padding:10px 12px;font-size:14px;border-radius:8px}
+.rep-box button:hover{background:#f6f1e4}
+.rep-box small{display:block;padding:6px 12px 4px;font-size:11.5px;color:#8a8371}
+#form .bar{display:none}
+#form .menu-box button,#form .rep-box button{justify-content:flex-start!important;text-align:left!important}
 /* ===== Páginas A4 ===== */
 .pg{width:210mm;height:297mm;background:#fff;color:#111;padding:11mm 12mm 9mm;display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.3);-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .pg.mes{padding:11mm 7mm 9mm}
@@ -237,6 +300,57 @@ textarea{width:100%;border:1.5px solid var(--line);border-radius:8px;padding:8px
 @page{size:A4 portrait;margin:0}
 @media print{html,body{margin:0!important;padding:0!important;background:#fff;height:auto}:root{padding:0!important}body>*:not(#print){display:none!important}#print{display:block}#print .pg{box-shadow:none;break-after:page;break-inside:avoid;zoom:1;width:210mm;height:296.4mm;max-height:296.4mm;overflow:hidden}#print .pg:last-child{break-after:auto}}
 #print.medindo{display:block;position:absolute;left:-99999px;top:0}
+/* ================= PROPOSTA: visual novo do calendário ================= */
+.pg{color:#1f2a3d}
+/* cabeçalho das páginas: título em serifa + filete duplo azul/dourado */
+.pg .top{border-bottom:none;position:relative;padding-bottom:7px;margin-bottom:6px}
+.pg .top::after{content:"";position:absolute;left:0;right:0;bottom:0;height:5px;background:linear-gradient(var(--primary),var(--primary)) top/100% 2.2pt no-repeat,linear-gradient(var(--brass),var(--brass)) bottom/100% .9pt no-repeat}
+.pg h2{color:var(--primary);letter-spacing:.06em}
+.pg .top span{color:var(--primary-2);line-height:1.35}
+.pg .top span::first-line{font-family:'Fraunces',Georgia,serif;font-style:italic;font-weight:600;font-size:1.1em;letter-spacing:.01em}
+/* mês: linhas dos dias mais leves e organizadas */
+.r{border-bottom:.5pt solid #e3dccb;grid-template-columns:25mm 1fr}
+.r .d{border-right:.7pt solid #e3dccb;align-self:stretch;align-items:center;gap:1.2mm;padding:.8mm 1.4mm .8mm .4mm;white-space:nowrap}
+.r .d b{font-family:'Fraunces',Georgia,serif;font-weight:700;color:var(--primary);min-width:6mm}
+.r .d span{font-size:.86em;letter-spacing:.03em;color:#7d7665;font-weight:600}
+.r.dom{background:#faf5e8}.r.dom .d b{color:var(--brass)}.r.dom .d span{color:var(--brass)}
+.r.fer{background:#fbecea}.r.fer .d b,.r.fer .d span{color:var(--accent)}
+.r .e{padding:.7mm 0 .7mm 2.4mm}
+.r .s{border-left:none;position:relative;padding-left:3.2mm;margin:.5mm 0}
+.r .s::before{content:"";position:absolute;left:0;top:.35em;width:1.7mm;height:1.7mm;border-radius:50%;background:var(--c)}
+.r .s i{color:var(--primary)}
+.r .f{display:inline-block;background:#fff;border:.6pt solid #e7b9b1;color:var(--accent);border-radius:3mm;padding:0 2mm;margin:.2mm 0;font-size:.85em}
+.leg{justify-content:center;gap:1.2mm 4.5mm;padding-top:2mm;border-top:.6pt solid #e3dccb}
+.leg u{border-radius:50%}
+.rod{font-style:italic;font-family:'Fraunces',Georgia,serif;color:#8a8371}
+/* capa */
+.capa::before{inset:9mm;border:1.4pt solid var(--primary);border-radius:3mm}
+.capa::after{content:"";position:absolute;inset:11.5mm;border:.6pt solid var(--brass);border-radius:2mm;pointer-events:none}
+.capa small{color:var(--primary);letter-spacing:.22em;font-size:13pt}
+.capa h2{font-style:normal;color:var(--primary);letter-spacing:.04em;margin:18mm 0 6mm}
+.capa p{color:var(--primary-2)}
+.capa .orn{display:flex;align-items:center;gap:4mm;width:110mm;margin:7mm auto 0}
+.capa .orn::before,.capa .orn::after{content:"";flex:1;height:0;border-top:.8pt solid var(--brass)}
+.capa .orn i{width:3mm;height:3mm;background:var(--brass);transform:rotate(45deg)}
+.capa .ano{margin-top:34mm;font-size:48pt;font-style:normal!important;letter-spacing:.08em}
+/* legenda */
+.legp{grid-template-columns:1fr 1fr;gap:3mm 8mm}
+.li{background:#fbf8f1;border:.6pt solid #e7dfcc;border-radius:2.5mm;padding:2mm 3mm}
+.li u{width:7mm;height:7mm;border-radius:50%}
+.sub{border-bottom:none;position:relative;padding-bottom:2mm}
+.sub::after{content:"";position:absolute;left:0;bottom:0;width:30mm;border-top:1.6pt solid var(--brass)}
+.cvl{display:grid;grid-template-columns:1fr 1fr;gap:2mm 8mm}
+.cc{background:var(--primary);border-radius:3mm;padding:0 1.6mm}
+/* calendário do ano: mini-meses em cartões */
+.mm{border:.7pt solid #ddd3bd;border-radius:2.5mm;padding:0 0 1.4mm;overflow:hidden;background:#fff}
+.mm h4{background:linear-gradient(180deg,var(--primary-2),var(--primary));color:#fdfbf6;text-align:center;letter-spacing:.08em;font-size:10pt;padding:1mm 0;margin:0 0 1mm}
+.mm .g{padding:0 1.8mm}
+.mm .g b{color:var(--primary-2);font-weight:700}
+.mm .g span{border-radius:50%;width:4.6mm;height:4.6mm;margin:0 auto;display:flex;align-items:center;justify-content:center;padding:0}
+.mm .g span.m{text-shadow:none;box-shadow:inset 0 0 0 .4pt rgba(0,0,0,.15)}
+.fl{border-bottom:.5pt solid #ece5d4}
+.pg>.rod:last-child{margin-top:auto;padding-top:2mm}
+
 </style>
 <link rel="stylesheet" href="/assets/ui.css">
 <link rel="stylesheet" href="/assets/editor.css">
@@ -249,33 +363,68 @@ textarea{width:100%;border:1.5px solid var(--line);border-radius:8px;padding:8px
 </header>
 <div class="wrap">
   <div class="panel" id="form">
-    <div class="bar">
-      <button class="primary" onclick="imprimir()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-print"></use></svg>Imprimir / salvar PDF (capa + 12 meses)</button>
-      <button id="btnListaSalvar" onclick="salvarLista()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-cloud-up"></use></svg>Salvar na nuvem</button>
-      <button id="btnListaCarregar" onclick="carregarLista()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-cloud-down"></use></svg>Carregar da nuvem</button>
-      <button onclick="exportar()" title="Baixa um arquivo .json com tudo"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-download"></use></svg>Baixar backup</button>
-      <button onclick="document.getElementById('imp').click()" title="Abre um arquivo .json baixado antes"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-upload"></use></svg>Abrir backup</button>
-      <input type="file" id="imp" accept=".json" style="display:none" onchange="importar(event)">
-      <button class="danger" onclick="if(confirm('Apagar todos os serviços?')){S.dias={};salvar();montar()}"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-trash"></use></svg>Limpar tudo</button>
+    <div class="topo-ed">
+      <div class="abas" role="tablist">
+        <button type="button" role="tab" data-aba="serv" class="on" onclick="aba('serv')"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-grid"></use></svg>Serviços</button>
+        <button type="button" role="tab" data-aba="conf" onclick="aba('conf')"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-file"></use></svg>Configurações</button>
+      </div>
+      <div class="acoes-ed">
+        <span class="salvo" id="salvo"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-check-circle"></use></svg><span>Salvo automaticamente</span></span>
+        <button type="button" class="ic-btn" id="btnPrev" title="Esconder / mostrar a pré-visualização" onclick="togPrev()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-eye"></use></svg></button>
+        <div class="menu" id="menuArq">
+          <button type="button" onclick="togMenu(event)"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-file"></use></svg>Arquivo<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-chevron-down"></use></svg></button>
+          <div class="menu-box">
+            <button type="button" id="btnListaSalvar" onclick="salvarLista()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-cloud-up"></use></svg>Salvar na nuvem</button>
+            <button type="button" id="btnListaCarregar" onclick="carregarLista()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-cloud-down"></use></svg>Carregar da nuvem</button>
+            <hr>
+            <button type="button" onclick="exportar()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-download"></use></svg>Baixar backup (.json)</button>
+            <button type="button" onclick="document.getElementById('imp').click()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-upload"></use></svg>Abrir backup</button>
+            <hr>
+            <button type="button" class="danger" onclick="limparTudo()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-trash"></use></svg>Limpar todos os serviços</button>
+          </div>
+        </div>
+        <button type="button" class="primary" onclick="imprimir()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-print"></use></svg>Imprimir / PDF</button>
+        <input type="file" id="imp" accept=".json" style="display:none" onchange="importar(event)">
+      </div>
     </div>
-    <div class="meta">
-      <div><label>Igreja / órgão</label><input id="m_org" oninput="meta('org',this.value)"></div>
-      <div><label>Localidade</label><input id="m_sub" oninput="meta('sub',this.value)"></div>
-      <div><label>Ano</label><input id="m_ano" type="number" oninput="meta('ano',this.value)"></div>
-    </div>
-    <div class="meta" style="grid-template-columns:1fr">
-      <div><label>Texto da capa <span style="font-weight:400;color:#7a7466">(independente do restante do calendário; só o ano é o mesmo)</span></label></div>
-    </div>
-    <div class="meta">
-      <div><label>Texto sob o logo</label><input id="m_capaOrg" oninput="meta('capaOrg',this.value)"></div>
-      <div><label>Título da capa</label><input id="m_capaTitulo" oninput="meta('capaTitulo',this.value)"></div>
-      <div><label>Localidade na capa</label><input id="m_capaSub" oninput="meta('capaSub',this.value)"></div>
-    </div>
-    <div class="meta" style="grid-template-columns:1fr">
-      <div><label>Observação no rodapé de cada página</label><input id="m_rod" oninput="meta('rod',this.value)"></div>
-    </div>
-    <div class="meses" id="meses"></div>
-    <div id="dias"></div>
+
+    <section id="aba-conf" class="aba" hidden>
+      <div class="cfg">
+        <h4><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-info"></use></svg>Identificação</h4>
+        <div class="meta">
+          <div><label>Igreja / órgão</label><input id="m_org" oninput="meta('org',this.value)"></div>
+          <div><label>Localidade</label><input id="m_sub" oninput="meta('sub',this.value)"></div>
+          <div><label>Ano</label><input id="m_ano" type="number" oninput="meta('ano',this.value)"></div>
+        </div>
+      </div>
+      <div class="cfg">
+        <h4><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-file"></use></svg>Capa <small>independente do restante; só o ano é o mesmo</small></h4>
+        <div class="meta">
+          <div><label>Texto sob o logo</label><input id="m_capaOrg" oninput="meta('capaOrg',this.value)"></div>
+          <div><label>Título da capa</label><input id="m_capaTitulo" oninput="meta('capaTitulo',this.value)"></div>
+          <div><label>Localidade na capa</label><input id="m_capaSub" oninput="meta('capaSub',this.value)"></div>
+        </div>
+      </div>
+      <div class="cfg">
+        <h4><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-alert"></use></svg>Rodapé</h4>
+        <div><label>Observação no rodapé de cada página</label><input id="m_rod" oninput="meta('rod',this.value)"></div>
+      </div>
+      <p class="dica">Os cargos e as informações da legenda ficam na página <b>Legenda</b> (aba Serviços).</p>
+    </section>
+
+    <section id="aba-serv" class="aba">
+      <div class="nav-mes">
+        <button type="button" class="seta" onclick="passo(-1)" title="Mês anterior"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-chevron-left"></use></svg></button>
+        <div class="nm-tit" id="nmTit"></div>
+        <button type="button" class="seta" onclick="passo(1)" title="Próximo mês"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-chevron-right"></use></svg></button>
+      </div>
+      <div class="meses" id="meses"></div>
+      <div class="ferr" id="ferr">
+        <label class="chave"><input type="checkbox" id="soServ" onchange="soComServ=this.checked;montar()"><span></span>Só dias com serviço</label>
+        <div class="novo-serv"><input type="date" id="novaData" aria-label="Data do novo serviço"><button type="button" class="primary" onclick="novoNaData()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-plus"></use></svg>Novo serviço</button></div>
+      </div>
+      <div id="dias"></div>
+    </section>
   </div>
   <div class="panel" id="prevHost">
     <h3 style="margin:0 0 10px;color:var(--primary)">Pré-visualização (A4 retrato)</h3>
@@ -306,7 +455,20 @@ if(!S.cargos)S.cargos=JSON.parse(JSON.stringify(CARGOS));
 const p2=n=>String(n).padStart(2,'0');
 const kk=(m,d)=>p2(m+1)+'-'+p2(d);
 const esc=s=>String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-function salvar(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function salvar(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}marcarSalvo()}
+function marcarSalvo(){const el=document.getElementById('salvo');if(!el)return;const d=new Date();el.lastChild.textContent='Salvo às '+p2(d.getHours())+':'+p2(d.getMinutes());el.classList.remove('pulsa');void el.offsetWidth;el.classList.add('pulsa')}
+let soComServ=false;
+function aba(a){document.querySelectorAll('.abas [data-aba]').forEach(b=>b.classList.toggle('on',b.dataset.aba===a));document.getElementById('aba-serv').hidden=a!=='serv';document.getElementById('aba-conf').hidden=a!=='conf'}
+function togPrev(){document.querySelector('.wrap').classList.toggle('sem-prev');document.getElementById('btnPrev').classList.toggle('on');preview()}
+function togMenu(ev){ev.stopPropagation();document.getElementById('menuArq').classList.toggle('open')}
+document.addEventListener('click',()=>{const m=document.getElementById('menuArq');if(m)m.classList.remove('open')});
+function passo(d){let n=cur<0?0:cur+d;if(n<0)n=0;if(n>11)n=11;ir(n)}
+function qtdMes(m){let n=0;Object.keys(S.dias).forEach(k=>{if(+k.slice(0,2)-1===m)n+=S.dias[k].length});return n}
+function guardar(){return JSON.stringify(S.dias)}
+function desfazerCom(snap,msg){UI.toast(msg,{type:'ok',action:{label:'Desfazer',icon:'undo',fn:()=>{S.dias=JSON.parse(snap);salvar();montar()}}})}
+function limparTudo(){UI.confirm('Limpar todos os serviços?','Isso apaga os serviços dos 12 meses.',{ok:'Limpar tudo',danger:true}).then(ok=>{if(!ok)return;const sn=guardar();S.dias={};salvar();montar();desfazerCom(sn,'Todos os serviços foram apagados.')})}
+function novoNaData(){const v=document.getElementById('novaData').value;if(!v){UI.toast('Escolha a data do serviço.');return}const [y,m,d]=v.split('-').map(Number);if(y!==+S.meta.ano){UI.toast('A data precisa ser de '+S.meta.ano+'.',{type:'error'});return}cur=m-1;const k=kk(m-1,d);novo(k);requestAnimationFrame(()=>{const w=document.querySelector('.win[data-k="'+k+'"]');if(w)w.scrollIntoView({block:'center',behavior:'smooth'})})}
+function duplicar(k,i){const e=S.dias[k][i];S.dias[k].splice(i+1,0,{...e,c:[...(e.c||[])]});salvar();montar();UI.toast('Serviço duplicado no mesmo dia. Arraste para outro dia, se precisar.',{type:'ok'})}
 /* Atualiza um trecho da tela SEM recriar o que já existe: compara o HTML novo com
    o atual e só mexe no que mudou. Imagens e ícones não são recarregados (sem piscar),
    e o campo em que se está digitando mantém o foco e o cursor. */
@@ -366,7 +528,7 @@ function paginaMes(m){
 function garantirCapa(){const m=S.meta;if(m.capaOrg===undefined)m.capaOrg=m.org||'';if(m.capaTitulo===undefined)m.capaTitulo='CALENDÁRIO DE REUNIÕES';if(m.capaSub===undefined)m.capaSub=m.sub||''}
 function paginaCapa(){
   garantirCapa();
-  return `<div class="pg capa"><img class="capa-logo" src="/assets/ccb-logo.png" alt="Congregação Cristã no Brasil"><small>${esc(S.meta.capaOrg).toUpperCase()}</small><h2>${esc(S.meta.capaTitulo)}</h2><p>${esc(S.meta.capaSub)}</p><div class="ano" style="font-family:Fraunces,serif;font-style:italic">${esc(S.meta.ano)}</div></div>`;
+  return `<div class="pg capa"><img class="capa-logo" src="/assets/ccb-logo.png" alt="Congregação Cristã no Brasil"><small>${esc(S.meta.capaOrg).toUpperCase()}</small><h2>${esc(S.meta.capaTitulo)}</h2><p>${esc(S.meta.capaSub)}</p><div class="orn"><i></i></div><div class="ano" style="font-family:Fraunces,serif;font-style:italic">${esc(S.meta.ano)}</div></div>`;
 }
 
 function cvHTML(e){const a=(e.c||[]).map(code=>{const g=S.cargos.find(x=>x.code==code);return `<span class="cc">${g&&g.useAsterisk===false?'':'*'}${esc(code)}</span>`}).join('')+(e.o?`<span class="cv">${esc(e.o)}</span>`:'');return a?`<div class="cvb">${a}</div>`:''}
@@ -409,15 +571,18 @@ function pagina(c){return c==-4?paginaFeriados():c==-1?paginaCapa():c==-2?pagina
 function montar(){
   garantirCapa();
   ['org','sub','ano','rod','capaOrg','capaTitulo','capaSub'].forEach(k=>document.getElementById('m_'+k).value=S.meta[k]||'');
-  patch(document.getElementById('meses'),[['Capa',-1],['Legenda',-2],['Calendário',-4]].map(a=>`<button class="${cur==a[1]?'on':''}" onclick="ir(${a[1]})">${a[0]}</button>`).join('')+MESES.map((n,i)=>`<button class="${cur==i?'on':''}" onclick="ir(${i})">${n}</button>`).join(''));
+  patch(document.getElementById('meses'),'<div class="pg-ext">'+[['Capa',-1],['Legenda',-2],['Calendário',-4]].map(a=>`<button class="${cur==a[1]?'on':''}" onclick="ir(${a[1]})">${a[0]}</button>`).join('')+'</div><div class="pg-mes">'+MESES.map((n,i)=>{const q=qtdMes(i);return `<button class="${cur==i?'on':''}${q?'':' vazio'}" onclick="ir(${i})">${n.slice(0,3)}<em>${q||'–'}</em></button>`}).join('')+'</div>');
+  const nt=document.getElementById('nmTit');if(nt)nt.innerHTML=cur>=0?`<b>${MESES[cur]}</b><span>${S.meta.ano} · ${qtdMes(cur)} serviço${qtdMes(cur)==1?'':'s'}</span>`:`<b>${cur==-1?'Capa':cur==-2?'Legenda':'Calendário do ano'}</b><span>${S.meta.ano}</span>`;
+  const fe=document.getElementById('ferr');if(fe)fe.style.display=cur>=0?'':'none';
   const box=document.getElementById('dias');
   if(cur<0){patch(box,'<p style="font-size:13px;color:#7a7466">'+(cur==-4?'Calendário do ano, com os feriados (nacionais, pontos facultativos, Paraná e Campo Mourão) e com os dias coloridos pelos tipos de reunião lançados nos meses. É gerado automaticamente.':cur==-1?'Esta é a capa. Ajuste os textos nos campos acima.':cur==-2?'Legenda dos tipos de reunião, dos convocados e dos feriados do ano.':'Calendário do ano: os dias são coloridos automaticamente pelos serviços lançados em cada mês. Passe o mouse sobre um dia para ver o que há nele.')+'</p>'+(cur==-2?cargosEditor():''));preview();return}
   const y=+S.meta.ano,n=new Date(y,cur+1,0).getDate(),fer=feriados(y);let h='';
   for(let d=1;d<=n;d++){
     const w=new Date(y,cur,d).getDay(),k=kk(cur,d),es=S.dias[k]||[],ab=!!aDia[k];
+    if(soComServ&&!es.length)continue;
     h+=`<div class="win${ab?' open':''}${w==0?' dom':''}${fer[k]?' fer':''}${es.length?' tem':''}" data-k="${k}"><div class="win-head" role="button" tabindex="0" aria-expanded="${ab}" onclick="togDia('${k}',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();togDia('${k}',this)}"><div class="wh-l"><span class="caret"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-chevron-right"></use></svg></span><span class="wd">${d}</span><span class="ws">${SEM[w].charAt(0)+SEM[w].slice(1).toLowerCase()}</span>${fer[k]?`<span class="wf">${esc(fer[k])}</span>`:''}</div><div class="wh-r">${resumoHead(es)}</div></div><div class="win-body">${es.map((e,i)=>entHTML(k,i,e)).join('')}<button class="add" onclick="novo('${k}')">+ serviço</button></div></div>`;
   }
-  patch(box,`<div class="bar2"><button onclick="tudo('d',1)">Recolher dias</button><button onclick="tudo('d',0)">Expandir dias</button><button onclick="tudo('e',1)">Recolher reuniões</button><button onclick="tudo('e',0)">Expandir reuniões</button></div>`+h);preview();
+  patch(box,`<div class="bar2"><span>Dias:</span><button onclick="tudo('d',1)">recolher</button><button onclick="tudo('d',0)">expandir</button><span>Serviços:</span><button onclick="tudo('e',1)">recolher</button><button onclick="tudo('e',0)">expandir</button></div>`+(h||'<p class="nada">Nenhum serviço neste mês. Use <b>+ Novo serviço</b> acima.</p>'));preview();
 }
 function hr(v){v=String(v||'').trim();const m=v.match(/^(\d{1,2})[:.hH]?(\d{2})?$/);if(!m)return v;const h=+m[1],mi=m[2];if(h>23||(mi&&+mi>59))return v;return h+'h'+(mi&&mi!='00'?mi+'min':'')}
 function horaInput(el,k,i){edit(k,i,'h',el.value);if(/^\d{4}$/.test(el.value.trim()))horaBlur(el,k,i)}
@@ -498,11 +663,14 @@ function entHTML(k,i,e){
   const tipos=Object.entries(TIPOS).map(([v,t])=>`<option value="${v}"${e.t==v?' selected':''}>${t[0]}</option>`).join('');
   return `<div class="entw" style="--c:${TIPOS[e.t][1]}">`+
     `<div class="ent-top"><span class="dg" title="Arraste para outro dia (a rodinha do mouse rola a página)" onpointerdown="dgDown(event,'${k}',${i})"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-grip"></use></svg></span>`+
-    `<select class="ent-tipo" aria-label="Tipo de reunião" onchange="edit('${k}',${i},'t',this.value);montar()">${tipos}</select>`+
+    `<u class="tipo-cor"></u><select class="ent-tipo" aria-label="Tipo de reunião" onchange="edit('${k}',${i},'t',this.value);montar()">${tipos}</select>`+
     `<div class="ent-acoes">`+
-      `<button class="ac" title="Repetir no mesmo dia da semana (mesma posição no mês) em todos os outros meses" onclick="repetir('${k}',${i})"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-refresh"></use></svg>Todo mês</button>`+
-      `<button class="ac" title="Repetir a cada 2 meses (pula 1 mês), no mesmo dia da semana e na mesma posição no mês" onclick="repetir('${k}',${i},2)"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-refresh"></use></svg>A cada 2 meses</button>`+
-      `<button class="ac" title="Repetir a cada 3 meses (pula 2 meses), no mesmo dia da semana e na mesma posição no mês" onclick="repetir('${k}',${i},3)"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-refresh"></use></svg>A cada 3 meses</button>`+
+      `<details class="rep"><summary class="ac"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-refresh"></use></svg>Repetir<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-chevron-down"></use></svg></summary><div class="rep-box">`+
+        `<button onclick="this.closest('details').open=false;repetir('${k}',${i})">Todo mês</button>`+
+        `<button onclick="this.closest('details').open=false;repetir('${k}',${i},2)">A cada 2 meses</button>`+
+        `<button onclick="this.closest('details').open=false;repetir('${k}',${i},3)">A cada 3 meses</button>`+
+        `<small>Mesmo dia da semana, na mesma posição do mês.</small></div></details>`+
+      `<button class="ac" title="Duplicar no mesmo dia" onclick="duplicar('${k}',${i})"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-plus"></use></svg>Duplicar</button>`+
       `<button class="ac ic-only tg" title="Minimizar este serviço" aria-label="Minimizar" onclick="event.stopPropagation();togEnt('${id}')"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-chevron-down"></use></svg></button>`+
       `<button class="ac ic-only danger" title="Remover este serviço" aria-label="Remover" onclick="remover('${k}',${i})"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-trash"></use></svg></button>`+
     `</div></div>`+
@@ -528,14 +696,14 @@ function cgAdd(){S.cargos.push({code:'Nova',label:'NOVO CARGO',showInLegend:true
 function ir(i){cur=i;montar()}
 function meta(k,v){S.meta[k]=k=='ano'?(+v||2026):v;salvar();if(k=='ano'){montar()}else preview()}
 function novo(k){aDia[k]=true;(S.dias[k]=S.dias[k]||[]).push({t:'local',h:'19h30min',x:'',c:[],o:''});salvar();montar()}
-function remover(k,i){Object.keys(fEnt).forEach(x=>{if(x.startsWith(k+'#'))delete fEnt[x]});S.dias[k].splice(i,1);if(!S.dias[k].length)delete S.dias[k];salvar();montar()}
+function remover(k,i){const sn=guardar();setTimeout(()=>desfazerCom(sn,'Serviço removido.'),0);Object.keys(fEnt).forEach(x=>{if(x.startsWith(k+'#'))delete fEnt[x]});S.dias[k].splice(i,1);if(!S.dias[k].length)delete S.dias[k];salvar();montar()}
 function edit(k,i,f,v,live){S.dias[k][i][f]=v;salvar();preview()}
 function repetir(k,i,passo){
-  passo=passo||1;
+  passo=passo||1;const sn=guardar();
   const e=S.dias[k][i],m0=+k.slice(0,2)-1,d0=+k.slice(3),y=+S.meta.ano,w=new Date(y,m0,d0).getDay(),nth=Math.ceil(d0/7);let c=0;
   for(let m=0;m<12;m++){if(m==m0||Math.abs(m-m0)%passo)continue;let cnt=0;const n=new Date(y,m+1,0).getDate();
     for(let d=1;d<=n;d++){if(new Date(y,m,d).getDay()==w&&++cnt==nth){const kk2=kk(m,d),l=S.dias[kk2]=S.dias[kk2]||[];if(!l.some(o=>o.x==e.x&&o.h==e.h)){l.push({...e,c:[...(e.c||[])]});c++}break}}}
-  salvar();montar();alert(c+' mês(es) receberam este serviço ('+nth+'º '+SEM[w].toLowerCase()+' do mês'+(passo>1?', a cada '+passo+' meses':'')+').');
+  salvar();montar();desfazerCom(sn,c+' mês(es) receberam este serviço ('+nth+'º '+SEM[w].toLowerCase()+' do mês'+(passo>1?', a cada '+passo+' meses':'')+').');
 }
 
 /* ---------- Preview / impressão ---------- */
