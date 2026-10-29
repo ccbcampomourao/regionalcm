@@ -458,7 +458,14 @@ if(!S.cargos)S.cargos=JSON.parse(JSON.stringify(CARGOS));
 const p2=n=>String(n).padStart(2,'0');
 const kk=(m,d)=>p2(m+1)+'-'+p2(d);
 const esc=s=>String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-function salvar(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}marcarSalvo()}
+function salvar(){clearTimeout(salvarT);salvarT=0;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}marcarSalvo()}
+/* Enquanto se digita: o texto entra na hora, mas salvar e redesenhar a folha esperam uma
+   pausinha na digitação (sem isso cada tecla refazia a página e a medição dos 12 meses = lag). */
+let salvarT=0,prevT=0,fonteT=0;
+function salvarDepois(){clearTimeout(salvarT);salvarT=setTimeout(salvar,400)}
+function previewDepois(){clearTimeout(prevT);prevT=setTimeout(()=>{prevT=0;preview(true)},120)}
+window.addEventListener('beforeunload',()=>{if(salvarT)salvar()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&salvarT)salvar()});
 function marcarSalvo(){const el=document.getElementById('salvo');if(!el)return;const d=new Date();el.lastChild.textContent='Salvo às '+p2(d.getHours())+':'+p2(d.getMinutes());el.classList.remove('pulsa');void el.offsetWidth;el.classList.add('pulsa')}
 let soComServ=false;
 function aba(a){document.querySelectorAll('.abas [data-aba]').forEach(b=>b.classList.toggle('on',b.dataset.aba===a));document.getElementById('aba-serv').hidden=a!=='serv';document.getElementById('aba-conf').hidden=a!=='conf'}
@@ -701,16 +708,16 @@ function cvEd(k,i,e){
   return `<details class="cvd"${fCv[id]?' open':''} ontoggle="fCv['${id}']=this.open"><summary><b>Convocados</b><span class="sel" id="${id}">${cvSum(e)}</span></summary><div class="cvp"><div class="grp">Principais</div>${og(pr)}${ou.length?`<div class="grp">Outros cargos</div>${og(ou)}`:''}<input type="text" value="${esc(e.o||'')}" placeholder="Outros convocados (ex.: Organistas)" oninput="cvTxt('${k}',${i},this.value)"></div></details>`}
 function cvUp(k,i){const el=document.getElementById('cv_'+k+'_'+i);if(el)el.innerHTML=cvSum(S.dias[k][i]);preview()}
 function cvTog(k,i,ci,on){const e=S.dias[k][i],c=e.c=e.c||[],code=S.cargos[ci].code,p=c.indexOf(code);if(on&&p<0)c.push(code);if(!on&&p>=0)c.splice(p,1);salvar();cvUp(k,i)}
-function cvTxt(k,i,v){S.dias[k][i].o=v;salvar();cvUp(k,i)}
+function cvTxt(k,i,v){S.dias[k][i].o=v;salvarDepois();const el=document.getElementById('cv_'+k+'_'+i);if(el)el.innerHTML=cvSum(S.dias[k][i]);previewDepois()}
 function cargosEditor(){return `<label style="margin-top:14px">Informações na legenda (opcional — só aparece se você escrever)</label><textarea rows="4" placeholder="Ex.: avisos, observações gerais..." oninput="meta('info',this.value)">${esc(S.meta.info||'')}</textarea>`+`<h3 style="margin:16px 0 4px;font-size:14px;color:var(--primary)">Cargos e Ministérios</h3><p style="font-size:12px;color:#7a7466;margin:0 0 8px">Siglas disponíveis ao lançar um serviço. 1ª caixa: mostra na legenda · 2ª caixa: coloca * na frente.</p>`+S.cargos.map((g,i)=>`<div class="cg"><input value="${esc(g.code)}" oninput="cg(${i},'code',this.value)"><input value="${esc(g.label)}" oninput="cg(${i},'label',this.value)"><input type="checkbox" title="Mostrar na legenda" ${g.showInLegend!==false?'checked':''} onchange="cg(${i},'showInLegend',this.checked)"><input type="checkbox" title="Asterisco" ${g.useAsterisk!==false?'checked':''} onchange="cg(${i},'useAsterisk',this.checked)"><button class="danger" onclick="cgDel(${i})" title="Remover"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-x"></use></svg></button></div>`).join('')+`<button onclick="cgAdd()">+ cargo</button>`}
-function cg(i,f,v){S.cargos[i][f]=v;salvar();preview()}
+function cg(i,f,v){S.cargos[i][f]=v;salvarDepois();previewDepois()}
 function cgDel(i){S.cargos.splice(i,1);salvar();montar()}
 function cgAdd(){S.cargos.push({code:'Nova',label:'NOVO CARGO',showInLegend:true,useAsterisk:true});salvar();montar()}
 function ir(i){cur=i;montar()}
-function meta(k,v){S.meta[k]=k=='ano'?(+v||2026):v;salvar();if(k=='ano'){montar()}else preview()}
+function meta(k,v){S.meta[k]=k=='ano'?(+v||2026):v;if(k=='ano'){salvar();montar()}else{salvarDepois();previewDepois()}}
 function novo(k){aDia[k]=true;(S.dias[k]=S.dias[k]||[]).push({t:'local',h:'19h30min',x:'',c:[],o:''});salvar();montar()}
 function remover(k,i){const sn=guardar();setTimeout(()=>desfazerCom(sn,'Serviço removido.'),0);Object.keys(fEnt).forEach(x=>{if(x.startsWith(k+'#'))delete fEnt[x]});S.dias[k].splice(i,1);if(!S.dias[k].length)delete S.dias[k];salvar();montar()}
-function edit(k,i,f,v,live){S.dias[k][i][f]=v;salvar();preview()}
+function edit(k,i,f,v,live){S.dias[k][i][f]=v;salvarDepois();previewDepois()}
 function repetir(k,i,passo){
   passo=passo||1;const sn=guardar();
   const e=S.dias[k][i],m0=+k.slice(0,2)-1,d0=+k.slice(3),y=+S.meta.ano,w=new Date(y,m0,d0).getDay(),nth=Math.ceil(d0/7);let c=0;
@@ -720,8 +727,11 @@ function repetir(k,i,passo){
 }
 
 /* ---------- Preview / impressão ---------- */
-function preview(){
-  if(cur>=0)calcularFonteMes();
+function preview(rapido){
+  clearTimeout(prevT);prevT=0;
+  // a medição do tamanho único de letra (monta os 12 meses) é pesada: durante a digitação
+  // fica para quando a pessoa parar de digitar
+  if(cur>=0){if(rapido){clearTimeout(fonteT);fonteT=setTimeout(()=>{fonteT=0;const f=FONTE_MES;calcularFonteMes();if(FONTE_MES!==f)preview()},700)}else calcularFonteMes()}
   const el=document.getElementById('prev');patch(el,pagina(cur));
   ajustar(el);caber(el);
   const pg=el.firstChild,w=document.getElementById('prevScroll').clientWidth-20;pg.style.zoom=Math.min(1,w/794);
