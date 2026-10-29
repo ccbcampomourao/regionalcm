@@ -317,11 +317,11 @@ textarea{width:100%;border:1.5px solid var(--line);border-radius:8px;padding:8px
 .r.fer{background:#fbecea}.r.fer .d b,.r.fer .d span{color:var(--accent)}
 .r .e{padding:.7mm 0 .7mm 2.4mm}
 .r .s{border-left:none;position:relative;padding-left:3.2mm;margin:.5mm 0}
-.r .s::before{content:"";position:absolute;left:0;top:.35em;width:1.7mm;height:1.7mm;border-radius:50%;background:var(--c)}
+.r .s::before{content:"";position:absolute;left:-.1mm;top:calc(.35em - .1mm);width:1.9mm;height:1.9mm;background:radial-gradient(circle closest-side,var(--c) 0,var(--c) 86%,transparent 92%)}
 .r .s i{color:var(--primary)}
 .r .f{display:inline-block;background:#fff;border:.6pt solid #e7b9b1;color:var(--accent);border-radius:3mm;padding:0 2mm;margin:.2mm 0;font-size:.85em}
 .leg{justify-content:center;gap:1.2mm 4.5mm;padding-top:2mm;border-top:.6pt solid #e3dccb}
-.leg u{border-radius:50%}
+.leg u{border-radius:0;background:radial-gradient(circle closest-side,var(--uc) 0,var(--uc) 86%,transparent 92%)!important}
 .rod{font-style:italic;font-family:'Fraunces',Georgia,serif;color:#8a8371}
 /* capa */
 .capa::before{display:none}
@@ -339,7 +339,7 @@ textarea{width:100%;border:1.5px solid var(--line);border-radius:8px;padding:8px
 /* legenda */
 .legp{grid-template-columns:1fr 1fr;gap:3mm 8mm}
 .li{background:#fbf8f1;border:.6pt solid #e7dfcc;border-radius:2.5mm;padding:2mm 3mm}
-.li u{width:7mm;height:7mm;border-radius:50%}
+.li u{width:7mm;height:7mm;border-radius:0;background:radial-gradient(circle closest-side,var(--uc) 0,var(--uc) 90%,transparent 94%)!important}
 .sub{border-bottom:none;position:relative;padding-bottom:2mm}
 .sub::after{content:"";position:absolute;left:0;bottom:0;width:30mm;border-top:1.6pt solid var(--brass)}
 .cvl{display:grid;grid-template-columns:1fr 1fr;gap:2mm 8mm}
@@ -525,7 +525,7 @@ function paginaMes(m){
     if(es.length)temServ=true;
     rows+=`<div class="r${w==0?' dom':''}${f?' fer':''}${es.length?'':' r-vazio'}"><div class="d"><b>${d}</b><span>${SEM[w]}</span></div><div class="e">${f?`<div class="f">${esc(f)}</div>`:''}${es.map(e=>`<div class="s" style="--c:${TIPOS[e.t][1]}">${esc(e.x)}${e.h?` - <i>${esc(hr(e.h))}</i>`:''}${e.a&&e.a.trim()?` <span class="at">Atende ${esc(e.a.trim())}</span>`:''}${cvHTML(e)}</div>`).join('')}</div></div>`;
   }
-  const leg=Object.values(TIPOS).map(t=>`<em><u style="background:${t[1]}"></u>${t[0]}</em>`).join('')+`<em><u style="background:${HOL}"></u>Feriados</em>`;
+  const leg=Object.values(TIPOS).map(t=>`<em><u style="background:${t[1]};--uc:${t[1]}"></u>${t[0]}</em>`).join('')+`<em><u style="background:${HOL};--uc:${HOL}"></u>Feriados</em>`;
   return `<div class="pg mes"><div class="top"><h2>${MESES[m].toUpperCase()}</h2><span>${esc(S.meta.org)}<br>${esc(S.meta.sub)} · ${esc(S.meta.ano)}</span></div><div class="dias${temServ?'':' sem-serv'}">${rows}</div><div class="leg">${leg}</div><div class="rod">${esc(S.meta.rod)}</div></div>`;
 }
 function garantirCapa(){const m=S.meta;if(m.capaOrg===undefined)m.capaOrg=m.org||'';if(m.capaTitulo===undefined)m.capaTitulo='CALENDÁRIO DE REUNIÕES';if(m.capaSub===undefined)m.capaSub=m.sub||''}
@@ -548,7 +548,7 @@ function cvHTML(e){const a=(e.c||[]).map(code=>{const g=S.cargos.find(x=>x.code=
 function grad(c){if(c.length==1)return c[0];const s=100/c.length;return 'linear-gradient(135deg,'+c.map((x,i)=>`${x} ${(i*s).toFixed(1)}% ${((i+1)*s).toFixed(1)}%`).join(',')+')'}
 function cab(t){return `<div class="top"><h2>${t}</h2><span>${esc(S.meta.org)}<br>${esc(S.meta.sub)} · ${esc(S.meta.ano)}</span></div>`}
 function paginaLegenda(){
-  const it=Object.values(TIPOS).map(t=>`<div class="li"><u style="background:${t[1]}"></u>${t[0]}</div>`).join('');
+  const it=Object.values(TIPOS).map(t=>`<div class="li"><u style="background:${t[1]};--uc:${t[1]}"></u>${t[0]}</div>`).join('');
   const inf=(S.meta.info||'').trim();
   return `<div class="pg">${cab('LEGENDA')}<p class="ex">Cada dia da página "Calendário" é colorido conforme os tipos de reunião lançados naquele dia. Quando há mais de um tipo, a cor do dia é dividida.</p><div class="legp">${it}</div><h3 class="sub">Cargos e Ministérios</h3><div class="cvl">${S.cargos.filter(g=>g.showInLegend!==false).map(g=>`<div><span class="cc">${esc(g.code)}</span> = ${esc(g.label)}</div>`).join('')}</div>${inf?`<h3 class="sub">Informações</h3><div class="info">${esc(inf).replace(/\n/g,'<br>')}</div>`:''}<div class="rod">${esc(S.meta.rod)}</div></div>`;
 }
@@ -576,7 +576,7 @@ function paginaFeriados(){
     h+=`<div class="mm"><h4>${MESES[m]}</h4><div class="g">${g}</div></div>`;
   }
   const lista=L.map(x=>{const a=x.k.split('-');return `<div class="fl"><b style="color:${CATF[x.t][1]}">${+a[1]}/${a[0]}</b>${esc(x.n)}</div>`}).join('');
-  const lg=Object.values(TIPOS).map(t=>`<em><u style="background:${t[1]}"></u>${t[0]}</em>`).join('')+Object.values(CATF).map(c=>`<em><u style="background:${c[1]}"></u>Feriado: ${c[0]}</em>`).join('');
+  const lg=Object.values(TIPOS).map(t=>`<em><u style="background:${t[1]};--uc:${t[1]}"></u>${t[0]}</em>`).join('')+Object.values(CATF).map(c=>`<em><u style="background:${c[1]};--uc:${c[1]}"></u>Feriado: ${c[0]}</em>`).join('');
   return `<div class="pg">${cab('CALENDÁRIO')}<div class="fgrid">${h}</div><h3 class="sub">Lista de feriados</h3><div class="fls">${lista}</div><div class="leg" style="margin-top:3mm">${lg}</div><div class="rod">${esc(S.meta.rod)}</div></div>`}
 function pagina(c){return c==-4?paginaFeriados():c==-1?paginaCapa():c==-2?paginaLegenda():paginaMes(c)}
 

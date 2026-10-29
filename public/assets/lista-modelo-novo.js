@@ -50,6 +50,12 @@
   }
 
   /* ---------------- Utilidades ---------------- */
+  // "SETEMBRO/OUTUBRO" -> "SET/OUT" (o selo do período fica pequeno e não encosta no título)
+  var MES3 = { JANEIRO:'JAN', FEVEREIRO:'FEV', 'MARÇO':'MAR', MARCO:'MAR', ABRIL:'ABR', MAIO:'MAI', JUNHO:'JUN',
+               JULHO:'JUL', AGOSTO:'AGO', SETEMBRO:'SET', OUTUBRO:'OUT', NOVEMBRO:'NOV', DEZEMBRO:'DEZ' };
+  function abreviarMeses(t) {
+    return String(t || '').toUpperCase().replace(/[A-ZÇÃÉ]+/g, function (m) { return MES3[m] || m; }).replace(/\s*\/\s*/g, '/');
+  }
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -202,7 +208,7 @@
         '<img class="nv-logo" src="' + LOGO + '" alt="">' +
         '<div class="nv-tx"><div class="org">CONGREGAÇÃO CRISTÃ NO BRASIL</div>' +
         '<div class="ttl">' + esc(titulo) + (regiao ? ' <span class="nv-pt">·</span> REGIÃO <span class="nv-pt">·</span> ' + esc(regiao) : '') + '</div></div>' +
-        (periodo ? '<div class="nv-per"><span>' + esc(p[0] || '') + '</span>' + (p[1] ? '<b>' + esc(p[1]) + '</b>' : '') + '</div>' : '');
+        (periodo ? '<div class="nv-per"><span>' + esc(abreviarMeses(p[0] || '')) + '</span>' + (p[1] ? '<b>' + esc(p[1]) + '</b>' : '') + '</div>' : '');
     }
 
     // 3) tabelas
@@ -257,8 +263,8 @@
     '.doc-header .org{ letter-spacing:.16em !important; line-height:1.05; white-space:nowrap; }',
     '.doc-header .ttl{ letter-spacing:0; margin-top:1px !important; line-height:1.05; white-space:nowrap; }',
     '.doc-header .nv-pt{ padding:0 .12em; }',
-    '.doc-header .nv-per{ position:absolute; right:0; top:0; border:1.2pt solid #000; border-radius:2mm; padding:2px 5px 1px; line-height:1.1; font-size:14px; font-weight:700; text-align:center; }',
-    '.doc-header .nv-per span{ display:block; letter-spacing:-.01em; }',
+    '.doc-header .nv-per{ position:absolute; right:0; top:0; border:1.2pt solid #000; border-radius:2mm; padding:2px 9px 1px; line-height:1.1; font-size:16px; font-weight:700; text-align:center; }',
+    '.doc-header .nv-per span{ display:block; letter-spacing:.06em; }',
     '.doc-header .nv-per b{ display:block; font-size:16px; letter-spacing:.12em; }',
 
     /* blocos: o espaço entre blocos fica DENTRO do bloco (a paginação da prévia mede só a altura) */
