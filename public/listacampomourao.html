@@ -104,6 +104,10 @@
   .section.open .section-caret{transform:rotate(90deg);}
   .section-body{padding:14px; display:none; animation:fadeIn .15s ease;}
   .section.open .section-body{display:block;}
+  .ev-pagina-opc{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;margin:0 0 12px;border:1px solid #e3dccb;border-radius:8px;background:#faf6ec;cursor:pointer}
+  .ev-pagina-opc input{margin-top:2px;flex:none}
+  .ev-pagina-opc span{display:flex;flex-direction:column;gap:2px;font-size:14px}
+  .ev-pagina-opc small{color:#7a7466;font-size:12.5px}
   @keyframes fadeIn{ from{opacity:0; transform:translateY(-4px);} to{opacity:1; transform:translateY(0);} }
   .drag-handle { cursor:grab; font-size:18px; color:#9a9284; padding-right:8px; user-select:none; }
   .drag-handle:active { cursor:grabbing; }
@@ -1072,6 +1076,16 @@ function buildSectionElement(section, sIdx){
     const body = document.createElement('div');
     body.className = 'section-body';
 
+    // Evangelização: escolhe se a tabela começa numa página só dela (a última) ou segue logo
+    // depois das outras tabelas. Padrão: página própria (como sempre foi).
+    if (section.typeKey === 'evangelizacao') {
+      const opc = document.createElement('label');
+      opc.className = 'ev-pagina-opc';
+      opc.innerHTML = `<input type="checkbox" ${section.novaPagina === false ? '' : 'checked'}><span><b>Começar numa página só dela (última folha)</b><small>Desmarque para a tabela seguir logo depois das outras, sem pular página.</small></span>`;
+      opc.querySelector('input').onchange = (e) => { section.novaPagina = e.target.checked; saveState(); renderPreview(); };
+      body.appendChild(opc);
+    }
+
     if(def.isFreeText){
       const box = document.createElement('div');
       box.className='avisos-box';
@@ -1493,7 +1507,7 @@ function buildDocumentHTMLClassico(){
       // separado das tabelas de cidade, para conseguir ter um espaço real
       // (margem) entre ele e a primeira barra de cidade — coisa que não dá
       // pra fazer com padding quando os dois estão dentro da mesma tabela.
-      body += `<div class="section-title-block" data-force-break="true"><table><thead><tr><th colspan="${totalColsCid}" class="table-title">${escapeHTML(def.label.toUpperCase())}</th></tr></thead></table></div>`;
+      body += `<div class="section-title-block${section.novaPagina === false ? ' sem-quebra' : ''}"${section.novaPagina === false ? ' data-keep-next="true"' : ' data-force-break="true"'}><table><thead><tr><th colspan="${totalColsCid}" class="table-title">${escapeHTML(def.label.toUpperCase())}</th></tr></thead></table></div>`;
 
       groups.forEach((g, gIdx)=>{
         let theadHtml = '';
@@ -1923,6 +1937,7 @@ function buildDocumentHTMLClassico(){
       page-break-before: always;
       break-before: page;
     }
+    .section-title-block.sem-quebra { page-break-before: auto; break-before: auto; }
 
     th.table-title-cidade {
       /* Agora é uma célula real, mesclada via colspan sobre as 3 primeiras
@@ -2100,7 +2115,8 @@ function buildPagePlan(mDoc){
           type:'atomic',
           html: el.outerHTML,
           height: el.getBoundingClientRect().height,
-          forceBreak: el.hasAttribute('data-force-break')
+          forceBreak: el.hasAttribute('data-force-break'),
+          keepNext: el.hasAttribute('data-keep-next')
         });
       }
     });
@@ -2116,7 +2132,7 @@ function buildPagePlan(mDoc){
     curUsed = 0;
   }
 
-  units.forEach(unit=>{
+  units.forEach((unit, ui)=>{
     if (unit.type === 'atomic') {
       // Bloco indivisível (cabeçalho do documento, avisos, legenda): nunca é cortado ao meio.
       // Se estiver marcado com data-force-break (ex: início de uma seção), sempre
@@ -2124,7 +2140,11 @@ function buildPagePlan(mDoc){
       if (unit.forceBreak && curUsed > 0) {
         startNewPage();
       }
-      if (curUsed > 0 && (curUsed + unit.height) > contentBudget) {
+      // título que não pode ficar sozinho no pé da página (Evangelização sem página própria):
+      // só fica aqui se couber junto com o cabeçalho e a 1ª linha da tabela seguinte
+      const prox = unit.keepNext ? units[ui + 1] : null;
+      const extra = prox ? (prox.type === 'table' && prox.rows.length ? prox.theadHeight + prox.rows[0].height : (prox.height || 0)) : 0;
+      if (curUsed > 0 && (curUsed + unit.height + extra) > contentBudget) {
         startNewPage();
       }
       pages[curPage].push(unit.html);
