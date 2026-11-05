@@ -46,8 +46,9 @@
   }
   function ehRMA(e) {
     var x = String(e.x || '');
-    // "RMA - ..." ou "Reunião Ministerial Administrativa"; não confunde com "(depois da RMA)"
-    return /^\W*RMA\b/i.test(x) || /reuni[aã]o\s+ministerial\s+administrativa/i.test(x);
+    // "RMA - ..." (a partir de 2027 "RLA - ...") ou o nome por extenso;
+    // não confunde com "(depois da RMA)" nem com RML/RLM
+    return /^\W*(RMA|RLA)\b/i.test(x) || /reuni[aã]o\s+(ministerial|local)\s+administrativa/i.test(x);
   }
   function secaoDestino(t) { return t === 'mocidade' ? 'reuniao_mocidade' : t === 'ensaio' ? 'ensaio_regional' : 'reuniaodiversa'; }
   function norm(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim(); }
@@ -180,29 +181,34 @@
       var falta = anos.filter(function (a) { return !cals.some(function (c) { return anoDe(c) === a; }); });
       var ate = plano.fimPer;
       var r = await UI.dialog({ title: 'Puxar do calendário', icon: 'info',
-        body: '<p class="ui-modal__p">Não encontrei a RMA seguinte ao período (depois de <b>' + br(plano.fimPer) + '</b>), que é onde a lista termina.</p>' +
-          (falta.length ? '<p class="ui-modal__p">Não achei o calendário de <b>' + falta.join(' e ') + '</b> neste computador nem na nuvem. Se a RMA cai em ' + falta.join('/') + ', monte e salve na nuvem o calendário desse ano e tente de novo.</p>'
-                        : '<p class="ui-modal__p">Lance a RMA no calendário anual (com “RMA” na descrição) e tente de novo.</p>') +
-          '<p class="ui-modal__p" style="color:#7a7466">Se preferir, posso puxar agora até o fim do período (<b>' + br(ate) + '</b>) e, quando a RMA seguinte estiver lançada, é só puxar de novo.</p>',
+        body: '<p class="ui-modal__p">Não encontrei a RMA/RLA seguinte ao período (depois de <b>' + br(plano.fimPer) + '</b>), que é onde a lista termina.</p>' +
+          (falta.length ? '<p class="ui-modal__p">Não achei o calendário de <b>' + falta.join(' e ') + '</b> neste computador nem na nuvem. Se ela cai em ' + falta.join('/') + ', monte e salve na nuvem o calendário desse ano e tente de novo.</p>'
+                        : '<p class="ui-modal__p">Lance a RMA/RLA no calendário anual (com “RMA” ou “RLA” no começo da descrição) e tente de novo.</p>') +
+          '<p class="ui-modal__p" style="color:#7a7466">Se preferir, posso puxar agora até o fim do período (<b>' + br(ate) + '</b>) e, quando ela estiver lançada, é só puxar de novo.</p>',
         actions: [{ label: 'Cancelar', value: false }, { label: 'Puxar até ' + br(ate), value: true, primary: true }] });
       if (r !== true) return;
       plano = planejar(cals, ate);
     }
     origem = origens.join(' + ');
-    var novos = [], repetidos = 0, cont = { reuniaodiversa: 0, reuniao_mocidade: 0, ensaio_regional: 0 };
+    var novos = [], repetidos = 0, cont = { reuniaodiversa: 0, reuniao_mocidade: 0, ensaio_regional: 0 }, linhas = [];
+    var sigla = { reuniaodiversa: 'Diversas', reuniao_mocidade: 'Mocidade', ensaio_regional: 'Ensaio' };
     plano.itens.forEach(function (s) {
-      var en = entrada(s);
-      if (jaExiste(en.tipo, en.data)) { repetidos++; return; }
+      var en = entrada(s), ja = jaExiste(en.tipo, en.data);
+      linhas.push('<tr style="' + (ja ? 'color:#9a9384' : '') + '"><td style="white-space:nowrap;padding:3px 8px 3px 0">' + br(en.data.data).slice(0, 5) + (en.data.hora ? ' ' + en.data.hora : '') +
+        '</td><td style="padding:3px 8px 3px 0">' + esc(s.e.x || '(sem descrição)') + '</td><td style="white-space:nowrap;padding:3px 0;font-size:12px">' +
+        (ja ? 'já na lista' : '<b>' + sigla[en.tipo] + '</b>') + '</td></tr>');
+      if (ja) { repetidos++; return; }
       novos.push(en);
     });
+    var tabela = linhas.length ? '<div style="max-height:260px;overflow:auto;border:1px solid #e6dfcf;border-radius:8px;padding:6px 10px;margin:8px 0;font-size:13px"><table style="width:100%;border-collapse:collapse">' + linhas.join('') + '</table></div>' : '';
     var rotulo = { reuniaodiversa: 'Reuniões Diversas', reuniao_mocidade: 'Reunião para Mocidade', ensaio_regional: 'Ensaio Regional' };
     novos.forEach(function (n) { cont[n.tipo]++; });
     var resumo = Object.keys(cont).filter(function (k) { return cont[k]; })
       .map(function (k) { return '<li><b>' + cont[k] + '</b> em ' + rotulo[k] + '</li>'; }).join('');
     var corpo =
-      '<p class="ui-modal__p">' + (origens.length > 1 ? 'Dos calendários ' : 'Do calendário ') + '<b>' + esc(origem) + '</b>, de <b>' + br(plano.ini) + '</b> até ' + (plano.rma ? 'a RMA de ' : '') + '<b>' + br(plano.fim) + '</b>:</p>' +
+      '<p class="ui-modal__p">' + (origens.length > 1 ? 'Dos calendários ' : 'Do calendário ') + '<b>' + esc(origem) + '</b>, de <b>' + br(plano.ini) + '</b> até ' + (plano.rma ? 'a ' + (/^\W*RLA/i.test(plano.rma.e.x) ? 'RLA' : 'RMA') + ' de ' : '') + '<b>' + br(plano.fim) + '</b>:</p>' +
       (novos.length ? '<ul style="margin:8px 0 4px 18px;padding:0;line-height:1.7">' + resumo + '</ul>' : '<p class="ui-modal__p"><b>Nada novo para acrescentar.</b></p>') +
-      (repetidos ? '<p class="ui-modal__p" style="color:#7a7466">' + repetidos + ' serviço(s) já estavam na lista e ficam como estão.</p>' : '') +
+      (repetidos ? '<p class="ui-modal__p" style="color:#7a7466">' + repetidos + ' serviço(s) já estavam na lista e ficam como estão.</p>' : '') + tabela +
       '<p class="ui-modal__p" style="color:#7a7466">Só acrescenta: nada do que já está na lista é apagado ou alterado.</p>';
     if (!novos.length) { await UI.dialog({ title: 'Puxar do calendário', icon: 'info', body: corpo, actions: [{ label: 'Fechar', value: false, primary: true }] }); return; }
     var ok = await UI.dialog({ title: 'Puxar do calendário', icon: 'calendar', body: corpo,
@@ -245,7 +251,7 @@
     var nLocal = local ? Object.keys(local.dias || {}).reduce(function (a, k) { return a + (local.dias[k] || []).length; }, 0) : 0;
     var r = await UI.dialog({
       title: 'Puxar do calendário anual', icon: 'calendar',
-      subtitle: 'Acrescenta Reuniões Diversas, Mocidade e Ensaio Regional do início do período até a RMA do período seguinte (ex.: lista de NOV/DEZ vai até a RMA de janeiro).',
+      subtitle: 'Acrescenta Reuniões Diversas, Mocidade e Ensaio Regional do início do período até a RMA/RLA do período seguinte (ex.: lista de NOV/DEZ vai até a de janeiro).',
       body: '<p class="ui-modal__p">De onde vem o calendário?</p>',
       actions: [
         { label: 'Cancelar', value: null },
