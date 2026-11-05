@@ -52,13 +52,16 @@
   function secaoDestino(t) { return t === 'mocidade' ? 'reuniao_mocidade' : t === 'ensaio' ? 'ensaio_regional' : 'reuniaodiversa'; }
   function norm(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim(); }
 
-  // início do período da lista: "NOVEMBRO/DEZEMBRO - 2026" -> 2026-11-01
-  function inicioPeriodo() {
+  // período da lista: "NOVEMBRO/DEZEMBRO - 2026" -> { ini: 2026-11-01, fim: 2026-12-31 }
+  function periodo() {
     var p = (document.getElementById('meta_periodo') || {}).value || (STATE.meta && STATE.meta.periodo) || '';
-    var m = p.toUpperCase().match(/([A-ZÇ]+)\s*\/.*?(\d{4})/);
+    var m = p.toUpperCase().match(/([A-ZÇ]+)\s*\/\s*([A-ZÇ]+).*?(\d{4})/);
     if (!m || !MESES[m[1]]) return null;
-    return m[2] + '-' + p2(MESES[m[1]]) + '-01';
+    var ano = +m[3], m1 = MESES[m[1]], m2 = MESES[m[2]] || m1, ano2 = m2 < m1 ? ano + 1 : ano;
+    var ult = new Date(ano2, m2, 0).getDate();
+    return { ini: ano + '-' + p2(m1) + '-01', fim: ano2 + '-' + p2(m2) + '-' + p2(ult) };
   }
+  function inicioPeriodo() { var p = periodo(); return p && p.ini; }
 
   function anoDe(cal) { return +((cal && cal.meta || {}).ano) || 0; }
   function contar(cal) { return cal ? Object.keys(cal.dias || {}).reduce(function (a, k) { return a + (cal.dias[k] || []).length; }, 0) : 0; }
@@ -77,16 +80,19 @@
     return out;
   }
 
-  // até: data limite usada quando não há RMA (ex.: '2026-12-31'); sem ela, exige a RMA
+  // A RMA é bimestral e cai dentro de cada período (ex.: novembro e janeiro). A lista de
+  // NOV/DEZ vai do início do período até a RMA do período SEGUINTE (a de janeiro), passando
+  // pela RMA do próprio período. ate: limite usado quando essa RMA ainda não foi lançada.
   function planejar(cals, ate) {
     if (!Array.isArray(cals)) cals = [cals];
-    var ini = inicioPeriodo();
-    if (!ini) return { erro: 'Escolha o período da lista antes de puxar do calendário.' };
+    var per = periodo();
+    if (!per) return { erro: 'Escolha o período da lista antes de puxar do calendário.' };
+    var ini = per.ini;
     var todos = servicos(cals).filter(function (s) { return s.data >= ini; });
-    var rma = todos.find(function (s) { return ehRMA(s.e); });
+    var rma = todos.find(function (s) { return s.data > per.fim && ehRMA(s.e); });
     var fim = rma ? rma.data : (ate || null);
     var sel = fim ? todos.filter(function (s) { return s.data <= fim; }) : [];
-    return { ini: ini, fim: fim, rma: rma, itens: sel };
+    return { ini: ini, fimPer: per.fim, fim: fim, rma: rma, itens: sel };
   }
 
   // procura o calendário de um ano: primeiro neste computador, depois na nuvem
@@ -157,11 +163,12 @@
     var cals = [cal], origens = [anoDe(cal) + ' ' + origem];
     var plano = planejar(cals);
     if (plano.erro) { UI.toast(plano.erro, 'error'); return; }
-    var anoIni = +plano.ini.slice(0, 4);
-    // a RMA pode cair no ano seguinte (ex.: lista de NOV/DEZ com RMA em janeiro):
+    var anoIni = +plano.ini.slice(0, 4), anoRma = +plano.fimPer.slice(0, 4) + (plano.fimPer.slice(5, 7) === '12' ? 1 : 0);
+    var anos = []; for (var a = anoIni; a <= anoRma; a++) anos.push(a);
+    // a RMA seguinte pode cair no ano seguinte (lista de NOV/DEZ -> RMA de janeiro):
     // junta o calendário do outro ano que faltar, deste computador ou da nuvem
     if (!plano.fim) {
-      var precisa = [anoIni, anoIni + 1].filter(function (a) { return !cals.some(function (c) { return anoDe(c) === a; }); });
+      var precisa = anos.filter(function (a) { return !cals.some(function (c) { return anoDe(c) === a; }); });
       for (var i = 0; i < precisa.length; i++) {
         var achado = await buscarAno(precisa[i], nomeNuvem);
         if (achado) { cals.push(achado.cal); origens.push(precisa[i] + ' ' + achado.origem); }
@@ -170,14 +177,13 @@
       }
     }
     if (!plano.fim) {
-      var anoFim = Math.max.apply(null, cals.map(anoDe).concat([anoIni]));
-      var falta = [anoIni, anoIni + 1].filter(function (a) { return !cals.some(function (c) { return anoDe(c) === a; }); });
-      var ate = anoFim + '-12-31';
+      var falta = anos.filter(function (a) { return !cals.some(function (c) { return anoDe(c) === a; }); });
+      var ate = plano.fimPer;
       var r = await UI.dialog({ title: 'Puxar do calendário', icon: 'info',
-        body: '<p class="ui-modal__p">Não encontrei a próxima RMA a partir de <b>' + br(plano.ini) + '</b>.</p>' +
+        body: '<p class="ui-modal__p">Não encontrei a RMA seguinte ao período (depois de <b>' + br(plano.fimPer) + '</b>), que é onde a lista termina.</p>' +
           (falta.length ? '<p class="ui-modal__p">Não achei o calendário de <b>' + falta.join(' e ') + '</b> neste computador nem na nuvem. Se a RMA cai em ' + falta.join('/') + ', monte e salve na nuvem o calendário desse ano e tente de novo.</p>'
                         : '<p class="ui-modal__p">Lance a RMA no calendário anual (com “RMA” na descrição) e tente de novo.</p>') +
-          '<p class="ui-modal__p" style="color:#7a7466">Se preferir, posso puxar o que já existe até <b>' + br(ate) + '</b>.</p>',
+          '<p class="ui-modal__p" style="color:#7a7466">Se preferir, posso puxar agora até o fim do período (<b>' + br(ate) + '</b>) e, quando a RMA seguinte estiver lançada, é só puxar de novo.</p>',
         actions: [{ label: 'Cancelar', value: false }, { label: 'Puxar até ' + br(ate), value: true, primary: true }] });
       if (r !== true) return;
       plano = planejar(cals, ate);
@@ -239,7 +245,7 @@
     var nLocal = local ? Object.keys(local.dias || {}).reduce(function (a, k) { return a + (local.dias[k] || []).length; }, 0) : 0;
     var r = await UI.dialog({
       title: 'Puxar do calendário anual', icon: 'calendar',
-      subtitle: 'Acrescenta Reuniões Diversas, Mocidade e Ensaio Regional do início do período até a próxima RMA (mesmo que ela caia no ano seguinte).',
+      subtitle: 'Acrescenta Reuniões Diversas, Mocidade e Ensaio Regional do início do período até a RMA do período seguinte (ex.: lista de NOV/DEZ vai até a RMA de janeiro).',
       body: '<p class="ui-modal__p">De onde vem o calendário?</p>',
       actions: [
         { label: 'Cancelar', value: null },
