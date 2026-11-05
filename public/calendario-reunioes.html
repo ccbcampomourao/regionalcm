@@ -437,6 +437,29 @@ textarea{width:100%;border:1.5px solid var(--line);border-radius:8px;padding:8px
 .fl{border-bottom:.5pt solid #ece5d4}
 .pg>.rod:last-child{margin-top:auto;padding-top:2mm}
 
+/* ===== meses: dia abreviado em coluna estreita; cada serviço em duas linhas
+   (1ª: descrição e horário; 2ª: local · quem atende · convocados); dias vazios baixinhos ===== */
+.pg.mes{padding:6mm 5mm 5mm}
+.pg.mes .top{margin-bottom:1px}
+.pg.mes .r{grid-template-columns:2.9em 1fr}
+.pg.mes .r .d{flex-direction:column;align-items:center;justify-content:center;gap:.05em;padding:.12em 0}
+.pg.mes .r .d b{min-width:0;text-align:center;font-size:1.15em}
+.pg.mes .r .d span{font-size:.6em;letter-spacing:.06em}
+.pg.mes .r .e{line-height:1.04;padding-top:.06em;padding-bottom:.06em}
+.pg.mes .r .s{margin:.02em 0}
+.pg.mes .r .f{line-height:1.1}
+.pg.mes .s .l2{font-size:.8em;color:#5d584c;font-weight:400;line-height:1.04;margin-top:0}
+.pg.mes .s .l2 .lc{white-space:nowrap;color:#3d3a33;font-size:1em}
+.pg.mes .s .l2 .sep{color:#b5ad98;margin:0 .35em}
+.pg.mes .s .l2 .at{font-size:1em}
+.pg.mes .s .l2 .cvb{margin-left:0}
+.pg.mes .dias>.r.r-vazio .d{font-size:.78em;padding:0;justify-content:center;flex-direction:row;gap:.25em;align-items:baseline;overflow:hidden}
+.pg.mes .dias>.r.r-vazio .d b{font-size:1.05em}
+.pg.mes .dias>.r.r-vazio .d span{font-size:.62em}
+.pg.mes .dias>.r.r-vazio .e{padding:0;font-size:.78em}
+.pg.mes .leg{font-size:7.5pt;gap:.4mm 3mm;margin-top:1mm;padding-top:.8mm}
+.pg.mes .leg u{width:2.4mm;height:2.4mm}
+.pg.mes .rod{font-size:7.5pt;margin-top:.4mm}
 </style>
 <link rel="stylesheet" href="/assets/ui.css">
 <link rel="stylesheet" href="/assets/editor.css">
@@ -521,7 +544,7 @@ textarea{width:100%;border:1.5px solid var(--line);border-radius:8px;padding:8px
 
 <script>
 const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-const SEM=['DOMINGO','SEGUNDA','TERÇA','QUARTA','QUINTA','SEXTA','SÁBADO'];
+const SEM=['DOMINGO','SEGUNDA','TERÇA','QUARTA','QUINTA','SEXTA','SÁBADO'],SEM3=['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
 const TIPOS={local:['Reuniões locais – ministeriais e administrativas','#1b2a41'],musical:['Reuniões locais – setor musical','#3f7d58'],manut:['Reuniões locais – manutenção preventiva','#a97d3d'],regional:['Reuniões regionais','#2563eb'],estadual:['Reuniões estaduais','#6b4c9a'],brasil:['Reuniões nível Brasil (BRÁS)','#5f6b7a'],ensaio:['Ensaios regionais','#7c4a2d'],mocidade:['Reuniões para a mocidade','#d4801f']};
 const HOL='#c0392b',HOLE='#e11d74',HOLM='#0d9488';
 const HOLEG=[[HOL,'Feriados nacionais'],[HOLE,'Feriados / pontos facultativos do Paraná'],[ '#c78a2c','Pontos facultativos (Carnaval, Corpus Christi)'],[HOLM,'Feriados municipais de Campo Mourão']];
@@ -629,13 +652,22 @@ function feriados(y){
 }
 
 /* ---------- Páginas ---------- */
+/* serviço na página do mês: 1ª linha descrição e horário; 2ª linha local · quem atende · convocados */
+function servMes(e){
+  const p=[];
+  if(e.l&&e.l.trim())p.push(`<span class="lc">${esc(e.l.trim())}</span>`);
+  if(e.a&&e.a.trim())p.push(`<span class="at">Atende ${esc(e.a.trim())}</span>`);
+  const cv=cvHTML(e);if(cv)p.push(cv);
+  const h=e.h?hr(e.h).replace(/min$/,''):'';
+  return `<div class="s" style="--c:${TIPOS[e.t][1]}"><div class="l1">${esc(e.x)}${h?` - <i>${esc(h)}</i>`:''}</div>${p.length?`<div class="l2">${p.join('<span class="sep">·</span>')}</div>`:''}</div>`;
+}
 function paginaMes(m){
   const y=+S.meta.ano,n=new Date(y,m+1,0).getDate(),fer=feriados(y);let rows='';
   let temServ=false;
   for(let d=1;d<=n;d++){
     const w=new Date(y,m,d).getDay(),k=kk(m,d),f=fer[k],es=S.dias[k]||[];
     if(es.length)temServ=true;
-    rows+=`<div class="r${w==0?' dom':''}${f?' fer':''}${es.length?'':' r-vazio'}"><div class="d"><b>${d}</b><span>${SEM[w]}</span></div><div class="e">${f?`<div class="f">${esc(f)}</div>`:''}${es.map(e=>`<div class="s" style="--c:${TIPOS[e.t][1]}">${esc(e.x)}${e.h?` - <i>${esc(hr(e.h))}</i>`:''}${e.l&&e.l.trim()?` <span class="lc">· ${esc(e.l.trim())}</span>`:''}${e.a&&e.a.trim()?` <span class="at">Atende ${esc(e.a.trim())}</span>`:''}${cvHTML(e)}</div>`).join('')}</div></div>`;
+    rows+=`<div class="r${w==0?' dom':''}${f?' fer':''}${es.length?'':' r-vazio'}"><div class="d"><b>${d}</b><span>${SEM3[w]}</span></div><div class="e">${f?`<div class="f">${esc(f)}</div>`:''}${es.map(servMes).join('')}</div></div>`;
   }
   const leg=Object.values(TIPOS).map(t=>`<em><u style="background:${t[1]};--uc:${t[1]}"></u>${t[0]}</em>`).join('')+`<em><u style="background:${HOL};--uc:${HOL}"></u>Feriados</em>`;
   return `<div class="pg mes"><div class="top"><h2>${MESES[m].toUpperCase()}</h2><span>${esc(S.meta.org)}<br>${esc(S.meta.sub)} · ${esc(S.meta.ano)}</span></div><div class="dias${temServ?'':' sem-serv'}">${rows}</div><div class="leg">${leg}</div><div class="rod">${esc(S.meta.rod)}</div></div>`;
