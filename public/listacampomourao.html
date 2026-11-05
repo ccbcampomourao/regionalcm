@@ -321,6 +321,7 @@
       <input type="file" id="importInput" accept=".json" style="display:none" onchange="importJSON(event)">
       <button id="btnListaSalvar" onclick="salvarLista()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-cloud-up"></use></svg>Salvar na nuvem</button>
       <button id="btnListaCarregar" onclick="carregarLista()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-cloud-down"></use></svg>Carregar da nuvem</button>
+      <button id="btnPuxarCal" onclick="CalPonte.puxar()" title="Acrescenta Reuniões Diversas, Mocidade e Ensaio Regional do calendário anual, do início do período até a próxima RMA"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-calendar"></use></svg>Puxar do calendário</button>
       <button class="danger" onclick="if(confirm('Limpar tudo?')) resetAll()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-trash"></use></svg>Limpar tudo</button>
     </div>
     <div class="note">Para o PDF sair <strong>idêntico</strong> ao que vê na pré-visualização: na janela de impressão que abrir, marque <strong>"Gráficos de fundo"</strong> (Background graphics), desmarque "Cabeçalhos e rodapés" e deixe a <strong>Escala em 100%</strong>.</div>
@@ -2392,6 +2393,7 @@ window.onload = ()=>{
 };
 </script>
 <script src="/assets/editor.js"></script>
+<script src="/assets/calendario-ponte.js"></script>
 <script>
 /* Salvar / carregar na nuvem: lógica em /assets/editor.js */
 Nuvem.configurar({

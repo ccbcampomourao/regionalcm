@@ -17,7 +17,7 @@
       radial-gradient(1100px 620px at 100% -10%, #fbf7ef 0%, transparent 55%),
       radial-gradient(900px 520px at -10% 110%, #ece4cf 0%, transparent 55%),
       var(--bg, #f5f1e8);
-    background-attachment: fixed;
+    /* (sem background-attachment: fixed — ele obrigava o navegador a repintar a tela inteira a cada rolagem) */
     -webkit-font-smoothing: antialiased;
   }
   ::selection{ background: rgba(201,154,85,.35); }
@@ -299,9 +299,7 @@
       position: sticky;
       top: 10px;
       z-index: 20;
-      background: rgba(250,246,236,.9);
-      -webkit-backdrop-filter: saturate(1.4) blur(8px);
-              backdrop-filter: saturate(1.4) blur(8px);
+      background: #faf6ec;
       box-shadow: 0 10px 24px -18px rgba(27,42,65,.55);
     }
   }

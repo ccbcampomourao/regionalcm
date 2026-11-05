@@ -171,7 +171,7 @@ body.dgon{user-select:none;-webkit-user-select:none;cursor:grabbing}
 /* ===== Painel de edição reorganizado ===== */
 .wrap.sem-prev #prevHost{display:none}
 .wrap.sem-prev #form{max-width:980px;margin:0 auto}
-.topo-ed{position:sticky;top:10px;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:-4px -4px 16px;padding:8px;border-radius:12px;background:rgba(250,246,236,.92);backdrop-filter:blur(8px);border:1px solid var(--line);box-shadow:0 10px 24px -18px rgba(27,42,65,.55)}
+.topo-ed{position:sticky;top:10px;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:-4px -4px 16px;padding:8px;border-radius:12px;background:#faf6ec;border:1px solid var(--line);box-shadow:0 10px 24px -18px rgba(27,42,65,.55)}
 .abas{display:flex;gap:4px;background:#ece6d6;padding:4px;border-radius:10px}
 .abas button{display:inline-flex;align-items:center;gap:7px;border:none;background:transparent;padding:8px 14px;font-size:14px;color:#6d6652;border-radius:8px}
 .abas button.on{background:#fff;color:var(--primary);box-shadow:0 1px 3px rgba(27,42,65,.18)}
@@ -230,6 +230,52 @@ body.dgon{user-select:none;-webkit-user-select:none;cursor:grabbing}
 .rep-box small{display:block;padding:6px 12px 4px;font-size:11.5px;color:#8a8371}
 #form .bar{display:none}
 #form .menu-box button,#form .rep-box button{justify-content:flex-start!important;text-align:left!important}
+
+/* ===== Desempenho: nada de animação nem efeito caro na lista de dias (evita travadas e "piscadas") ===== */
+.win,.win-head,.caret,.win:hover,.win-head:hover{transition:none!important}
+.win{contain:layout paint style}
+.entw,.entc{contain:layout style}
+#form input,#form select,#form button{transition:none!important}
+/* ===== Edição larga e organizada (a prévia fica numa aba própria) ===== */
+/* a barra fixa fica abaixo dos botões Voltar / Sair do topo */
+#form .topo-ed{top:62px}
+.wrap.sem-prev #form{max-width:1440px;width:100%;margin:0 auto;flex:1}
+.ed-grade{display:grid;grid-template-columns:300px minmax(0,1fr);gap:22px;align-items:start}
+.lado{position:sticky;top:146px;display:flex;flex-direction:column;gap:14px;max-height:calc(100vh - 158px);overflow:auto;padding-right:2px}
+.lado .nav-mes{margin:0;padding:12px 10px;border:1px solid var(--line);border-radius:14px;background:#fdfbf6}
+.lado .nm-tit b{font-size:22px}
+.lado .meses,#form .lado .meses{margin:0;padding:12px;border:1px solid var(--line);border-radius:14px;background:#fff}
+.lado .pg-ext{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
+.lado .pg-ext button{padding:8px 0;font-size:13px}
+.lado .pg-mes{grid-template-columns:1fr 1fr;gap:6px}
+.lado .pg-mes button{flex-direction:row;justify-content:space-between;padding:9px 11px;font-size:14px;text-align:left}
+.lado .pg-mes button span{white-space:nowrap}
+.lado .ferr{flex-direction:column;align-items:stretch;gap:14px;margin:0;padding:14px;border-radius:14px}
+.lado .novo-serv{flex-direction:column;align-items:stretch;gap:8px}
+.lado .ns-l{font-size:12.5px!important;margin:0!important}
+#form .lado .novo-serv input{width:100%}
+.lado .novo-serv button{justify-content:center}
+.principal{min-width:0}
+.principal .bar2{padding:4px 4px 2px;margin-bottom:10px}
+.rs{max-width:300px}
+/* cartão do serviço: 1ª linha tipo | horário | descrição | ações; 2ª linha quem atende | convocados */
+.entw{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:10px;row-gap:12px;padding:14px 16px 14px 10px}
+.entw>.dg{grid-row:1 / span 2;align-self:start;margin-top:22px;font-size:20px}
+.ent-l1{display:grid;grid-template-columns:minmax(220px,290px) 100px minmax(220px,1fr) auto;gap:12px;align-items:end}
+.ent-l2{grid-column:2;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start}
+.tipo-w{display:flex;align-items:center;gap:8px}
+.tipo-w .tipo-cor{width:14px;height:14px}
+#form .tipo-w .ent-tipo{flex:1;min-width:0;width:auto;font-weight:600;color:var(--primary);text-overflow:ellipsis}
+.ent-acoes{display:flex;gap:6px;margin:0;align-self:end;padding-bottom:1px}
+.ent-acoes .ac{min-height:42px}
+.fc-c .cvd summary{min-height:42px;padding:8px 12px}.fc-c .cvd summary>b{display:none}
+.fc-c .cvd[open]{position:relative;z-index:3;box-shadow:0 14px 30px -14px rgba(27,42,65,.4)}
+.fc-c .cvp .og{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+@media (max-width:1180px){.ent-l1{grid-template-columns:minmax(0,1fr) 110px;}.ent-l1 .fc-x{grid-column:1 / -1}.ent-l1 .ent-acoes{grid-column:1 / -1;justify-content:flex-end}}
+@media (max-width:1180px){.ent-l2{grid-template-columns:1fr 1fr}.ent-l2 .fc-l{grid-column:1 / -1}}
+@media (max-width:980px){.ed-grade{grid-template-columns:1fr}.lado{position:static;max-height:none}.lado .pg-mes{grid-template-columns:repeat(3,1fr)}.principal .bar2{position:static}.ent-l2{grid-template-columns:1fr}}
+/* Configurações em duas colunas */
+#aba-conf{max-width:1100px}
 /* ===== Páginas A4 ===== */
 .pg{width:210mm;height:297mm;background:#fff;color:#111;padding:11mm 12mm 9mm;display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.3);-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .pg.mes{padding:11mm 7mm 9mm}
@@ -398,9 +444,9 @@ textarea{width:100%;border:1.5px solid var(--line);border-radius:8px;padding:8px
 <body>
 <header>
   <h1>Calendário de Reuniões</h1>
-  <p>Escolha o mês, lance os serviços em cada dia e veja a página A4 ao lado. Feriados nacionais entram automaticamente.</p>
+  <p>Escolha o mês e lance os serviços em cada dia. Para ver as folhas, clique em <b>Pré-visualizar</b>. Feriados nacionais entram automaticamente.</p>
 </header>
-<div class="wrap">
+<div class="wrap sem-prev">
   <div class="panel" id="form">
     <div class="topo-ed">
       <div class="abas" role="tablist">
@@ -409,7 +455,7 @@ textarea{width:100%;border:1.5px solid var(--line);border-radius:8px;padding:8px
       </div>
       <div class="acoes-ed">
         <span class="salvo" id="salvo"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-check-circle"></use></svg><span>Salvo automaticamente</span></span>
-        <button type="button" class="ic-btn" id="btnPrev" title="Esconder / mostrar a pré-visualização" onclick="togPrev()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-eye"></use></svg></button>
+        <button type="button" id="btnPrev" title="Abre a pré-visualização das folhas numa nova aba" onclick="abrirPrevia()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-eye"></use></svg>Pré-visualizar</button>
         <div class="menu" id="menuArq">
           <button type="button" onclick="togMenu(event)"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-file"></use></svg>Arquivo<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-chevron-down"></use></svg></button>
           <div class="menu-box">
@@ -452,6 +498,8 @@ textarea{width:100%;border:1.5px solid var(--line);border-radius:8px;padding:8px
     </section>
 
     <section id="aba-serv" class="aba">
+     <div class="ed-grade">
+      <aside class="lado">
       <div class="nav-mes">
         <button type="button" class="seta" onclick="passo(-1)" title="Mês anterior"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-chevron-left"></use></svg></button>
         <div class="nm-tit" id="nmTit"></div>
@@ -459,15 +507,13 @@ textarea{width:100%;border:1.5px solid var(--line);border-radius:8px;padding:8px
       </div>
       <div class="meses" id="meses"></div>
       <div class="ferr" id="ferr">
+        <div class="novo-serv"><label class="ns-l">Lançar serviço numa data</label><input type="date" id="novaData" aria-label="Data do novo serviço"><button type="button" class="primary" onclick="novoNaData()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-plus"></use></svg>Novo serviço</button></div>
         <label class="chave"><input type="checkbox" id="soServ" onchange="soComServ=this.checked;montar()"><span></span>Só dias com serviço</label>
-        <div class="novo-serv"><input type="date" id="novaData" aria-label="Data do novo serviço"><button type="button" class="primary" onclick="novoNaData()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-plus"></use></svg>Novo serviço</button></div>
       </div>
-      <div id="dias"></div>
+      </aside>
+      <div class="principal"><div id="dias"></div></div>
+     </div>
     </section>
-  </div>
-  <div class="panel" id="prevHost">
-    <h3 style="margin:0 0 10px;color:var(--primary)">Pré-visualização (A4 retrato)</h3>
-    <div id="prevScroll"><div id="prev"></div></div>
   </div>
 </div>
 <div id="print"></div>
@@ -505,7 +551,29 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&salvarT)sa
 function marcarSalvo(){const el=document.getElementById('salvo');if(!el)return;const d=new Date();el.lastChild.textContent='Salvo às '+p2(d.getHours())+':'+p2(d.getMinutes());el.classList.remove('pulsa');void el.offsetWidth;el.classList.add('pulsa')}
 let soComServ=false;
 function aba(a){document.querySelectorAll('.abas [data-aba]').forEach(b=>b.classList.toggle('on',b.dataset.aba===a));document.getElementById('aba-serv').hidden=a!=='serv';document.getElementById('aba-conf').hidden=a!=='conf'}
-function togPrev(){document.querySelector('.wrap').classList.toggle('sem-prev');document.getElementById('btnPrev').classList.toggle('on');preview()}
+/* Pré-visualização numa aba própria: só é montada quando se clica em "Pré-visualizar"
+   (ou em "Atualizar" dentro dela). A tela de edição não redesenha nada enquanto se digita. */
+function abrirPrevia(){
+  salvar();prepararImpressao();
+  const w=window.open('','previaCalendario');
+  if(!w){UI.toast('O navegador bloqueou a nova aba. Permita pop-ups para este site e clique de novo.',{type:'error'});return}
+  const css=[...document.querySelectorAll('style')].map(x=>x.textContent).join('\n');
+  const html='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">'+
+    '<title>Pré-visualização – Calendário '+esc(S.meta.ano)+'</title>'+
+    '<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">'+
+    '<style>'+css+'\n'+
+    '@media screen{body{background:#525659;margin:0}#print{display:block!important}#print .pg{margin:0 auto 18px;zoom:var(--z,1)}'+
+    '.pv-bar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:10px;padding:10px 16px;margin-bottom:18px;background:linear-gradient(180deg,#2c3f5c,#1b2a41);color:#fdfbf6;font:600 14px Inter,Arial,sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.25)}'+
+    '.pv-bar b{flex:1;font-family:Fraunces,Georgia,serif;font-size:17px}.pv-bar button{cursor:pointer;font:600 14px Inter,Arial,sans-serif;padding:8px 14px;border-radius:9px;border:1.5px solid rgba(255,255,255,.35);background:transparent;color:#fdfbf6}'+
+    '.pv-bar button.pri{background:#fdfbf6;color:#1b2a41;border-color:#fdfbf6}.pv-bar small{opacity:.75;font-weight:500}}'+
+    '@media print{.pv-bar{display:none!important}}</style></head><body>'+
+    '<div class="pv-bar"><b>Pré-visualização – Calendário '+esc(S.meta.ano)+'</b><small>Montada às '+p2(new Date().getHours())+':'+p2(new Date().getMinutes())+'</small>'+
+    '<button onclick="if(window.opener&&!window.opener.closed){window.opener.abrirPrevia()}else{alert(\'Abra o editor do calendário para atualizar.\')}">Atualizar</button>'+
+    '<button class="pri" onclick="window.print()">Imprimir / PDF</button></div>'+
+    '<div id="print">'+document.getElementById('print').innerHTML+'</div>'+
+    '<script>function z(){document.documentElement.style.setProperty("--z",Math.min(1,(innerWidth-24)/794))}z();addEventListener("resize",z)<\/script></body></html>';
+  w.document.open();w.document.write(html);w.document.close();w.focus();
+}
 function togMenu(ev){ev.stopPropagation();document.getElementById('menuArq').classList.toggle('open')}
 document.addEventListener('click',()=>{const m=document.getElementById('menuArq');if(m)m.classList.remove('open')});
 function passo(d){let n=cur<0?0:cur+d;if(n<0)n=0;if(n>11)n=11;ir(n)}
@@ -627,7 +695,7 @@ function pagina(c){return c==-4?paginaFeriados():c==-1?paginaCapa():c==-2?pagina
 function montar(){
   garantirCapa();
   ['org','sub','ano','rod','capaOrg','capaTitulo','capaSub'].forEach(k=>document.getElementById('m_'+k).value=S.meta[k]||'');
-  patch(document.getElementById('meses'),'<div class="pg-ext">'+[['Capa',-1],['Legenda',-2],['Calendário',-4]].map(a=>`<button class="${cur==a[1]?'on':''}" onclick="ir(${a[1]})">${a[0]}</button>`).join('')+'</div><div class="pg-mes">'+MESES.map((n,i)=>{const q=qtdMes(i);return `<button class="${cur==i?'on':''}${q?'':' vazio'}" onclick="ir(${i})">${n.slice(0,3)}<em>${q||'–'}</em></button>`}).join('')+'</div>');
+  patch(document.getElementById('meses'),'<div class="pg-ext">'+[['Capa',-1],['Legenda',-2],['Calendário',-4]].map(a=>`<button class="${cur==a[1]?'on':''}" onclick="ir(${a[1]})">${a[0]}</button>`).join('')+'</div><div class="pg-mes">'+MESES.map((n,i)=>{const q=qtdMes(i);return `<button class="${cur==i?'on':''}${q?'':' vazio'}" onclick="ir(${i})"><span>${n}</span><em>${q||'–'}</em></button>`}).join('')+'</div>');
   const nt=document.getElementById('nmTit');if(nt)nt.innerHTML=cur>=0?`<b>${MESES[cur]}</b><span>${S.meta.ano} · ${qtdMes(cur)} serviço${qtdMes(cur)==1?'':'s'}</span>`:`<b>${cur==-1?'Capa':cur==-2?'Legenda':'Calendário do ano'}</b><span>${S.meta.ano}</span>`;
   const fe=document.getElementById('ferr');if(fe)fe.style.display=cur>=0?'':'none';
   const box=document.getElementById('dias');
@@ -711,30 +779,35 @@ function dgMover(k,i,k2){
   salvar();montar()}
 function resumoHead(es){
   if(!es.length)return '<span class="vz">sem serviços</span>';
-  const sh=es.slice(0,2).map(e=>`<span class="rs"><u style="background:${TIPOS[e.t][1]}"></u>${esc(hr(e.h))} ${esc(e.x)}</span>`).join('');
-  return `<span class="rl">${sh}${es.length>2?`<span class="mais">+${es.length-2}</span>`:''}</span><span class="qtd">${es.length}</span>`}
+  const sh=es.slice(0,3).map(e=>`<span class="rs"><u style="background:${TIPOS[e.t][1]}"></u>${esc(hr(e.h))} ${esc(e.x)}</span>`).join('');
+  return `<span class="rl">${sh}${es.length>3?`<span class="mais">+${es.length-3}</span>`:''}</span><span class="qtd">${es.length}</span>`}
 function entHTML(k,i,e){
   const id=k+'#'+i;
   if(fEnt[id])return `<div class="entc" style="--c:${TIPOS[e.t][1]}" onclick="event.stopPropagation();togEnt('${id}')" title="Abrir para editar"><span class="dg" title="Arraste para outro dia (a rodinha do mouse rola a página)" onclick="event.stopPropagation()" onpointerdown="dgDown(event,'${k}',${i})"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-grip"></use></svg></span><span class="entc-caret"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-chevron-right"></use></svg></span><u style="background:${TIPOS[e.t][1]}"></u><span>${esc(hr(e.h))} ${esc(e.x)||'(sem descrição)'} ${esc((e.c||[]).map(c=>'*'+c).join(' '))}</span></div>`;
   const tipos=Object.entries(TIPOS).map(([v,t])=>`<option value="${v}"${e.t==v?' selected':''}>${t[0]}</option>`).join('');
+  const IC=n=>`<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-${n}"></use></svg>`;
   return `<div class="entw" style="--c:${TIPOS[e.t][1]}">`+
-    `<div class="ent-top"><span class="dg" title="Arraste para outro dia (a rodinha do mouse rola a página)" onpointerdown="dgDown(event,'${k}',${i})"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-grip"></use></svg></span>`+
-    `<u class="tipo-cor"></u><select class="ent-tipo" aria-label="Tipo de reunião" onchange="edit('${k}',${i},'t',this.value);montar()">${tipos}</select>`+
-    `<div class="ent-acoes">`+
-      `<details class="rep"><summary class="ac"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-refresh"></use></svg>Repetir<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-chevron-down"></use></svg></summary><div class="rep-box">`+
-        `<button onclick="this.closest('details').open=false;repetir('${k}',${i})">Todo mês</button>`+
-        `<button onclick="this.closest('details').open=false;repetir('${k}',${i},2)">A cada 2 meses</button>`+
-        `<button onclick="this.closest('details').open=false;repetir('${k}',${i},3)">A cada 3 meses</button>`+
-        `<small>Mesmo dia da semana, na mesma posição do mês.</small></div></details>`+
-      `<button class="ac" title="Duplicar no mesmo dia" onclick="duplicar('${k}',${i})"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-plus"></use></svg>Duplicar</button>`+
-      `<button class="ac ic-only tg" title="Minimizar este serviço" aria-label="Minimizar" onclick="event.stopPropagation();togEnt('${id}')"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-chevron-down"></use></svg></button>`+
-      `<button class="ac ic-only danger" title="Remover este serviço" aria-label="Remover" onclick="remover('${k}',${i})"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-trash"></use></svg></button>`+
-    `</div></div>`+
-    `<div class="ent-campos">`+
+    `<span class="dg" title="Arraste para outro dia (a rodinha do mouse rola a página)" onpointerdown="dgDown(event,'${k}',${i})">${IC('grip')}</span>`+
+    `<div class="ent-l1">`+
+      `<div class="fc fc-t"><label>Tipo de reunião</label><div class="tipo-w"><u class="tipo-cor"></u><select class="ent-tipo" aria-label="Tipo de reunião" onchange="edit('${k}',${i},'t',this.value);montar()">${tipos}</select></div></div>`+
       `<div class="fc fc-h"><label>Horário</label><input value="${esc(e.h)}" placeholder="19:30" inputmode="numeric" oninput="horaInput(this,'${k}',${i})" onblur="horaBlur(this,'${k}',${i})"></div>`+
       `<div class="fc fc-x"><label>Descrição do serviço</label><input class="tx" value="${esc(e.x)}" placeholder="Ex.: Reunião Ministerial" oninput="edit('${k}',${i},'x',this.value,1)"></div>`+
+      `<div class="ent-acoes">`+
+        `<details class="rep"><summary class="ac" title="Repetir em outros meses">${IC('refresh')}Repetir${IC('chevron-down')}</summary><div class="rep-box">`+
+          `<button onclick="this.closest('details').open=false;repetir('${k}',${i})">Todo mês</button>`+
+          `<button onclick="this.closest('details').open=false;repetir('${k}',${i},2)">A cada 2 meses</button>`+
+          `<button onclick="this.closest('details').open=false;repetir('${k}',${i},3)">A cada 3 meses</button>`+
+          `<small>Mesmo dia da semana, na mesma posição do mês.</small></div></details>`+
+        `<button class="ac ic-only" title="Duplicar no mesmo dia" aria-label="Duplicar" onclick="duplicar('${k}',${i})">${IC('plus')}</button>`+
+        `<button class="ac ic-only tg" title="Minimizar este serviço" aria-label="Minimizar" onclick="event.stopPropagation();togEnt('${id}')">${IC('chevron-down')}</button>`+
+        `<button class="ac ic-only danger" title="Remover este serviço" aria-label="Remover" onclick="remover('${k}',${i})">${IC('trash')}</button>`+
+      `</div>`+
+    `</div>`+
+    `<div class="ent-l2">`+
+      `<div class="fc fc-l"><label>Local <span class="opc">(vai para a lista)</span></label><input value="${esc(e.l||'')}" placeholder="Ex.: Campo Mourão - Central" oninput="edit('${k}',${i},'l',this.value)"></div>`+
       `<div class="fc fc-a"><label>Quem atende <span class="opc">(opcional)</span></label><input value="${esc(e.a||'')}" placeholder="Ex.: Ir. Carlos Roberto" oninput="edit('${k}',${i},'a',this.value)"></div>`+
-    `</div>${cvEd(k,i,e)}</div>`}
+      `<div class="fc fc-c"><label>Convocados</label>${cvEd(k,i,e)}</div>`+
+    `</div></div>`}
 const fCv={};
 function cvSum(e){const c=e.c||[];const t=c.map(code=>{const g=S.cargos.find(x=>x.code==code);return `<span class="cc2">${g&&g.useAsterisk===false?'':'*'}${esc(code)}</span>`}).join('')+(e.o?`<em class="oo">${esc(e.o)}</em>`:'');return t||'<span class="nenhum">nenhum selecionado</span>'}
 function cvOpt(k,i,e,g,ci){return `<label class="opt" title="${esc(g.label)}"><input type="checkbox" ${(e.c||[]).includes(g.code)?'checked':''} onchange="cvTog('${k}',${i},${ci},this.checked)"><span>${g.useAsterisk!==false?'*':''}${esc(g.code)}</span></label>`}
@@ -765,6 +838,7 @@ function repetir(k,i,passo){
 /* ---------- Preview / impressão ---------- */
 function preview(rapido){
   clearTimeout(prevT);prevT=0;
+  if(!document.getElementById('prev'))return;   // sem prévia ao vivo: ela fica na aba "Pré-visualizar"
   // a medição do tamanho único de letra (monta os 12 meses) é pesada: durante a digitação
   // fica para quando a pessoa parar de digitar
   if(cur>=0){if(rapido){clearTimeout(fonteT);fonteT=setTimeout(()=>{fonteT=0;const f=FONTE_MES;calcularFonteMes();if(FONTE_MES!==f)preview()},700)}else calcularFonteMes()}
