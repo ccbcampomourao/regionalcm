@@ -46,7 +46,8 @@
   }
   function ehRMA(e) {
     var x = String(e.x || '');
-    return /\bRMA\b/i.test(x) || /reuni[aã]o\s+ministerial\s+administrativa/i.test(x);
+    // "RMA - ..." ou "Reunião Ministerial Administrativa"; não confunde com "(depois da RMA)"
+    return /^\W*RMA\b/i.test(x) || /reuni[aã]o\s+ministerial\s+administrativa/i.test(x);
   }
   function secaoDestino(t) { return t === 'mocidade' ? 'reuniao_mocidade' : t === 'ensaio' ? 'ensaio_regional' : 'reuniaodiversa'; }
   function norm(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim(); }
@@ -59,24 +60,53 @@
     return m[2] + '-' + p2(MESES[m[1]]) + '-01';
   }
 
-  // todos os serviços do calendário, em ordem de data e hora
-  function servicos(cal) {
-    var ano = +((cal.meta || {}).ano) || new Date().getFullYear(), out = [];
-    Object.keys(cal.dias || {}).forEach(function (k) {
-      (cal.dias[k] || []).forEach(function (e) { out.push({ data: ano + '-' + k, e: e }); });
+  function anoDe(cal) { return +((cal && cal.meta || {}).ano) || 0; }
+  function contar(cal) { return cal ? Object.keys(cal.dias || {}).reduce(function (a, k) { return a + (cal.dias[k] || []).length; }, 0) : 0; }
+
+  // todos os serviços dos calendários (um por ano), em ordem de data e hora
+  function servicos(cals) {
+    var out = [], vistos = {};
+    cals.forEach(function (cal) {
+      var ano = anoDe(cal) || new Date().getFullYear();
+      if (vistos[ano]) return; vistos[ano] = 1;
+      Object.keys(cal.dias || {}).forEach(function (k) {
+        (cal.dias[k] || []).forEach(function (e) { out.push({ data: ano + '-' + k, e: e }); });
+      });
     });
     out.sort(function (a, b) { return a.data.localeCompare(b.data) || hora(a.e.h).localeCompare(hora(b.e.h)); });
     return out;
   }
 
-  function planejar(cal) {
+  // até: data limite usada quando não há RMA (ex.: '2026-12-31'); sem ela, exige a RMA
+  function planejar(cals, ate) {
+    if (!Array.isArray(cals)) cals = [cals];
     var ini = inicioPeriodo();
     if (!ini) return { erro: 'Escolha o período da lista antes de puxar do calendário.' };
-    var todos = servicos(cal).filter(function (s) { return s.data >= ini; });
+    var todos = servicos(cals).filter(function (s) { return s.data >= ini; });
     var rma = todos.find(function (s) { return ehRMA(s.e); });
-    var fim = rma ? rma.data : null;
+    var fim = rma ? rma.data : (ate || null);
     var sel = fim ? todos.filter(function (s) { return s.data <= fim; }) : [];
     return { ini: ini, fim: fim, rma: rma, itens: sel };
+  }
+
+  // procura o calendário de um ano: primeiro neste computador, depois na nuvem
+  async function buscarAno(ano, jaTem) {
+    var loc = calendarioLocal();
+    if (loc && anoDe(loc) === ano && contar(loc)) return { cal: loc, origem: 'deste computador' };
+    if (!token()) return null;
+    var arquivos;
+    try { arquivos = (await api('lista-list')).arquivos || []; } catch (e) { return null; }
+    var comAno = arquivos.filter(function (a) { return String(a.nome).indexOf(String(ano)) !== -1; });
+    var resto = arquivos.filter(function (a) { return comAno.indexOf(a) === -1; });
+    var fila = comAno.concat(resto).filter(function (a) { return a.nome !== jaTem; }).slice(0, 10);
+    for (var i = 0; i < fila.length; i++) {
+      try {
+        var c = (await api('lista-load', { nome: fila[i].nome })).conteudo;
+        c = typeof c === 'string' ? JSON.parse(c) : c;
+        if (anoDe(c) === ano && contar(c)) return { cal: c, origem: 'da nuvem (' + String(fila[i].nome).replace(/\.json$/i, '') + ')' };
+      } catch (e) {}
+    }
+    return null;
   }
 
   /* ---------- montagem das entradas da lista ---------- */
@@ -121,15 +151,38 @@
     return secs[secs.length - 1];
   }
 
-  function br(iso) { var p = iso.split('-'); return p[2] + '/' + p[1]; }
+  function br(iso) { var p = iso.split('-'); return p[2] + '/' + p[1] + '/' + p[0]; }
 
-  async function aplicarDe(cal, origem) {
-    var plano = planejar(cal);
+  async function aplicarDe(cal, origem, nomeNuvem) {
+    var cals = [cal], origens = [anoDe(cal) + ' ' + origem];
+    var plano = planejar(cals);
     if (plano.erro) { UI.toast(plano.erro, 'error'); return; }
+    var anoIni = +plano.ini.slice(0, 4);
+    // a RMA pode cair no ano seguinte (ex.: lista de NOV/DEZ com RMA em janeiro):
+    // junta o calendário do outro ano que faltar, deste computador ou da nuvem
     if (!plano.fim) {
-      UI.toast('Não encontrei nenhuma RMA no calendário a partir de ' + br(plano.ini) + '. Lance a RMA no calendário anual (com “RMA” na descrição) e tente de novo.', { type: 'error', duration: 9000 });
-      return;
+      var precisa = [anoIni, anoIni + 1].filter(function (a) { return !cals.some(function (c) { return anoDe(c) === a; }); });
+      for (var i = 0; i < precisa.length; i++) {
+        var achado = await buscarAno(precisa[i], nomeNuvem);
+        if (achado) { cals.push(achado.cal); origens.push(precisa[i] + ' ' + achado.origem); }
+        plano = planejar(cals);
+        if (plano.fim) break;
+      }
     }
+    if (!plano.fim) {
+      var anoFim = Math.max.apply(null, cals.map(anoDe).concat([anoIni]));
+      var falta = [anoIni, anoIni + 1].filter(function (a) { return !cals.some(function (c) { return anoDe(c) === a; }); });
+      var ate = anoFim + '-12-31';
+      var r = await UI.dialog({ title: 'Puxar do calendário', icon: 'info',
+        body: '<p class="ui-modal__p">Não encontrei a próxima RMA a partir de <b>' + br(plano.ini) + '</b>.</p>' +
+          (falta.length ? '<p class="ui-modal__p">Não achei o calendário de <b>' + falta.join(' e ') + '</b> neste computador nem na nuvem. Se a RMA cai em ' + falta.join('/') + ', monte e salve na nuvem o calendário desse ano e tente de novo.</p>'
+                        : '<p class="ui-modal__p">Lance a RMA no calendário anual (com “RMA” na descrição) e tente de novo.</p>') +
+          '<p class="ui-modal__p" style="color:#7a7466">Se preferir, posso puxar o que já existe até <b>' + br(ate) + '</b>.</p>',
+        actions: [{ label: 'Cancelar', value: false }, { label: 'Puxar até ' + br(ate), value: true, primary: true }] });
+      if (r !== true) return;
+      plano = planejar(cals, ate);
+    }
+    origem = origens.join(' + ');
     var novos = [], repetidos = 0, cont = { reuniaodiversa: 0, reuniao_mocidade: 0, ensaio_regional: 0 };
     plano.itens.forEach(function (s) {
       var en = entrada(s);
@@ -141,7 +194,7 @@
     var resumo = Object.keys(cont).filter(function (k) { return cont[k]; })
       .map(function (k) { return '<li><b>' + cont[k] + '</b> em ' + rotulo[k] + '</li>'; }).join('');
     var corpo =
-      '<p class="ui-modal__p">Do calendário <b>' + esc(origem) + '</b>, de <b>' + br(plano.ini) + '</b> até a RMA de <b>' + br(plano.fim) + '</b>:</p>' +
+      '<p class="ui-modal__p">' + (origens.length > 1 ? 'Dos calendários ' : 'Do calendário ') + '<b>' + esc(origem) + '</b>, de <b>' + br(plano.ini) + '</b> até ' + (plano.rma ? 'a RMA de ' : '') + '<b>' + br(plano.fim) + '</b>:</p>' +
       (novos.length ? '<ul style="margin:8px 0 4px 18px;padding:0;line-height:1.7">' + resumo + '</ul>' : '<p class="ui-modal__p"><b>Nada novo para acrescentar.</b></p>') +
       (repetidos ? '<p class="ui-modal__p" style="color:#7a7466">' + repetidos + ' serviço(s) já estavam na lista e ficam como estão.</p>' : '') +
       '<p class="ui-modal__p" style="color:#7a7466">Só acrescenta: nada do que já está na lista é apagado ou alterado.</p>';
@@ -178,7 +231,7 @@
     try { conteudo = (await api('lista-load', { nome: escolhido })).conteudo; }
     catch (e) { UI.toast('Não foi possível abrir o calendário: ' + e.message, 'error'); return; }
     var cal; try { cal = typeof conteudo === 'string' ? JSON.parse(conteudo) : conteudo; } catch (e) { UI.toast('O arquivo do calendário está inválido.', 'error'); return; }
-    aplicarDe(cal, 'da nuvem (' + String(escolhido).replace(/\.json$/i, '') + ')');
+    aplicarDe(cal, 'da nuvem (' + String(escolhido).replace(/\.json$/i, '') + ')', escolhido);
   }
 
   async function puxar() {
@@ -186,7 +239,7 @@
     var nLocal = local ? Object.keys(local.dias || {}).reduce(function (a, k) { return a + (local.dias[k] || []).length; }, 0) : 0;
     var r = await UI.dialog({
       title: 'Puxar do calendário anual', icon: 'calendar',
-      subtitle: 'Acrescenta Reuniões Diversas, Mocidade e Ensaio Regional do início do período até a próxima RMA.',
+      subtitle: 'Acrescenta Reuniões Diversas, Mocidade e Ensaio Regional do início do período até a próxima RMA (mesmo que ela caia no ano seguinte).',
       body: '<p class="ui-modal__p">De onde vem o calendário?</p>',
       actions: [
         { label: 'Cancelar', value: null },
