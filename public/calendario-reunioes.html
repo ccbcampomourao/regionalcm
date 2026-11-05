@@ -296,6 +296,7 @@ body.dgon{user-select:none;-webkit-user-select:none;cursor:grabbing}
 .r .f{font-weight:700;color:var(--accent);font-size:.9em}
 .r .s{border-left:2.2pt solid var(--c);padding-left:1.6mm;margin:.4mm 0;font-weight:500}
 .r .at{font-weight:600;font-style:italic;font-size:.93em}
+.r .lc{font-weight:400;font-size:.93em;color:#3d3a33}
 .r .s i{font-style:normal;font-weight:700}
 .leg{display:flex;flex-wrap:wrap;gap:1mm 4mm;margin-top:2.5mm;font-size:6.8pt;color:#444}
 .leg em{font-style:normal;display:inline-flex;align-items:center;gap:1mm}.leg u{display:inline-block;width:2.5mm;height:2.5mm;border-radius:.6mm;text-decoration:none}
@@ -634,7 +635,7 @@ function paginaMes(m){
   for(let d=1;d<=n;d++){
     const w=new Date(y,m,d).getDay(),k=kk(m,d),f=fer[k],es=S.dias[k]||[];
     if(es.length)temServ=true;
-    rows+=`<div class="r${w==0?' dom':''}${f?' fer':''}${es.length?'':' r-vazio'}"><div class="d"><b>${d}</b><span>${SEM[w]}</span></div><div class="e">${f?`<div class="f">${esc(f)}</div>`:''}${es.map(e=>`<div class="s" style="--c:${TIPOS[e.t][1]}">${esc(e.x)}${e.h?` - <i>${esc(hr(e.h))}</i>`:''}${e.a&&e.a.trim()?` <span class="at">Atende ${esc(e.a.trim())}</span>`:''}${cvHTML(e)}</div>`).join('')}</div></div>`;
+    rows+=`<div class="r${w==0?' dom':''}${f?' fer':''}${es.length?'':' r-vazio'}"><div class="d"><b>${d}</b><span>${SEM[w]}</span></div><div class="e">${f?`<div class="f">${esc(f)}</div>`:''}${es.map(e=>`<div class="s" style="--c:${TIPOS[e.t][1]}">${esc(e.x)}${e.h?` - <i>${esc(hr(e.h))}</i>`:''}${e.l&&e.l.trim()?` <span class="lc">· ${esc(e.l.trim())}</span>`:''}${e.a&&e.a.trim()?` <span class="at">Atende ${esc(e.a.trim())}</span>`:''}${cvHTML(e)}</div>`).join('')}</div></div>`;
   }
   const leg=Object.values(TIPOS).map(t=>`<em><u style="background:${t[1]};--uc:${t[1]}"></u>${t[0]}</em>`).join('')+`<em><u style="background:${HOL};--uc:${HOL}"></u>Feriados</em>`;
   return `<div class="pg mes"><div class="top"><h2>${MESES[m].toUpperCase()}</h2><span>${esc(S.meta.org)}<br>${esc(S.meta.sub)} · ${esc(S.meta.ano)}</span></div><div class="dias${temServ?'':' sem-serv'}">${rows}</div><div class="leg">${leg}</div><div class="rod">${esc(S.meta.rod)}</div></div>`;
@@ -804,7 +805,7 @@ function entHTML(k,i,e){
       `</div>`+
     `</div>`+
     `<div class="ent-l2">`+
-      `<div class="fc fc-l"><label>Local <span class="opc">(vai para a lista)</span></label><input value="${esc(e.l||'')}" placeholder="Ex.: Campo Mourão - Central" oninput="edit('${k}',${i},'l',this.value)"></div>`+
+      `<div class="fc fc-l"><label>Local <span class="opc">(calendário e lista)</span></label><input value="${esc(e.l||'')}" placeholder="Ex.: Campo Mourão - Central" oninput="edit('${k}',${i},'l',this.value)"></div>`+
       `<div class="fc fc-a"><label>Quem atende <span class="opc">(opcional)</span></label><input value="${esc(e.a||'')}" placeholder="Ex.: Ir. Carlos Roberto" oninput="edit('${k}',${i},'a',this.value)"></div>`+
       `<div class="fc fc-c"><label>Convocados</label>${cvEd(k,i,e)}</div>`+
     `</div></div>`}
