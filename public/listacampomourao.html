@@ -16,7 +16,7 @@
       var lists = Array.isArray(data.lists) ? data.lists : [];
       function montarBarraTopo() {
         var bar = document.createElement('div');
-        bar.style.cssText = 'position:fixed; top:12px; right:12px; z-index:99999; display:flex; gap:8px;';
+        bar.style.cssText = 'position:absolute; top:12px; right:12px; z-index:99999; display:flex; gap:8px;';
 
         if (data.role === 'admin' || lists.length > 1) {
           var backBtn = document.createElement('a');
@@ -307,77 +307,340 @@
 </style>
 <link rel="stylesheet" href="/assets/ui.css">
 <link rel="stylesheet" href="/assets/editor.css">
+<style id="ed-lista">
+/* ===== Tela de edição da lista (só tela; nada aqui vale para a pré-visualização ou o PDF) ===== */
+@media screen{
+  .wrap{gap:18px; padding:18px}
+  #formPanel{flex:1.15; min-width:0; padding:0; overflow:visible}
+  #previewHost{flex:1; min-width:400px}
+  /* sem prévia: o editor ocupa a tela toda */
+  .wrap.sem-prev #previewHost{display:none}
+  .wrap.sem-prev #formPanel{max-width:1280px; margin:0 auto}
+
+  /* barra de cima (abas + ações), sempre à mão */
+  .topo-ed{position:sticky; top:0; z-index:30; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+    padding:10px 12px; background:#faf6ec; border-bottom:1px solid #ebe3cf; border-radius:16px 16px 0 0}
+  .abas{display:flex; gap:4px; background:#ece6d6; padding:4px; border-radius:10px}
+  #formPanel .abas button{display:inline-flex; align-items:center; gap:7px; border:none; background:transparent; padding:8px 14px; font-size:14px; color:#6d6652; border-radius:8px; box-shadow:none; transform:none}
+  #formPanel .abas button.on{background:#fff; color:var(--primary); box-shadow:0 1px 3px rgba(27,42,65,.18)}
+  .abas svg.ic,.acoes-ed svg.ic,.resumo-lista svg.ic{width:16px; height:16px}
+  .acoes-ed{display:flex; align-items:center; gap:8px}
+  .acoes-ed>button,.menu>button,.resumo-lista>button{display:inline-flex; align-items:center; gap:7px; font-size:13.5px; padding:8px 12px}
+  .ic-btn{padding:8px 10px!important}
+  .salvo{display:inline-flex; align-items:center; gap:5px; font-size:12.5px; color:#3d7a57; font-weight:600; padding:0 2px}
+  .salvo svg.ic{width:15px; height:15px}
+  .salvo.pulsa{animation:pulsa 1s ease}
+  @keyframes pulsa{0%{opacity:.25}100%{opacity:1}}
+  .menu{position:relative}
+  .menu-box{display:none; position:absolute; right:0; top:calc(100% + 6px); min-width:250px; background:#fff; border:1px solid var(--line); border-radius:12px;
+    box-shadow:0 18px 40px -16px rgba(27,42,65,.45); padding:6px; z-index:40}
+  .menu.open .menu-box{display:block}
+  #formPanel .menu-box button{display:flex; align-items:center; justify-content:flex-start; gap:10px; width:100%; white-space:nowrap; border:none; background:none;
+    text-align:left; padding:9px 12px; font-size:14px; border-radius:8px; box-shadow:none; transform:none; color:var(--primary)}
+  #formPanel .menu-box button:hover{background:#f6f1e4}
+  .menu-box hr{border:none; border-top:1px solid var(--line); margin:5px 4px}
+  #formPanel .menu-box .danger{color:var(--accent)}
+  .menu-tipos{min-width:300px; max-height:min(70vh,520px); overflow:auto}
+  .menu-tipos .mt-tit{font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--brass); padding:6px 12px 4px}
+
+  .aba{padding:14px 16px 18px}
+
+  /* resumo: período · folhas · linhas + ações de conteúdo */
+  .resumo-lista{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px}
+  #formPanel .res-per{border:none; background:none; padding:4px 2px; box-shadow:none; font-size:15px; color:var(--primary)}
+  #formPanel .res-per:hover{box-shadow:none; color:var(--brass)}
+  .res-per b{font-family:'Fraunces',Georgia,serif; font-weight:600; font-size:17px; letter-spacing:.01em}
+  .res-pag,.res-lin{font-size:12.5px; font-weight:700; border-radius:999px; padding:3px 10px; background:#f1ebdc; color:#6d6652; white-space:nowrap}
+  .res-pag.ok{background:#e3f1e7; color:#2f6b45}
+  .res-pag.alerta{background:#fbecd2; color:#8a5a12}
+  .res-pag.ruim{background:#f8dfd9; color:#9b3727}
+  .res-esp{flex:1}
+  .res-acoes{display:flex; gap:8px; margin-left:auto}
+  .res-acoes>button,.res-acoes .menu>button{display:inline-flex; align-items:center; gap:7px; font-size:13.5px; padding:8px 12px}
+
+  /* navegação entre as tabelas */
+  .nav-tab{display:flex; flex-wrap:wrap; gap:6px; padding:10px; margin:0 0 14px; background:#f8f4ea; border:1px solid #ebe3cf; border-radius:12px}
+  #formPanel .nav-tab button{display:inline-flex; align-items:center; gap:7px; padding:6px 10px 6px 8px; font-size:13px; border-radius:999px; background:#fff; color:#3c3628; box-shadow:none; transform:none}
+  #formPanel .nav-tab button:hover{border-color:var(--brass-lt)}
+  #formPanel .nav-tab button.on{background:var(--primary); border-color:var(--primary); color:#fdfbf6}
+  .nav-tab .nt-n{font-size:11px; font-weight:800; color:var(--brass); min-width:14px; text-align:center}
+  .nav-tab button.on .nt-n{color:#e0bd84}
+  .nav-tab em{font-style:normal; font-size:11px; font-weight:700; background:#f1ebdc; color:#7a6a45; border-radius:9px; padding:0 7px; line-height:18px}
+  .nav-tab button.on em{background:rgba(255,255,255,.18); color:#fdfbf6}
+  .nav-tab .nt-sep{flex:1}
+  #formPanel .nav-tab .nt-tudo{background:none; border-color:transparent; color:#7a7263; font-size:12.5px}
+  #formPanel .nav-tab .nt-tudo:hover{color:var(--primary); border-color:var(--line)}
+  .vazio-lista{text-align:center; padding:36px 20px; border:1.5px dashed #dccfae; border-radius:14px; color:#7a7263; background:#fbf8f1}
+  .vazio-lista b{display:block; font-size:16px; color:var(--primary); margin-bottom:6px}
+
+  /* tabela (seção) */
+  #formPanel .section{margin-bottom:12px; scroll-margin-top:76px}
+  #formPanel .section-head{padding:9px 10px 9px 6px; gap:8px}
+  .sh-esq{display:flex; align-items:center; gap:2px; min-width:0}
+  .sh-esq h3{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .sh-num{font-size:12px; font-weight:800; color:var(--brass); margin-right:6px}
+  .sh-cnt{margin-left:8px; font-size:11.5px; font-weight:700; background:#fff; border:1px solid #e6dcc4; color:#7a6a45; border-radius:999px; padding:1px 8px; white-space:nowrap}
+  .sh-dir{display:flex; align-items:center; gap:6px; flex-shrink:0}
+  #formPanel .sh-dir button{display:inline-flex; align-items:center; gap:5px; padding:5px 9px; font-size:12.5px; background:#fff}
+  #formPanel .sh-dir .sh-del{color:#a39a85; border-color:transparent; background:transparent}
+  #formPanel .sh-dir .sh-del:hover{color:var(--accent); border-color:#e3b3a9; background:#fff}
+  .sh-dir svg.ic{width:15px; height:15px}
+  #formPanel .section-body{padding:10px 12px 12px}
+  .sec-opcoes{display:flex; flex-wrap:wrap; gap:8px 18px; padding:8px 10px; margin-bottom:10px; background:#faf6ec; border:1px solid #ece3cd; border-radius:10px}
+  .sec-opcoes label{display:flex; align-items:center; gap:8px; margin:0; font-size:13px; font-weight:600; color:var(--primary-2); cursor:pointer}
+  .sec-opcoes small{font-weight:500; color:#8a8371}
+  .sec-pe{display:flex; gap:8px; margin-top:8px}
+  #formPanel .sec-pe button{display:inline-flex; align-items:center; gap:6px; font-size:13px; padding:7px 12px; border-style:dashed; background:#fffdf8}
+  .sec-pe svg.ic{width:15px; height:15px}
+
+  /* ===== linhas da tabela: editáveis direto, sem abrir/fechar ===== */
+  #sectionsContainer{container-type:inline-size}
+  .linhas{display:flex; flex-direction:column; border:1px solid #ebe3cf; border-radius:10px; overflow:hidden; background:#fff}
+  .lin{display:grid; gap:6px 8px; align-items:start; padding:7px 8px 7px 10px; border-top:1px solid #f0eadb; position:relative}
+  .lin:first-child{border-top:none}
+  .lin:nth-child(even){background:#fdfbf6}
+  .lin:focus-within{background:#fffaf0; box-shadow:inset 3px 0 0 var(--brass)}
+  .lin.realce{animation:realce 1.6s ease}
+  @keyframes realce{0%,35%{background:#f8e7c4}100%{background:inherit}}
+  .lin .c{min-width:0}
+  .lin label{font-size:10.5px!important; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#9a8f76!important; margin:0 0 3px!important; white-space:nowrap}
+  /* rótulos só na 1ª linha de cada tabela (as colunas ficam alinhadas como uma planilha) */
+  .linhas .lin:not(.lin-1) label{display:none}
+  #formPanel .lin input[type=text],#formPanel .lin input[type=date],#formPanel .lin input[type=time],#formPanel .lin select,#formPanel .lin textarea{
+    padding:6px 8px; font-size:14px; border-radius:7px; min-height:34px}
+  .lin textarea{width:100%; resize:none; overflow:hidden; line-height:1.35; font-family:inherit; border:1.5px solid var(--line); display:block}
+  .c-data .dt{display:flex; align-items:center; gap:6px}
+  .c-data .dow{font-size:11.5px; font-weight:700; color:var(--brass); width:2.4em; flex-shrink:0; text-transform:lowercase}
+  .c-data .dow.vazio{color:#c8bfa9}
+  /* listas (obreiros, diáconos) */
+  .multi{display:flex; flex-direction:column; gap:4px}
+  .multi .mi{display:flex; align-items:center; gap:4px}
+  .multi .mi input{flex:1}
+  #formPanel .multi .mi button,#formPanel .lin-acoes button{display:inline-flex; align-items:center; justify-content:center; padding:0; width:28px; height:28px; min-height:0;
+    border-color:transparent; background:transparent; color:#a39a85; box-shadow:none; flex-shrink:0}
+  #formPanel .multi .mi button:hover{color:var(--accent); background:#fbeae4; border-color:#efc7bd}
+  #formPanel .multi .mi button.mais{color:var(--brass)}
+  #formPanel .multi .mi button.mais:hover{color:#fff; background:var(--brass); border-color:var(--brass)}
+  .multi svg.ic,.lin-acoes svg.ic{width:15px; height:15px}
+  /* convocados */
+  .conv{display:flex; flex-wrap:wrap; align-items:center; gap:5px}
+  .conv .pill{display:inline-flex; align-items:center; font-size:12.5px; font-weight:700; background:var(--primary); color:#fdfbf6; border-radius:999px; padding:3px 10px; white-space:nowrap}
+  .conv .pill.vazio{background:none; color:#b0a78f; font-weight:500; padding-left:0}
+  #formPanel .conv .esc{display:inline-flex; align-items:center; gap:4px; font-size:12.5px; padding:3px 10px; border-radius:999px; border-style:dashed; background:#fff}
+  .conv .esc svg.ic{width:13px; height:13px}
+  .conv input.outros{flex:1 1 200px; min-width:150px}
+  .conv-painel{display:none; flex-wrap:wrap; gap:5px; margin-top:6px; padding:8px; border:1px solid #ebe3cf; border-radius:9px; background:#fbf8f1}
+  .conv-painel.aberto{display:flex}
+  #formPanel .conv-painel button{font-size:12.5px; padding:4px 10px; border-radius:999px; background:#fff}
+  #formPanel .conv-painel button.on{background:var(--primary); color:#fdfbf6; border-color:var(--primary)}
+  /* ações da linha */
+  .lin-acoes{display:flex; gap:0; align-self:center}
+  .lin-1 .lin-acoes{align-self:end; margin-bottom:3px}
+  #formPanel .lin-acoes button:hover{color:var(--primary); background:#f1ebdc}
+  #formPanel .lin-acoes button.del:hover{color:var(--accent); background:#fbeae4}
+  /* cidade (Evangelização) */
+  #formPanel .city-group-header{margin:12px 0 6px; padding:6px 12px; font-size:12px}
+  #formPanel .city-group-header:first-child{margin-top:0}
+  .linhas + .city-group-header{margin-top:14px}
+
+  /* ---- colunas de cada tipo de tabela ---- */
+  .lin{--dt:12.2em; --hr:6.6em}
+  .g-simp{grid-template-columns:var(--dt) var(--hr) minmax(0,1fr) minmax(0,1.1fr) auto; grid-template-areas:"data hora local atende acoes"}
+  .g-bat{grid-template-columns:var(--dt) var(--hr) minmax(0,1fr) minmax(0,.9fr) minmax(0,1fr) auto; grid-template-areas:"data hora local anciao diaconos acoes"}
+  .g-cat{grid-template-columns:var(--dt) var(--hr) minmax(0,1fr) minmax(0,1fr) auto; grid-template-areas:"data hora local categoria acoes"}
+  .g-div{grid-template-columns:var(--dt) var(--hr) minmax(0,1fr) minmax(0,1fr) auto; grid-template-areas:"data hora local evento acoes" "conv conv conv conv acoes"}
+  .g-coz{grid-template-columns:var(--dt) var(--hr) 9.5em 7em minmax(0,1fr) auto; grid-template-areas:"data hora tipo aprox evento acoes"}
+  .g-eva{grid-template-columns:var(--dt) var(--hr) minmax(0,.75fr) minmax(0,1.35fr) minmax(0,.9fr) auto; grid-template-areas:"data hora local endereco atende acoes"}
+  .c-data{grid-area:data}.c-hora{grid-area:hora}.c-local{grid-area:local}.c-atende{grid-area:atende}.c-anciao{grid-area:anciao}
+  .c-diaconos{grid-area:diaconos}.c-categoria{grid-area:categoria}.c-evento{grid-area:evento}.c-convocados{grid-area:conv}
+  .c-tipo{grid-area:tipo}.c-aprox{grid-area:aprox}.c-endereco{grid-area:endereco}.c-cidade{grid-area:cidade}.lin-acoes{grid-area:acoes}
+  .g-div .c-convocados label{display:none!important}
+  .g-div .c-convocados::before{font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#9a8f76; white-space:nowrap}
+  .g-div .c-convocados{display:flex; align-items:flex-start; gap:8px}
+  .g-div .c-convocados::before{content:"Convoca"; padding-top:5px}
+  .g-div .c-convocados>*{flex:1; min-width:0}
+  #formPanel .city-group-header{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:4px 6px 4px 12px}
+  .cg-nome{display:inline-flex; align-items:center; gap:7px}
+  .cg-nome svg.ic{width:14px; height:14px; color:#e0bd84}
+  .cg-nome em{font-style:normal; font-size:11px; background:rgba(255,255,255,.16); border-radius:9px; padding:0 7px; line-height:18px}
+  .cg-acoes{display:flex; gap:4px}
+  #formPanel .cg-acoes button{display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:600; padding:4px 9px; background:transparent; border-color:rgba(255,255,255,.25); color:#fdfbf6; letter-spacing:0; box-shadow:none; transform:none}
+  #formPanel .cg-acoes button:hover{background:rgba(255,255,255,.12); border-color:#e0bd84}
+  .cg-acoes svg.ic{width:13px; height:13px}
+
+  /* editor médio (prévia aberta numa tela comum): data, hora e o campo principal em cima; o resto embaixo, com o nome do campo */
+  @container (max-width:900px){
+    .lin{grid-template-columns:var(--dt) var(--hr) minmax(0,1fr) auto!important; grid-template-areas:none!important; row-gap:6px}
+    .lin .c{grid-area:auto}
+    .lin .c-data{grid-column:1; grid-row:1}
+    .lin .c-hora{grid-column:2; grid-row:1}
+    .lin .c-princ{grid-column:3; grid-row:1}
+    .lin .c-extra{grid-column:1 / 4; display:flex!important; align-items:flex-start; gap:10px}
+    .lin .c-extra>label{display:block!important; flex:0 0 7.6em; padding-top:9px; margin:0!important; white-space:normal}
+    .lin .c-extra>*:not(label){flex:1; min-width:0}
+    .lin .c-extra::before{content:none!important}
+    .lin .c-extra .conv-painel{flex-basis:100%}
+    .lin .c-extra .multi{flex-direction:row; flex-wrap:wrap; align-items:center}
+    .lin .c-extra .multi .mi{flex:1 1 14em; max-width:24em}
+    .lin .c-convocados{flex-wrap:wrap}
+    .lin{grid-template-columns:var(--dt) var(--hr) minmax(0,1fr)!important; padding:9px 44px 9px 10px}
+    .lin .lin-acoes{position:absolute; grid-area:auto!important; right:6px; top:8px; flex-direction:column; margin:0!important}
+    .lin-1 .lin-acoes{top:26px}
+  }
+  /* editor estreito (celular): uma informação por linha */
+  @container (max-width:600px){
+    .lin{grid-template-columns:minmax(0,1.25fr) minmax(0,.8fr)!important}
+    .lin .c-princ,.lin .c-extra{grid-column:1 / 3; grid-row:auto; display:block!important}
+    .lin .c-extra>label{padding-top:0; margin:0 0 3px!important}
+    .lin-1 .lin-acoes{top:8px}
+    .lin .c-extra .multi{flex-direction:column; align-items:stretch}
+    .lin .c-extra .multi .mi{flex:none; max-width:none}
+    .linhas .lin label{display:block!important}
+    .lin-1 .lin-acoes{margin-top:0!important}
+    .c-data .dow{display:none}
+  }
+
+  /* configurações */
+  .cfg{border:1px solid var(--line); border-radius:12px; padding:14px 16px 16px; margin-bottom:14px; background:#fdfbf6}
+  .cfg h4{display:flex; align-items:center; gap:8px; margin:0 0 12px; font-size:15px; color:var(--primary)}
+  .cfg h4 small{font-weight:500; font-size:12px; color:#8a8371}
+  .cfg h4 svg.ic{width:17px; height:17px; color:var(--brass)}
+  .cfg-grid{display:grid; gap:12px; grid-template-columns:1.4fr 1fr 1fr}
+  .cfg-grid--2{grid-template-columns:1fr 1fr}
+  .cfg .modelo-switch{margin:0}
+  .rod-dir{display:flex; flex-direction:column; gap:6px}
+  .cargos-cab{display:grid; grid-template-columns:52px 34px minmax(0,1fr) minmax(0,1.5fr) 34px; gap:6px; font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#9a8f76; padding:0 9px 4px}
+  .cargos-cab span:nth-child(-n+2){text-align:center}
+  #cargosList .listitem{display:grid; grid-template-columns:52px 34px minmax(0,1fr) minmax(0,1.5fr) 34px; gap:6px; margin-bottom:5px}
+  #cargosList .listitem>div{justify-content:center; padding:0!important}
+  #cargosList .listitem>div span{display:none}
+  #cargosList .listitem input[data-f="code"]{max-width:none!important}
+  .cargo-novo{display:grid; grid-template-columns:150px 1fr auto; gap:8px; margin-top:10px}
+  #formPanel .cargo-novo button{display:inline-flex; align-items:center; gap:6px}
+  .cargo-novo svg.ic{width:15px; height:15px}
+}
+@media (max-width:980px){
+  #formPanel{width:100%; align-self:stretch}
+  .topo-ed{position:static; border-radius:14px 14px 0 0}
+  .acoes-ed{flex-wrap:wrap}
+  #btnTogPrev{display:none!important}
+  .aba{padding:12px 10px 16px}
+  .cfg-grid,.cfg-grid--2,.cargo-novo{grid-template-columns:1fr}
+  .cargos-cab{display:none}
+  #cargosList .listitem{grid-template-columns:30px 40px 90px 1fr 40px}
+  .resumo-lista .res-esp{display:none}
+  .res-acoes{margin-left:0; width:100%}
+  .res-acoes>*{flex:1}
+  .res-acoes .menu>button{width:100%; justify-content:center}
+  .nav-tab{flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; padding:8px}
+  .nav-tab button{flex-shrink:0}
+  .nav-tab .nt-sep{display:none}
+  .sh-cnt{display:none}
+  .sh-esq h3{white-space:normal}
+  #formPanel .sh-dir .sh-add{padding:6px 8px; font-size:0; gap:0}
+  #formPanel .sh-dir .sh-add svg.ic{width:17px; height:17px}
+}
+</style>
 <script src="/assets/ui.js"></script>
 <script src="/assets/lista-modelo-novo.js"></script>
 </head>
 <body>
 <header>
-  <h1>Congregação Cristã no Brasil - Lista de Serviços de Campo Mourão - Regional - Campo Mourão - PR</h1>
-  <p>Monte a lista escolhendo os tipos de serviço. Pode arrastar as seções criadas pelo cabeçalho para reordená-las.</p>
+  <h1>Lista de Serviços · Campo Mourão</h1>
+  <p>Congregação Cristã no Brasil — Regional Campo Mourão - PR. Tudo o que você digita fica salvo automaticamente neste aparelho.</p>
 </header>
 
-<div class="wrap">
+<div class="wrap" id="wrapLista">
   <div class="panel" id="formPanel">
-    <div class="toolbar">
-      <button class="primary-action" onclick="gerarPDF()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-print"></use></svg>Gerar / Imprimir PDF</button>
-      <button onclick="exportJSON()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-download"></use></svg>Baixar backup</button>
-      <button onclick="document.getElementById('importInput').click()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-upload"></use></svg>Abrir backup</button>
-      <input type="file" id="importInput" accept=".json" style="display:none" onchange="importJSON(event)">
-      <button id="btnListaSalvar" onclick="salvarLista()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-cloud-up"></use></svg>Salvar na nuvem</button>
-      <button id="btnListaCarregar" onclick="carregarLista()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-cloud-down"></use></svg>Carregar da nuvem</button>
-      <button id="btnPuxarCal" onclick="CalPonte.puxar()" title="Acrescenta Reuniões Diversas, Mocidade e Ensaio Regional do calendário anual, do início do período até a próxima RMA"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-calendar"></use></svg>Puxar do calendário</button>
-      <button class="danger" onclick="if(confirm('Limpar tudo?')) resetAll()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-trash"></use></svg>Limpar tudo</button>
-    </div>
-    <div class="note">Para o PDF sair <strong>idêntico</strong> ao que vê na pré-visualização: na janela de impressão que abrir, marque <strong>"Gráficos de fundo"</strong> (Background graphics), desmarque "Cabeçalhos e rodapés" e deixe a <strong>Escala em 100%</strong>.</div>
-
-    <div class="field row-grid">
-	  <div><label>Título</label><input type="text" id="meta_titulo" value="LISTA DE SERVIÇOS" readonly style="background:#eee"></div>
-      <div><label>Região</label><input type="text" id="meta_regiao" value="CAMPO MOURÃO - PR" readonly style="background:#eee"></div>
-	  <div><label>Período</label><select id="meta_periodo"></select></div>
-    </div>
-
-    <div class="modelo-switch">
-      <span class="ms-lbl">Modelo da folha</span>
-      <div class="ms-opts" role="group" aria-label="Modelo da folha">
-        <button type="button" data-modelo="atual" aria-pressed="true"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-file"></use></svg>Atual</button>
-        <button type="button" data-modelo="novo" aria-pressed="false"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-print"></use></svg>Novo (preto e branco)</button>
-        <button type="button" data-modelo="cor" aria-pressed="false"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-download"></use></svg>Colorido (PDF)</button>
+    <div class="topo-ed">
+      <div class="abas" role="tablist">
+        <button type="button" role="tab" data-aba="tab" class="on" onclick="aba('tab')"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-grid"></use></svg>Tabelas</button>
+        <button type="button" role="tab" data-aba="conf" onclick="aba('conf')"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-file"></use></svg>Configurações</button>
       </div>
-    </div>
-
-    <div class="field row-grid" style="grid-template-columns: 1fr 1fr; margin-top: 10px; margin-bottom: 16px; align-items: start;">
-      <div>
-        <label>Rodapé Esquerdo (Fixo em todas as páginas)</label>
-        <input type="text" id="meta_rodape_esq" placeholder="Ex: *V1 - pode sofrer alterações">
-      </div>
-      <div>
-        <label>Rodapé Direito (Específico por página)</label>
-        <div id="rodape_dir_inputs" style="display:flex; flex-direction:column; gap:6px;">
+      <div class="acoes-ed">
+        <span class="salvo" id="salvo" title="As alterações ficam salvas neste aparelho. Para guardar na nuvem use Arquivo › Salvar na nuvem."><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-check-circle"></use></svg><span>Salvo</span></span>
+        <div class="menu" id="menuArq">
+          <button type="button" onclick="togMenu(event,'menuArq')"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-file"></use></svg>Arquivo<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-chevron-down"></use></svg></button>
+          <div class="menu-box">
+            <button type="button" id="btnListaSalvar" onclick="salvarLista()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-cloud-up"></use></svg>Salvar na nuvem</button>
+            <button type="button" id="btnListaCarregar" onclick="carregarLista()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-cloud-down"></use></svg>Carregar da nuvem</button>
+            <hr>
+            <button type="button" onclick="exportJSON()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-download"></use></svg>Baixar backup (.json)</button>
+            <button type="button" onclick="document.getElementById('importInput').click()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-upload"></use></svg>Abrir backup</button>
+            <hr>
+            <button type="button" class="danger" onclick="limparTudo()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-trash"></use></svg>Limpar a lista inteira</button>
           </div>
-        <div class="muted" style="margin-top:6px; font-size:11px;">As caixas aparecem automaticamente conforme as páginas forem criadas.</div>
+        </div>
+        <button type="button" class="ic-btn" id="btnTogPrev" onclick="togPrevia()" title="Mostrar / ocultar a pré-visualização"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-eye"></use></svg></button>
+        <button type="button" class="primary-action" onclick="gerarPDF()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-print"></use></svg>Gerar PDF</button>
+        <input type="file" id="importInput" accept=".json" style="display:none" onchange="importJSON(event)">
       </div>
     </div>
 
-    <div class="section open" id="cargosSection">
-      <div class="section-head" onclick="document.getElementById('cargosSection').classList.toggle('open')">
-        <div style="display:flex; align-items:center;">
-          <span class="section-caret"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-chevron-right"></use></svg></span>
-          <h3>Legenda de Cargos (usados na "Legenda" do rodapé)</h3>
+    <section id="aba-tab" class="aba">
+      <div class="resumo-lista">
+        <button type="button" class="res-per" onclick="aba('conf')" title="Mudar o período (em Configurações)"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-calendar"></use></svg><b id="resPer">Sem período</b></button>
+        <span class="res-pag" id="resPag"></span>
+        <span class="res-lin" id="resLin"></span>
+        <span class="res-esp"></span>
+        <span class="res-acoes">
+        <button type="button" id="btnPuxarCal" onclick="CalPonte.puxar()" title="Acrescenta Reuniões Diversas, Mocidade e Ensaio Regional do calendário anual, do início do período até a RMA/RLA do período seguinte"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-calendar"></use></svg>Puxar do calendário</button>
+        <div class="menu" id="menuNova">
+          <button type="button" class="primary" onclick="togMenu(event,'menuNova')"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-plus"></use></svg>Nova tabela</button>
+          <div class="menu-box menu-tipos" id="addButtons"></div>
+        </div>
+        </span>
+      </div>
+      <nav class="nav-tab" id="navTabelas" aria-label="Tabelas da lista"></nav>
+      <div id="sectionsContainer"></div>
+    </section>
+
+    <section id="aba-conf" class="aba" hidden>
+      <div class="cfg">
+        <h4><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-calendar"></use></svg>Período e cabeçalho</h4>
+        <div class="cfg-grid">
+          <div><label for="meta_periodo">Período</label><select id="meta_periodo"></select></div>
+          <div><label>Título</label><input type="text" id="meta_titulo" value="LISTA DE SERVIÇOS" readonly></div>
+          <div><label>Região</label><input type="text" id="meta_regiao" value="CAMPO MOURÃO - PR" readonly></div>
         </div>
       </div>
-      <div class="section-body">
-        <div class="muted" style="margin-bottom:6px;">Marque a 1ª caixinha para mostrar na Legenda. Marque a 2ª caixinha para usar asterisco (*) automático nas reuniões.</div>
+      <div class="cfg">
+        <h4><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-print"></use></svg>Modelo da folha</h4>
+        <div class="modelo-switch">
+          <span class="ms-lbl">Como a lista sai no papel</span>
+          <div class="ms-opts" role="group" aria-label="Modelo da folha">
+            <button type="button" data-modelo="atual" aria-pressed="true"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-file"></use></svg>Atual</button>
+            <button type="button" data-modelo="novo" aria-pressed="false"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-print"></use></svg>Novo (preto e branco)</button>
+            <button type="button" data-modelo="cor" aria-pressed="false"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-download"></use></svg>Colorido (PDF)</button>
+          </div>
+        </div>
+      </div>
+      <div class="cfg">
+        <h4><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-alert"></use></svg>Rodapé <small>texto pequeno no pé de cada folha</small></h4>
+        <div class="cfg-grid cfg-grid--2">
+          <div>
+            <label for="meta_rodape_esq">Lado esquerdo (igual em todas as folhas)</label>
+            <input type="text" id="meta_rodape_esq" placeholder="Ex: *V1 - pode sofrer alterações">
+          </div>
+          <div>
+            <label>Lado direito (um texto para cada folha)</label>
+            <div id="rodape_dir_inputs" class="rod-dir"></div>
+            <div class="muted">Aparece uma caixa para cada folha da lista.</div>
+          </div>
+        </div>
+      </div>
+      <div class="cfg">
+        <h4><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-users"></use></svg>Legenda de cargos <small>siglas usadas nos convocados e na legenda do rodapé</small></h4>
+        <div class="cargos-cab"><span title="Mostrar na legenda do PDF">Legenda</span><span title="Usar asterisco (*) antes da sigla">*</span><span>Sigla</span><span>Significado</span></div>
         <div id="cargosList" class="listgroup"></div>
-        <div class="row-grid" style="margin-top:8px;grid-template-columns:1fr 2fr auto;">
+        <div class="cargo-novo">
           <input type="text" id="novoCargoCodigo" placeholder="Sigla (ex: COJ)">
           <input type="text" id="novoCargoLabel" placeholder="Significado (ex: COOP. DE JOVENS)">
-          <button onclick="addCargo()">+ adicionar cargo</button>
+          <button type="button" onclick="addCargo()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-plus"></use></svg>Adicionar cargo</button>
         </div>
       </div>
-    </div>
-
-    <div class="add-section-types" id="addButtons"></div>
-    <div id="sectionsContainer"></div>
+      <div class="note">Para o PDF sair <strong>idêntico</strong> ao que vê na pré-visualização: na janela de impressão que abrir, marque <strong>"Gráficos de fundo"</strong> (Background graphics), desmarque "Cabeçalhos e rodapés" e deixe a <strong>Escala em 100%</strong>.</div>
+    </section>
   </div>
 
   <div class="panel" id="previewHost">
@@ -713,6 +976,7 @@ function saveState(){
   STATE.meta.titulo = document.getElementById('meta_titulo').value;
   STATE.meta.rodape_esq = document.getElementById('meta_rodape_esq').value;
   localStorage.setItem('ccb_lista_state_campomourao', JSON.stringify(STATE));
+  if (window.marcarSalvo) marcarSalvo();
 }
 
 function populatePeriodoOptions(selectedValue){
@@ -825,12 +1089,114 @@ function removeCargo(idx){
   renderCargos(); renderSections(); saveState(); renderPreview();
 }
 
+/* =====================================================================
+   Tela de edição: abas, menus, navegação entre tabelas e linhas
+   editáveis direto (sem abrir/fechar). Não muda nada do PDF.
+   ===================================================================== */
+const ICO = n => `<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-${n}"></use></svg>`;
+const NOME_CURTO = {
+  batismo:'Batismos', reuniao_mocidade:'Mocidade', culto_mocidade:'Culto Mocidade',
+  culto_ensinamento_pais_filhos:'Pais e Filhos', culto_ensinamento:'Ensinamento', ensaio_regional:'Ensaio Regional',
+  ensaio_geral_categoria:'Ensaio por Categoria', santa_ceia:'Santa Ceia', santa_ceia_extra:'Santa Ceia Extra',
+  reuniaodiversa:'Reuniões Diversas', reuniaodiversa_cozinha:'Cozinha Central', evangelizacao:'Evangelização',
+  assembleia_ordinaria:'Assembleia Ordinária', assembleia_extraordinaria:'Assembleia Extraord.', avisos:'Avisos'
+};
+const GRUPO_LIN = { batismo:'bat', ensaio_geral_categoria:'cat', reuniaodiversa:'div', reuniaodiversa_cozinha:'coz', evangelizacao:'eva' };
+const DIAS_SEM = ['dom','seg','ter','qua','qui','sex','sáb'];
+const CONV_ABERTO = new Set();   // linhas com o painel de convocados aberto
+
+function aba(qual){
+  document.querySelectorAll('.abas [data-aba]').forEach(b=>b.classList.toggle('on', b.dataset.aba===qual));
+  document.getElementById('aba-tab').hidden = qual!=='tab';
+  document.getElementById('aba-conf').hidden = qual!=='conf';
+  if (qual==='tab' || qual==='conf') { try{ localStorage.setItem('lista_cm_aba', qual); }catch(e){} }
+  const fp = document.getElementById('formPanel'); if (fp && fp.getBoundingClientRect().top < 0) fp.scrollIntoView({block:'start'});
+}
+function togMenu(ev, id){
+  ev.stopPropagation();
+  document.querySelectorAll('.menu.open').forEach(m=>{ if(m.id!==id) m.classList.remove('open'); });
+  document.getElementById(id).classList.toggle('open');
+}
+document.addEventListener('click', (e)=>{
+  if (e.target.closest && e.target.closest('.menu-box')) { const m=e.target.closest('.menu'); if(m && e.target.closest('button')) m.classList.remove('open'); return; }
+  document.querySelectorAll('.menu.open').forEach(m=>m.classList.remove('open'));
+});
+function togPrevia(forcar){
+  const w = document.getElementById('wrapLista');
+  const oculta = typeof forcar==='boolean' ? forcar : !w.classList.contains('sem-prev');
+  w.classList.toggle('sem-prev', oculta);
+  const b = document.getElementById('btnTogPrev');
+  if (b){ b.innerHTML = ICO(oculta?'eye-off':'eye'); b.title = oculta ? 'Mostrar a pré-visualização ao lado' : 'Ocultar a pré-visualização (o editor fica mais largo)'; b.classList.toggle('on', !oculta); }
+  try{ localStorage.setItem('lista_cm_prev_oculta', oculta?'1':''); }catch(e){}
+  if (!oculta) setTimeout(scalePreview, 30);
+}
+async function limparTudo(){
+  const ok = await UI.confirm('Limpar a lista inteira?', 'Todas as tabelas e linhas saem da tela. Se quiser guardar antes, use Arquivo › Baixar backup.', {danger:true, ok:'Limpar tudo', okIcon:'trash'});
+  if (!ok) return;
+  const antes = JSON.stringify(STATE);
+  resetAll();
+  UI.toast('Lista limpa.', {action:{label:'Desfazer', icon:'undo', fn:()=>loadStateFromJSON(antes)}});
+}
+function marcarSalvo(){
+  const el = document.getElementById('salvo'); if(!el) return;
+  el.classList.remove('pulsa'); void el.offsetWidth; el.classList.add('pulsa');
+}
+
+/* ---------- resumo (período, folhas, linhas) e navegação ---------- */
+function atualizarResumo(){
+  const per = document.getElementById('meta_periodo');
+  const rp = document.getElementById('resPer'); if (rp) rp.textContent = (per && per.value) || 'Escolha o período';
+  const n = STATE.sections.reduce((a,s)=>a+(s.entries?s.entries.length:0),0);
+  const rl = document.getElementById('resLin'); if (rl) rl.textContent = n + (n===1?' linha':' linhas');
+  const pg = Math.max(1, (PAGE_PLAN||[]).length);
+  const el = document.getElementById('resPag');
+  if (el){
+    el.textContent = pg + (pg===1?' folha':' folhas') + (pg>4 ? ' — passou de 4' : '');
+    el.className = 'res-pag ' + (pg<=3 ? 'ok' : pg===4 ? 'alerta' : 'ruim');
+    el.title = pg<=3 ? 'Cabe em até 3 folhas' : pg===4 ? 'Está em 4 folhas (o ideal são 3)' : 'Passou de 4 folhas';
+  }
+}
+function renderNav(){
+  const nav = document.getElementById('navTabelas'); if(!nav) return;
+  if (!STATE.sections.length){ nav.hidden = true; return; }
+  nav.hidden = false;
+  const abertas = STATE.sections.filter(s=>s.isOpen).length;
+  nav.innerHTML = STATE.sections.map((s,i)=>{
+    const n = s.entries ? s.entries.length : (s.text && s.text.trim() ? s.text.trim().split('\n').length : 0);
+    const nome = NOME_CURTO[s.typeKey] || (SECTION_TYPES[s.typeKey]||{}).label || s.typeKey;
+    return `<button type="button" data-ir="${s.id}" class="${s.isOpen && abertas===1 ? 'on' : ''}" title="${escapeAttr((SECTION_TYPES[s.typeKey]||{}).label||'')}"><span class="nt-n">${i+1}</span>${escapeHTML(nome)}<em>${n}</em></button>`;
+  }).join('') + `<span class="nt-sep"></span><button type="button" class="nt-tudo" data-tudo="${abertas===STATE.sections.length?'0':'1'}">${abertas===STATE.sections.length?'Recolher todas':'Abrir todas'}</button>`;
+  nav.querySelectorAll('[data-ir]').forEach(b=>b.onclick=()=>focoTabela(b.dataset.ir));
+  const t = nav.querySelector('[data-tudo]');
+  if (t) t.onclick = ()=>{ const abrir = t.dataset.tudo==='1'; STATE.sections.forEach(s=>s.isOpen=abrir); saveState(); renderSections(); };
+}
+// abre só a tabela escolhida, rola até ela e leva a prévia para a folha onde ela está
+function focoTabela(id){
+  STATE.sections.forEach(s=>s.isOpen = (s.id===id));
+  saveState(); renderSections();
+  const el = document.querySelector(`[data-section-id="${id}"]`);
+  if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
+  irParaFolhaDa(id);
+}
+function irParaFolhaDa(id){
+  const sec = STATE.sections.find(s=>s.id===id); if(!sec || !PAGE_PLAN) return;
+  const rot = ((SECTION_TYPES[sec.typeKey]||{}).label||'').toUpperCase();
+  const ordem = STATE.sections.filter(s=>s.typeKey===sec.typeKey).findIndex(s=>s.id===id);
+  let vistos = -1;
+  for (let p=0; p<PAGE_PLAN.length; p++){
+    const html = (PAGE_PLAN[p]||[]).join('').toUpperCase();
+    let k = -1; while ((k = html.indexOf('>'+rot+'<', k+1)) !== -1){ vistos++; if (vistos===ordem){ CURRENT_PREVIEW_PAGE = p+1; displayCurrentPreviewPage(); return; } }
+  }
+}
+
+/* ---------- tipos de tabela (menu "Nova tabela") ---------- */
 function buildAddButtons(){
   const host = document.getElementById('addButtons');
-  host.innerHTML = '';
+  host.innerHTML = '<div class="mt-tit">Acrescentar tabela</div>';
   Object.entries(SECTION_TYPES).forEach(([key,def])=>{
     const b = document.createElement('button');
-    b.textContent = '+ '+def.label;
+    b.type = 'button';
+    b.innerHTML = ICO('plus') + escapeHTML(def.label);
     b.onclick = ()=> addSection(key);
     host.appendChild(b);
   });
@@ -838,108 +1204,84 @@ function buildAddButtons(){
 
 function addSection(typeKey){
   const def = SECTION_TYPES[typeKey];
-  const section = {
-    id: newId(), 
-    typeKey, 
-    entries: def.isFreeText? undefined: [], 
-    text: def.isFreeText? "" : undefined,
-    isOpen: true 
-  };
+  const section = { id:newId(), typeKey, entries: def.isFreeText? undefined: [], text: def.isFreeText? "" : undefined, isOpen:true };
   STATE.sections.push(section);
-  sortStateDates();
-  renderSection(section.id); saveState(); renderPreview();
+  if (!def.isFreeText) section.entries.push(novaEntrada(def));
+  aba('tab');
+  focoTabela(section.id);
+  renderPreview();
+  focarLinha(section.id, section.entries ? section.entries[0].id : null);
 }
-
 function removeSection(id){
-  STATE.sections = STATE.sections.filter(s=>s.id!==id);
-  const host = document.getElementById('sectionsContainer');
-  const wrap = host.querySelector(`[data-section-id="${id}"]`);
-  if (wrap) wrap.remove();
-  // Reajusta os índices usados no arraste (drag&drop) das seções restantes,
-  // já que a remoção pode ter deslocado a posição das demais.
-  STATE.sections.forEach((s, idx) => {
-    const w = host.querySelector(`[data-section-id="${s.id}"]`);
-    if (w) w.dataset.index = idx;
-  });
-  saveState(); renderPreview();
+  const idx = STATE.sections.findIndex(s=>s.id===id); if (idx<0) return;
+  const [sec] = STATE.sections.splice(idx,1);
+  saveState(); renderSections(); renderPreview();
+  UI.toast(`Tabela "${(SECTION_TYPES[sec.typeKey]||{}).label}" removida.`, {action:{label:'Desfazer', icon:'undo', fn:()=>{
+    STATE.sections.splice(Math.min(idx, STATE.sections.length), 0, sec); saveState(); renderSections(); renderPreview();
+  }}});
 }
 
-function addEntry(sectionId){
-  const section = STATE.sections.find(s=>s.id===sectionId);
-  const def = SECTION_TYPES[section.typeKey];
+function novaEntrada(def, copiaDe){
   const data = {};
   def.fields.forEach(f=>{
+    if (copiaDe) { data[f.key] = JSON.parse(JSON.stringify(copiaDe.data[f.key] ?? '')); return; }
     if(f.type==='list') data[f.key] = [""];
     else if(f.type==='tags') data[f.key] = { chips: [], texto: "" };
     else data[f.key] = "";
   });
-  section.entries.push({id:newId(), data});
-  sortStateDates();
-  renderSection(sectionId); saveState(); renderPreview();
+  return {id:newId(), data};
 }
-
-function removeEntry(sectionId, entryId){
-  const section = STATE.sections.find(s=>s.id===sectionId);
-  section.entries = section.entries.filter(e=>e.id!==entryId);
-  renderSection(sectionId); saveState(); renderPreview();
-}
-
-function moveEntry(sourceSectionId, entryId) {
-  const srcSec = STATE.sections.find(s => s.id === sourceSectionId);
-  const targetSections = STATE.sections.filter(s => s.typeKey === srcSec.typeKey && s.id !== srcSec.id);
-
-  if (targetSections.length === 0) return;
-
-  let targetSec;
-  
-  if (targetSections.length === 1) {
-    targetSec = targetSections[0];
-  } else {
-    let msg = "Para qual tabela deseja mover essa linha?\\nDigite o NÚMERO correspondente:\\n\\n";
-    targetSections.forEach(s => {
-      const idx = STATE.sections.findIndex(sec => sec.id === s.id) + 1;
-      msg += `Tabela ${idx}: ${SECTION_TYPES[s.typeKey].label}\\n`;
-    });
-    
-    let choice = prompt(msg);
-    if (!choice) return; 
-    
-    const chosenNum = parseInt(choice);
-    targetSec = targetSections.find(s => {
-      const idx = STATE.sections.findIndex(sec => sec.id === s.id) + 1;
-      return idx === chosenNum;
-    });
-    
-    if (!targetSec) {
-      alert('Número inválido.');
-      return;
-    }
-  }
-
-  const entryIndex = srcSec.entries.findIndex(e => e.id === entryId);
-  if (entryIndex > -1) {
-    const [movedEntry] = srcSec.entries.splice(entryIndex, 1);
-    targetSec.entries.push(movedEntry);
-    
-    sortStateDates();
-    renderSection(srcSec.id);
-    renderSection(targetSec.id);
-    saveState();
-    renderPreview();
-  }
-}
-
-function addListItem(sectionId, entryId, fieldKey){
+function addEntry(sectionId, copiaDeId, cidade){
   const section = STATE.sections.find(s=>s.id===sectionId);
   const def = SECTION_TYPES[section.typeKey];
-  const fdef = def.fields.find(f=>f.key===fieldKey);
+  const base = copiaDeId ? section.entries.find(e=>e.id===copiaDeId) : null;
+  const nova = novaEntrada(def, base);
+  if (typeof cidade === 'string') nova.data.cidade = cidade;
+  section.entries.push(nova);
+  sortStateDates();
+  renderSection(sectionId); saveState(); renderPreview();
+  focarLinha(sectionId, nova.id, base ? 'data' : null);
+}
+function removeEntry(sectionId, entryId){
+  const section = STATE.sections.find(s=>s.id===sectionId);
+  const idx = section.entries.findIndex(e=>e.id===entryId); if (idx<0) return;
+  const [ent] = section.entries.splice(idx,1);
+  renderSection(sectionId); saveState(); renderPreview();
+  const txt = [ent.data.data ? fmtDate(ent.data.data) : '', (ent.data.local||ent.data.evento||'').toString().slice(0,40)].filter(Boolean).join(' · ');
+  UI.toast('Linha excluída' + (txt ? ': ' + txt : '.'), {action:{label:'Desfazer', icon:'undo', fn:()=>{
+    const s = STATE.sections.find(x=>x.id===sectionId); if(!s) return;
+    s.entries.splice(Math.min(idx, s.entries.length), 0, ent); sortStateDates(); renderSection(sectionId); saveState(); renderPreview(); realcar(ent.id);
+  }}});
+}
+async function moveEntry(sourceSectionId, entryId) {
+  const srcSec = STATE.sections.find(s => s.id === sourceSectionId);
+  const alvos = STATE.sections.filter(s => s.typeKey === srcSec.typeKey && s.id !== srcSec.id);
+  if (!alvos.length) return;
+  let alvo = alvos[0];
+  if (alvos.length > 1) {
+    const v = await UI.dialog({ title:'Mover para qual tabela?', icon:'move',
+      actions: [{label:'Cancelar', value:null}].concat(alvos.map(s=>({ label:`Tabela ${STATE.sections.indexOf(s)+1}: ${SECTION_TYPES[s.typeKey].label}`, value:s.id, primary:false }))) });
+    if (!v) return;
+    alvo = alvos.find(s=>s.id===v);
+  }
+  const i = srcSec.entries.findIndex(e => e.id === entryId);
+  if (i < 0) return;
+  const [movida] = srcSec.entries.splice(i, 1);
+  alvo.entries.push(movida); alvo.isOpen = true;
+  sortStateDates(); renderSections(); saveState(); renderPreview();
+  UI.toast(`Linha movida para a tabela ${STATE.sections.indexOf(alvo)+1}.`, {type:'ok'});
+  realcar(movida.id);
+}
+function addListItem(sectionId, entryId, fieldKey){
+  const section = STATE.sections.find(s=>s.id===sectionId);
+  const fdef = SECTION_TYPES[section.typeKey].fields.find(f=>f.key===fieldKey);
   const entry = section.entries.find(e=>e.id===entryId);
   if(fdef && fdef.maxItems && entry.data[fieldKey].length >= fdef.maxItems){
-    alert('Máximo de '+fdef.maxItems+' '+(fdef.itemLabel||'itens').toLowerCase()+'(s) permitido.');
-    return;
+    UI.toast('Máximo de '+fdef.maxItems+' '+(fdef.itemLabel||'itens').toLowerCase()+'(s).', 'error'); return;
   }
   entry.data[fieldKey].push("");
   renderSection(sectionId); saveState(); renderPreview();
+  const el = document.querySelector(`[data-foco="${entryId}|${fieldKey}|${entry.data[fieldKey].length-1}"]`); if (el) el.focus();
 }
 function removeListItem(sectionId, entryId, fieldKey, idx){
   const section = STATE.sections.find(s=>s.id===sectionId);
@@ -947,6 +1289,365 @@ function removeListItem(sectionId, entryId, fieldKey, idx){
   entry.data[fieldKey].splice(idx,1);
   if(entry.data[fieldKey].length===0) entry.data[fieldKey].push("");
   renderSection(sectionId); saveState(); renderPreview();
+}
+
+/* ---------- Evangelização: cidades ---------- */
+function cidadesDe(section){ return [...new Set(section.entries.map(e=>(e.data.cidade||'').trim()).filter(Boolean))]; }
+function pedirCidade(titulo, atual, section, okLabel){
+  const ops = cidadesDe(section).map(c=>`<option value="${escapeAttr(c)}">`).join('');
+  return UI.dialog({ title: titulo, icon: 'pin',
+    body: `<label style="display:block;font-size:13px;font-weight:700;margin:0 0 6px">Cidade</label><input type="text" id="dlgCidade" list="dlgCidades" value="${escapeAttr(atual||'')}" style="width:100%;padding:10px;font-size:15px;border:1.5px solid #e2d9c4;border-radius:9px"><datalist id="dlgCidades">${ops}</datalist>`,
+    actions: [{label:'Cancelar', value:null}, {label: okLabel, primary:true, value:(cx)=>{ const v = formatarTextoCapitalizado(cx.querySelector('#dlgCidade').value.trim()); return v ? v.toUpperCase() : undefined; }}] });
+}
+async function novaCidade(sectionId){
+  const section = STATE.sections.find(s=>s.id===sectionId);
+  const c = await pedirCidade('Acrescentar outra cidade', '', section, 'Acrescentar');
+  if (c) addEntry(sectionId, null, c);
+}
+async function renomearCidade(sectionId, atual){
+  const section = STATE.sections.find(s=>s.id===sectionId);
+  const c = await pedirCidade('Renomear cidade', atual, section, 'Renomear');
+  if (!c || c===atual) return;
+  section.entries.forEach(e=>{ if ((e.data.cidade||'').trim()===atual) e.data.cidade = c; });
+  renderSection(sectionId); saveState(); renderPreview();
+}
+async function mudarCidade(sectionId, entryId){
+  const section = STATE.sections.find(s=>s.id===sectionId);
+  const e = section.entries.find(x=>x.id===entryId);
+  const c = await pedirCidade('Passar para outra cidade', (e.data.cidade||'').trim(), section, 'Passar');
+  if (!c) return;
+  e.data.cidade = c;
+  renderSection(sectionId); saveState(); renderPreview(); realcar(entryId);
+}
+
+/* ---------- foco e realce ---------- */
+function focarLinha(sectionId, entryId, campo){
+  if (!entryId) return;
+  requestAnimationFrame(()=>{
+    const lin = document.querySelector(`.lin[data-entry-id="${entryId}"]`); if(!lin) return;
+    lin.scrollIntoView({block:'center', behavior:'smooth'});
+    const el = campo ? lin.querySelector(`[data-foco^="${entryId}|${campo}"]`) : lin.querySelector('input,textarea,select');
+    if (el) el.focus({preventScroll:true});
+  });
+}
+function realcar(entryId){
+  requestAnimationFrame(()=>{
+    const lin = document.querySelector(`.lin[data-entry-id="${entryId}"]`); if(!lin) return;
+    const r = lin.getBoundingClientRect();
+    if (r.top < 80 || r.bottom > innerHeight) lin.scrollIntoView({block:'center', behavior:'smooth'});
+    lin.classList.remove('realce'); void lin.offsetWidth; lin.classList.add('realce');
+  });
+}
+// redesenha a tabela depois que o foco já foi para o próximo campo (e devolve o foco a ele)
+function redesenharDepois(sectionId, entryId){
+  setTimeout(()=>{
+    const ativo = document.activeElement;
+    const chave = ativo && ativo.dataset ? ativo.dataset.foco : null;
+    const pos = ativo && typeof ativo.selectionStart === 'number' ? [ativo.selectionStart, ativo.selectionEnd] : null;
+    const lin = document.querySelector(`.lin[data-entry-id="${entryId}"]`);
+    const antesTop = lin ? lin.getBoundingClientRect().top : null;
+    renderSection(sectionId);
+    if (chave){
+      const el = document.querySelector(`[data-foco="${chave}"]`);
+      if (el){ el.focus({preventScroll:true}); if (pos && el.setSelectionRange) try{ el.setSelectionRange(pos[0], pos[1]); }catch(e){} }
+    }
+    const depois = document.querySelector(`.lin[data-entry-id="${entryId}"]`);
+    if (depois && antesTop!==null && Math.abs(depois.getBoundingClientRect().top - antesTop) > 4) realcar(entryId);
+  }, 0);
+}
+function autoAltura(ta){ ta.style.height = 'auto'; ta.style.height = (ta.scrollHeight + 2) + 'px'; }
+
+function renderSections(){
+  sortStateDates();
+  const host = document.getElementById('sectionsContainer');
+  host.innerHTML = '';
+  if (!STATE.sections.length){
+    host.innerHTML = `<div class="vazio-lista"><b>Nenhuma tabela ainda</b>Use <b style="display:inline;font-size:inherit">Nova tabela</b> para começar, ou <b style="display:inline;font-size:inherit">Puxar do calendário</b> para trazer as reuniões do calendário anual.</div>`;
+  }
+  STATE.sections.forEach((section, sIdx)=>{ host.appendChild(buildSectionElement(section, sIdx)); });
+  host.querySelectorAll('textarea').forEach(autoAltura);
+  renderNav(); atualizarResumo();
+}
+// Re-renderiza só UMA seção (sem mexer nas demais), para a tela não piscar.
+function renderSection(sectionId){
+  sortStateDates();
+  const sIdx = STATE.sections.findIndex(s => s.id === sectionId);
+  if (sIdx === -1) return;
+  const host = document.getElementById('sectionsContainer');
+  const oldWrap = host.querySelector(`[data-section-id="${sectionId}"]`);
+  const newWrap = buildSectionElement(STATE.sections[sIdx], sIdx);
+  if (oldWrap) host.replaceChild(newWrap, oldWrap); else host.appendChild(newWrap);
+  newWrap.querySelectorAll('textarea').forEach(autoAltura);
+  renderNav(); atualizarResumo();
+}
+
+function buildSectionElement(section, sIdx){
+  const def = SECTION_TYPES[section.typeKey];
+  const wrap = document.createElement('div');
+  wrap.dataset.sectionId = section.id;
+  if (typeof section.isOpen === 'undefined') section.isOpen = true;
+  wrap.className = section.isOpen ? 'section open' : 'section';
+  wrap.dataset.index = sIdx;
+
+  // arrastar a tabela pelo cabeçalho para mudar a ordem
+  const head = document.createElement('div');
+  head.className = 'section-head';
+  head.draggable = true;
+  head.addEventListener('dragstart', function(e){ dragSrcEl = wrap; e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', section.id); wrap.style.opacity='0.4'; });
+  head.addEventListener('dragend', function(){ wrap.style.opacity='1'; document.querySelectorAll('.section').forEach(el=>el.classList.remove('over')); });
+  wrap.addEventListener('dragover', function(e){ if (dragSrcEl){ e.preventDefault(); e.dataTransfer.dropEffect='move'; } });
+  wrap.addEventListener('dragenter', function(){ if (dragSrcEl && dragSrcEl!==wrap) wrap.classList.add('over'); });
+  wrap.addEventListener('dragleave', function(e){ if (!wrap.contains(e.relatedTarget)) wrap.classList.remove('over'); });
+  wrap.addEventListener('drop', function(e){
+    e.preventDefault(); e.stopPropagation();
+    if (dragSrcEl && dragSrcEl !== wrap) {
+      const fromIdx = parseInt(dragSrcEl.dataset.index), toIdx = parseInt(wrap.dataset.index);
+      const moved = STATE.sections.splice(fromIdx, 1)[0];
+      STATE.sections.splice(toIdx, 0, moved);
+      renderSections(); saveState(); renderPreview();
+    }
+    dragSrcEl = null;
+  });
+
+  const qtd = section.entries ? section.entries.length : null;
+  head.innerHTML = `
+    <div class="sh-esq">
+      <span class="drag-handle" title="Arraste para mudar a ordem das tabelas">${ICO('grip')}</span>
+      <span class="section-caret">${ICO('chevron-right')}</span>
+      <span class="sh-num">${sIdx+1}</span><h3>${escapeHTML(def.label)}</h3>
+      ${qtd!==null ? `<span class="sh-cnt">${qtd} ${qtd===1?'linha':'linhas'}</span>` : ''}
+    </div>
+    <div class="sh-dir">
+      ${def.isFreeText ? '' : `<button type="button" class="sh-add" title="Acrescentar uma linha nesta tabela">${ICO('plus')}Linha</button>`}
+      <button type="button" class="sh-del" title="Excluir esta tabela">${ICO('trash')}</button>
+    </div>`;
+  const bAdd = head.querySelector('.sh-add');
+  if (bAdd) bAdd.onclick = (e)=>{ e.stopPropagation(); if(!section.isOpen){ section.isOpen=true; wrap.classList.add('open'); } addEntry(section.id); };
+  head.querySelector('.sh-del').onclick = (e)=>{ e.stopPropagation(); removeSection(section.id); };
+  head.onclick = (e)=>{
+    if (e.target.closest('button')) return;
+    section.isOpen = !section.isOpen;
+    wrap.classList.toggle('open', section.isOpen);
+    saveState(); renderNav();
+  };
+  wrap.appendChild(head);
+
+  const body = document.createElement('div');
+  body.className = 'section-body';
+
+  if (section.typeKey === 'evangelizacao') {
+    const op = document.createElement('div');
+    op.className = 'sec-opcoes';
+    op.innerHTML = `
+      <label title="Desmarque para a tabela seguir logo depois das outras, sem pular folha"><input type="checkbox" data-op="novaPagina" ${section.novaPagina === false ? '' : 'checked'}>Começar numa folha só dela <small>(última folha)</small></label>
+      <label title="Dentro de cada cidade, junta as reuniões do mesmo bairro numa faixa com o nome dele"><input type="checkbox" data-op="porBairro" ${section.porBairro === false ? '' : 'checked'}>Separar por bairro <small>(campo Local)</small></label>`;
+    op.querySelectorAll('input').forEach(inp=>inp.onchange = ()=>{ section[inp.dataset.op] = inp.checked; saveState(); renderPreview(); });
+    body.appendChild(op);
+  }
+
+  if (def.isFreeText){
+    const box = document.createElement('div');
+    box.className='avisos-box';
+    const ta = document.createElement('textarea');
+    ta.placeholder = "Um aviso por linha. Ex:\n(COLETAS) - Durante o mês de novembro...\n(CAMPO MOURÃO) - No dia 30/11...";
+    ta.value = section.text || "";
+    ta.oninput = ()=>{ section.text = ta.value; saveState(); renderPreview(); };
+    box.appendChild(ta);
+    body.appendChild(box);
+  } else {
+    const temOutra = STATE.sections.some(s => s.typeKey === section.typeKey && s.id !== section.id);
+    let grupo = null, lastCidade = null, n = 0;
+    const novoGrupo = ()=>{ grupo = document.createElement('div'); grupo.className = 'linhas'; body.appendChild(grupo); n = 0; };
+    if (section.typeKey !== 'evangelizacao') novoGrupo();
+    section.entries.forEach((entry)=>{
+      if (section.typeKey === 'evangelizacao') {
+        const cid = (entry.data.cidade || '').trim() || 'Sem cidade informada';
+        if (cid !== lastCidade) {
+          lastCidade = cid;
+          const nomeReal = (entry.data.cidade || '').trim();
+          const qtdCid = section.entries.filter(e=>(e.data.cidade||'').trim()===nomeReal).length;
+          const ch = document.createElement('div'); ch.className = 'city-group-header';
+          ch.innerHTML = `<span class="cg-nome">${ICO('pin')}${escapeHTML(cid.toUpperCase())}<em>${qtdCid}</em></span>
+            <span class="cg-acoes"><button type="button" class="cg-ren" title="Mudar o nome desta cidade em todas as linhas">${ICO('edit')}Renomear</button><button type="button" class="cg-add" title="Acrescentar uma reunião nesta cidade">${ICO('plus')}Linha</button></span>`;
+          ch.querySelector('.cg-add').onclick = ()=>addEntry(section.id, null, nomeReal);
+          ch.querySelector('.cg-ren').onclick = ()=>renomearCidade(section.id, nomeReal);
+          body.appendChild(ch); novoGrupo();
+        }
+      }
+      grupo.appendChild(linhaEl(section, def, entry, n===0, temOutra));
+      n++;
+    });
+    if (!section.entries.length){
+      const v = document.createElement('div'); v.className='muted'; v.style.padding='4px 2px 2px';
+      v.textContent = 'Nenhuma linha ainda.'; body.appendChild(v);
+    }
+    const pe = document.createElement('div'); pe.className = 'sec-pe';
+    if (section.typeKey === 'evangelizacao'){
+      pe.innerHTML = `<button type="button">${ICO('pin')}Acrescentar outra cidade</button>`;
+      pe.querySelector('button').onclick = ()=>novaCidade(section.id);
+    } else {
+      pe.innerHTML = `<button type="button">${ICO('plus')}Acrescentar linha</button>`;
+      pe.querySelector('button').onclick = ()=>addEntry(section.id);
+    }
+    body.appendChild(pe);
+  }
+  wrap.appendChild(body);
+  return wrap;
+}
+
+// uma linha da tabela, com todos os campos à vista
+function linhaEl(section, def, entry, primeira, temOutra){
+  const lin = document.createElement('div');
+  lin.className = 'lin g-' + (GRUPO_LIN[section.typeKey] || 'simp') + (primeira ? ' lin-1' : '');
+  lin.dataset.entryId = entry.id;
+  const sid = section.id;
+  const atualizar = ()=>{ saveState(); renderPreview(); };
+
+  const princ = (def.fields.find(f=>!['data','hora','cidade'].includes(f.key) && f.type!=='list' && f.type!=='tags') || {}).key;
+  def.fields.forEach(f=>{
+    if (section.typeKey==='evangelizacao' && f.key==='cidade') return; // a cidade fica no cabeçalho do grupo
+    const c = document.createElement('div');
+    c.className = 'c c-' + f.key + (f.key===princ ? ' c-princ' : (['data','hora'].includes(f.key) ? '' : ' c-extra'));
+    const lab = document.createElement('label');
+    lab.textContent = f.label.replace(/ \(ex:.*\)$/i,'');
+    c.appendChild(lab);
+    const chave = entry.id + '|' + f.key;
+
+    if (f.type==='list'){
+      const box = document.createElement('div'); box.className = 'multi';
+      entry.data[f.key].forEach((val, idx)=>{
+        const mi = document.createElement('div'); mi.className = 'mi';
+        const inp = document.createElement('input'); inp.type='text'; inp.value = val;
+        inp.placeholder = f.itemLabel + (entry.data[f.key].length>1 ? ' ' + (idx+1) : '');
+        inp.setAttribute('aria-label', f.itemLabel + ' ' + (idx+1)); inp.dataset.foco = chave + '|' + idx;
+        inp.oninput = ()=>{ entry.data[f.key][idx] = inp.value; atualizar(); };
+        inp.onchange = ()=>{ const v = formatarTextoCapitalizado(inp.value); if (v!==inp.value){ inp.value = v; } entry.data[f.key][idx] = v; atualizar(); };
+        inp.onkeydown = (e)=>{ if (e.key==='Enter'){ e.preventDefault(); inp.onchange(); addListItem(sid, entry.id, f.key); } };
+        mi.appendChild(inp);
+        const total = entry.data[f.key].length, ultimo = idx === total - 1;
+        if (total > 1){
+          const x = document.createElement('button'); x.type='button'; x.innerHTML = ICO('x'); x.title = 'Tirar ' + f.itemLabel.toLowerCase();
+          x.onclick = ()=>removeListItem(sid, entry.id, f.key, idx);
+          mi.appendChild(x);
+        }
+        // "+" ao lado do último nome (ou Enter no campo) acrescenta mais um
+        if (ultimo && (!f.maxItems || total < f.maxItems)){
+          const mais = document.createElement('button'); mais.type='button'; mais.className='mais';
+          mais.innerHTML = ICO('plus'); mais.title = 'Acrescentar ' + f.itemLabel.toLowerCase() + ' (ou aperte Enter no campo)';
+          mais.onclick = ()=>addListItem(sid, entry.id, f.key);
+          mi.appendChild(mais);
+        } else {
+          const sp = document.createElement('span'); sp.style.cssText = 'width:28px;flex-shrink:0'; mi.appendChild(sp);
+        }
+        box.appendChild(mi);
+      });
+      c.appendChild(box);
+    } else if (f.type==='tags'){
+      let tg = entry.data[f.key];
+      if (!tg) tg = { chips: [], texto: "" };
+      if (Array.isArray(tg)) tg = { chips: tg, texto: "" };
+      entry.data[f.key] = tg;
+      const conv = document.createElement('div'); conv.className = 'conv';
+      const pills = document.createElement('span'); pills.style.display='contents';
+      const desenharPills = ()=>{
+        pills.innerHTML = tg.chips.length
+          ? tg.chips.map(code=>{ const cg = STATE.cargos.find(x=>x.code===code); const ast = !cg || cg.useAsterisk !== false ? '*' : ''; return `<span class="pill" title="${escapeAttr(cg?cg.label:'')}">${escapeHTML(ast+code)}</span>`; }).join('')
+          : '<span class="pill vazio">nenhum cargo</span>';
+      };
+      desenharPills();
+      conv.appendChild(pills);
+      const esc = document.createElement('button'); esc.type='button'; esc.className='esc';
+      esc.innerHTML = ICO('users') + 'Escolher';
+      conv.appendChild(esc);
+      const outros = document.createElement('input'); outros.type='text'; outros.className='outros';
+      outros.placeholder = 'Outros convocados (ex: Organistas, Irmão João)'; outros.value = tg.texto || '';
+      outros.dataset.foco = chave + '|outros';
+      outros.oninput = ()=>{ tg.texto = outros.value; atualizar(); };
+      outros.onchange = ()=>{ const v = formatarTextoCapitalizado(outros.value); outros.value = v; tg.texto = v; atualizar(); };
+      conv.appendChild(outros);
+      c.appendChild(conv);
+      const painel = document.createElement('div'); painel.className = 'conv-painel' + (CONV_ABERTO.has(entry.id) ? ' aberto' : '');
+      STATE.cargos.forEach(cg=>{
+        const b = document.createElement('button'); b.type='button';
+        b.textContent = (cg.useAsterisk !== false ? '*' : '') + cg.code; b.title = cg.label;
+        b.classList.toggle('on', tg.chips.includes(cg.code));
+        b.onclick = ()=>{
+          const i = tg.chips.indexOf(cg.code);
+          if (i>=0) tg.chips.splice(i,1); else tg.chips.push(cg.code);
+          b.classList.toggle('on', i<0); desenharPills(); atualizar();
+        };
+        painel.appendChild(b);
+      });
+      if (!STATE.cargos.length) painel.innerHTML = '<span class="muted">Cadastre os cargos em Configurações › Legenda de cargos.</span>';
+      esc.onclick = ()=>{ const ab = painel.classList.toggle('aberto'); if (ab) CONV_ABERTO.add(entry.id); else CONV_ABERTO.delete(entry.id); esc.innerHTML = ICO(ab?'check':'users') + (ab?'Pronto':'Escolher'); };
+      if (CONV_ABERTO.has(entry.id)) esc.innerHTML = ICO('check') + 'Pronto';
+      c.appendChild(painel);
+    } else if (f.type==='select'){
+      const sel = document.createElement('select'); sel.dataset.foco = chave;
+      sel.innerHTML = '<option value="">Escolha…</option>' + (f.options||[]).map(o=>`<option>${escapeHTML(o)}</option>`).join('');
+      sel.value = entry.data[f.key] || '';
+      sel.onchange = ()=>{ entry.data[f.key] = sel.value; atualizar(); };
+      c.appendChild(sel);
+    } else if (f.type==='textarea'){
+      const ta = document.createElement('textarea'); ta.rows = 1; ta.dataset.foco = chave;
+      ta.value = entry.data[f.key] || '';
+      ta.placeholder = f.key==='evento' ? 'Nome da reunião' : '';
+      ta.oninput = ()=>{ entry.data[f.key] = ta.value; autoAltura(ta); atualizar(); };
+      ta.onchange = ()=>{ const v = formatarTextoCapitalizado(ta.value); ta.value = v; entry.data[f.key] = v; autoAltura(ta); atualizar(); };
+      c.appendChild(ta);
+    } else if (f.type==='date'){
+      const dt = document.createElement('div'); dt.className = 'dt';
+      const inp = document.createElement('input'); inp.type='date'; inp.value = entry.data[f.key] || ''; inp.dataset.foco = chave;
+      const dow = document.createElement('span');
+      const pintar = ()=>{ const v = inp.value; dow.className = 'dow' + (v ? '' : ' vazio'); dow.textContent = v ? DIAS_SEM[new Date(v+'T12:00').getDay()] : '—'; };
+      pintar();
+      inp.oninput = pintar;
+      // a lista se reorganiza pela data só quando a pessoa sai do campo (não no meio da digitação)
+      inp.onchange = ()=>{ entry.data[f.key] = inp.value; pintar(); saveState(); renderPreview(); inp.dataset.mudou = '1'; };
+      inp.onblur = ()=>{ if (inp.dataset.mudou){ delete inp.dataset.mudou; redesenharDepois(sid, entry.id); } };
+      dt.appendChild(inp); dt.appendChild(dow);
+      c.appendChild(dt);
+    } else if (f.type==='text' && ['local','endereco','categoria'].includes(f.key)) {
+      // textos longos: quebram linha na tela para dar para ler tudo (Enter não quebra)
+      const ta = document.createElement('textarea'); ta.rows = 1; ta.className = 'ta-linha'; ta.dataset.foco = chave;
+      ta.value = entry.data[f.key] || '';
+      if (f.key==='endereco') ta.placeholder = 'Rua, nº (família)';
+      if (f.key==='local') ta.placeholder = section.typeKey==='evangelizacao' ? 'Bairro' : 'Casa de oração';
+      ta.onkeydown = (e)=>{ if (e.key==='Enter'){ e.preventDefault(); } };
+      ta.oninput = ()=>{ if (/\n/.test(ta.value)) ta.value = ta.value.replace(/\s*\n\s*/g,' '); entry.data[f.key] = ta.value; autoAltura(ta); atualizar(); };
+      ta.onchange = ()=>{ const v = formatarTextoCapitalizado(ta.value); ta.value = v; entry.data[f.key] = v; autoAltura(ta); atualizar(); };
+      c.appendChild(ta);
+    } else {
+      const inp = document.createElement('input'); inp.type = f.type; inp.value = entry.data[f.key] || ''; inp.dataset.foco = chave;
+      if (f.key==='aprox') inp.placeholder = 'ex: 40';
+      if (f.key==='cidade') inp.placeholder = 'Cidade';
+      if (f.key==='endereco') inp.placeholder = 'Rua, nº (família)';
+      if (f.key==='local') inp.placeholder = section.typeKey==='evangelizacao' ? 'Bairro' : 'Casa de oração';
+      inp.oninput = ()=>{ entry.data[f.key] = inp.value; atualizar(); };
+      if (f.type==='time'){
+        inp.onchange = ()=>{ entry.data[f.key] = inp.value; atualizar(); inp.dataset.mudou = '1'; };
+        inp.onblur = ()=>{ if (inp.dataset.mudou){ delete inp.dataset.mudou; redesenharDepois(sid, entry.id); } };
+      }
+      else if (f.type==='text') inp.onchange = ()=>{
+        const v = formatarTextoCapitalizado(inp.value); inp.value = v; entry.data[f.key] = v; atualizar();
+        if (f.key==='cidade') redesenharDepois(sid, entry.id); // muda o grupo da cidade
+      };
+      c.appendChild(inp);
+    }
+    lin.appendChild(c);
+  });
+
+  const ac = document.createElement('div'); ac.className = 'lin-acoes';
+  ac.innerHTML = `<button type="button" class="dup" title="Duplicar esta linha (mesmos dados, para mudar só a data)">${ICO('copy')}</button>`
+    + (temOutra ? `<button type="button" class="mov" title="Mover para outra tabela do mesmo tipo">${ICO('move')}</button>` : '')
+    + (section.typeKey==='evangelizacao' ? `<button type="button" class="cid" title="Passar esta reunião para outra cidade">${ICO('pin')}</button>` : '')
+    + `<button type="button" class="del" title="Excluir esta linha">${ICO('trash')}</button>`;
+  ac.querySelector('.dup').onclick = ()=>addEntry(sid, entry.id);
+  if (temOutra) ac.querySelector('.mov').onclick = ()=>moveEntry(sid, entry.id);
+  if (ac.querySelector('.cid')) ac.querySelector('.cid').onclick = ()=>mudarCidade(sid, entry.id);
+  ac.querySelector('.del').onclick = ()=>removeEntry(sid, entry.id);
+  lin.appendChild(ac);
+  return lin;
 }
 
 function getEntrySummary(def, entry){
@@ -976,373 +1677,6 @@ function getEntrySummary(def, entry){
   }
 
   return { dataLabel, textoVal };
-}
-
-function renderSections(){
-  sortStateDates();
-  const host = document.getElementById('sectionsContainer');
-  host.innerHTML = '';
-  STATE.sections.forEach((section, sIdx)=>{
-    host.appendChild(buildSectionElement(section, sIdx));
-  });
-}
-
-// Re-renderiza só UMA seção (sem mexer nas demais), para evitar que a tela
-// inteira pisque quando o usuário só editou um campo dentro de uma seção.
-function renderSection(sectionId){
-  sortStateDates();
-  const sIdx = STATE.sections.findIndex(s => s.id === sectionId);
-  if (sIdx === -1) return;
-  const host = document.getElementById('sectionsContainer');
-  const oldWrap = host.querySelector(`[data-section-id="${sectionId}"]`);
-  const newWrap = buildSectionElement(STATE.sections[sIdx], sIdx);
-  if (oldWrap) {
-    host.replaceChild(newWrap, oldWrap);
-  } else {
-    host.appendChild(newWrap);
-  }
-}
-
-function buildSectionElement(section, sIdx){
-    const def = SECTION_TYPES[section.typeKey];
-    const wrap = document.createElement('div');
-    wrap.dataset.sectionId = section.id;
-    
-    if (typeof section.isOpen === 'undefined') section.isOpen = true; 
-    wrap.className = section.isOpen ? 'section open' : 'section';
-    
-    wrap.draggable = true;
-    wrap.dataset.index = sIdx;
-    
-    wrap.addEventListener('dragstart', function(e) {
-      dragSrcEl = this;
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/html', this.innerHTML);
-      this.style.opacity = '0.4';
-    });
-    wrap.addEventListener('dragover', function(e) {
-      if (e.preventDefault) e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      return false;
-    });
-    wrap.addEventListener('dragenter', function(e) { this.classList.add('over'); });
-    wrap.addEventListener('dragleave', function(e) { this.classList.remove('over'); });
-    wrap.addEventListener('drop', function(e) {
-      if (e.stopPropagation) e.stopPropagation();
-      if (dragSrcEl !== this) {
-        const fromIdx = parseInt(dragSrcEl.dataset.index);
-        const toIdx = parseInt(this.dataset.index);
-        const moved = STATE.sections.splice(fromIdx, 1)[0];
-        STATE.sections.splice(toIdx, 0, moved);
-        renderSections(); saveState(); renderPreview();
-      }
-      return false;
-    });
-    wrap.addEventListener('dragend', function(e) {
-      this.style.opacity = '1';
-      document.querySelectorAll('.section').forEach(el => el.classList.remove('over'));
-    });
-
-    const head = document.createElement('div');
-    head.className = 'section-head';
-    head.innerHTML = `
-      <div style="display:flex; align-items:center;">
-        <span class="drag-handle" title="Arraste para reordenar"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-grip"></use></svg></span>
-        <span class="section-caret"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-chevron-right"></use></svg></span>
-        <h3>${sIdx+1}. ${def.label}</h3>
-      </div>
-    `;
-    const headBtns = document.createElement('div');
-    const rm = document.createElement('button');
-    rm.style.cssText = 'background: var(--accent); color: #fff; border: none; padding: 4px 10px; border-radius: 4px; font-weight: bold; cursor: pointer;'; 
-    rm.textContent = 'Excluir Tabela';
-    rm.onclick = (e) => {
-      e.stopPropagation(); 
-      if (confirm("Tem certeza que deseja remover esta tabela da lista?")) {
-        removeSection(section.id);
-      }
-    };
-    headBtns.appendChild(rm);
-    head.appendChild(headBtns); 
-    
-    head.onclick = (e) => { 
-      if (e.target === rm) return; 
-      section.isOpen = !section.isOpen; 
-      wrap.classList.toggle('open', section.isOpen); 
-      saveState(); 
-    };
-    wrap.appendChild(head);
-
-    const body = document.createElement('div');
-    body.className = 'section-body';
-
-    // Evangelização: escolhe se a tabela começa numa página só dela (a última) ou segue logo
-    // depois das outras tabelas. Padrão: página própria (como sempre foi).
-    if (section.typeKey === 'evangelizacao') {
-      const opc = document.createElement('label');
-      opc.className = 'ev-pagina-opc';
-      opc.innerHTML = `<input type="checkbox" ${section.novaPagina === false ? '' : 'checked'}><span><b>Começar numa página só dela (última folha)</b><small>Desmarque para a tabela seguir logo depois das outras, sem pular página.</small></span>`;
-      opc.querySelector('input').onchange = (e) => { section.novaPagina = e.target.checked; saveState(); renderPreview(); };
-      body.appendChild(opc);
-    }
-
-    if(def.isFreeText){
-      const box = document.createElement('div');
-      box.className='avisos-box';
-      const ta = document.createElement('textarea');
-      ta.placeholder = "Um aviso por linha. Ex:\n(COLETAS) - Durante o mês de novembro...\n(CAMPO MOURÃO) - No dia 30/11...";
-      ta.value = section.text || "";
-      ta.oninput = ()=>{ section.text = ta.value; saveState(); renderPreview(); };
-      box.appendChild(ta);
-      body.appendChild(box);
-    } else {
-      const similarSections = STATE.sections.filter(s => s.typeKey === section.typeKey && s.id !== section.id);
-
-      let lastCidade = null;
-
-      section.entries.forEach((entry, eIdx)=>{
-        if (typeof entry.isOpen === 'undefined') entry.isOpen = true;
-
-        if (section.typeKey === 'evangelizacao') {
-          const cidadeAtual = (entry.data.cidade || '').trim() || 'Sem cidade informada';
-          if (cidadeAtual !== lastCidade) {
-            lastCidade = cidadeAtual;
-            const cityHeader = document.createElement('div');
-            cityHeader.className = 'city-group-header';
-            cityHeader.textContent = cidadeAtual.toUpperCase();
-            body.appendChild(cityHeader);
-          }
-        }
-
-        const eDiv = document.createElement('div');
-        eDiv.className = 'entry' + (entry.isOpen ? ' open' : '');
-
-        const eHead = document.createElement('div');
-        eHead.className = 'entry-head';
-
-        const eHeadLeft = document.createElement('div');
-        eHeadLeft.className = 'entry-head-left';
-
-        const caret = document.createElement('span');
-        caret.className = 'entry-caret';
-        caret.innerHTML = '<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-chevron-right"></use></svg>';
-        eHeadLeft.appendChild(caret);
-
-        const { dataLabel, textoVal } = getEntrySummary(def, entry);
-
-        const dateBadge = document.createElement('span');
-        dateBadge.className = 'entry-summary-date';
-        dateBadge.textContent = dataLabel;
-        eHeadLeft.appendChild(dateBadge);
-
-        const summaryText = document.createElement('span');
-        summaryText.className = 'entry-summary-text' + (textoVal ? '' : ' empty');
-        summaryText.textContent = textoVal || 'Linha ' + (eIdx+1) + ' — clique para preencher';
-        eHeadLeft.appendChild(summaryText);
-
-        eHead.appendChild(eHeadLeft);
-
-        const eHeadActions = document.createElement('div');
-        eHeadActions.className = 'entry-head-actions';
-
-        if (similarSections.length > 0) {
-          const moveBtn = document.createElement('button');
-          moveBtn.className = 'small';
-          moveBtn.innerHTML = '<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-move"></use></svg>Mover';
-          moveBtn.title = 'Mover para outra tabela do mesmo tipo';
-          moveBtn.onclick = (e) => { e.stopPropagation(); moveEntry(section.id, entry.id); };
-          eHeadActions.appendChild(moveBtn);
-        }
-
-        const rmBtn = document.createElement('button');
-        rmBtn.className = 'small danger'; rmBtn.innerHTML = '<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-x"></use></svg>'; rmBtn.title = 'Excluir linha';
-        rmBtn.onclick = (e) => { e.stopPropagation(); removeEntry(section.id, entry.id); };
-        eHeadActions.appendChild(rmBtn);
-
-        eHead.appendChild(eHeadActions);
-
-        eHead.onclick = () => {
-          entry.isOpen = !entry.isOpen;
-          eDiv.classList.toggle('open', entry.isOpen);
-          saveState();
-        };
-
-        eDiv.appendChild(eHead);
-
-        const eBody = document.createElement('div');
-        eBody.className = 'entry-body';
-
-        const grid = document.createElement('div');
-        grid.className='row-grid';
-
-        def.fields.forEach(f=>{
-          const fdiv = document.createElement('div');
-          fdiv.className='field';
-          const lab = document.createElement('label'); lab.textContent = f.label;
-          fdiv.appendChild(lab);
-
-          if(f.type==='list'){
-            fdiv.style.gridColumn = '1 / -1';
-            const lg = document.createElement('div'); lg.className='listgroup';
-            entry.data[f.key].forEach((val, idx)=>{
-              const li = document.createElement('div'); li.className='listitem';
-              const inp = document.createElement('input'); inp.type='text';
-              inp.placeholder = f.itemLabel+' '+(idx+1);
-              inp.value = val;
-              
-              inp.oninput = ()=>{ entry.data[f.key][idx] = inp.value; saveState(); renderPreview(); };
-              inp.onchange = ()=>{ 
-                const formatado = formatarTextoCapitalizado(inp.value);
-                inp.value = formatado;
-                entry.data[f.key][idx] = formatado; 
-                saveState(); renderPreview(); 
-                renderSection(section.id);
-              };
-
-              li.appendChild(inp);
-              const del = document.createElement('button'); del.className='small'; del.innerHTML='<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-x"></use></svg>'; del.title='Remover';
-              del.onclick = ()=>removeListItem(section.id, entry.id, f.key, idx);
-              li.appendChild(del);
-              lg.appendChild(li);
-            });
-            if(!f.maxItems || entry.data[f.key].length < f.maxItems){
-              const addBtn = document.createElement('button');
-              addBtn.className='small'; addBtn.textContent='+ adicionar '+f.itemLabel.toLowerCase();
-              addBtn.onclick = ()=>addListItem(section.id, entry.id, f.key);
-              lg.appendChild(addBtn);
-            } else {
-              const note = document.createElement('div');
-              note.className='muted'; note.textContent='Máximo de '+f.maxItems+' atingido.';
-              lg.appendChild(note);
-            }
-            fdiv.appendChild(lg);
-          } else if(f.type==='tags'){
-            fdiv.style.gridColumn = '1 / -1';
-            
-            let tagData = entry.data[f.key];
-            if (!tagData) tagData = { chips: [], texto: "" };
-            if (Array.isArray(tagData)) tagData = { chips: tagData, texto: "" };
-            entry.data[f.key] = tagData;
-
-            const lg = document.createElement('div'); lg.className='listgroup';
-            
-            const chipsWrap = document.createElement('div');
-            chipsWrap.style.display='flex'; chipsWrap.style.flexWrap='wrap'; chipsWrap.style.gap='6px'; chipsWrap.style.marginBottom='8px';
-            STATE.cargos.forEach(c=>{
-              const selected = tagData.chips.includes(c.code);
-              const chip = document.createElement('button');
-              chip.type='button'; chip.className='small';
-              const prefix = c.useAsterisk !== false ? '*' : '';
-              chip.textContent = prefix + c.code;
-              chip.title = c.label;
-              chip.style.borderRadius='14px';
-              if(selected){ chip.style.background='var(--primary)'; chip.style.color='#fff'; chip.style.borderColor='var(--primary)'; }
-              chip.onclick = ()=>{
-                const arr = tagData.chips;
-                const i = arr.indexOf(c.code);
-                if(i>=0) arr.splice(i,1); else arr.push(c.code);
-                renderSection(section.id); saveState(); renderPreview();
-              };
-              chipsWrap.appendChild(chip);
-            });
-            lg.appendChild(chipsWrap);
-            
-            const txtInp = document.createElement('input');
-            txtInp.type = 'text';
-            txtInp.placeholder = 'Outros convocados não cadastrados acima (ex: Organistas, Irmão João)...';
-            txtInp.value = tagData.texto || "";
-            
-            txtInp.oninput = () => { tagData.texto = txtInp.value; saveState(); renderPreview(); };
-            txtInp.onchange = () => { 
-                const formatado = formatarTextoCapitalizado(txtInp.value);
-                txtInp.value = formatado;
-                tagData.texto = formatado; 
-                saveState(); renderPreview(); 
-                renderSection(section.id);
-            };
-
-            lg.appendChild(txtInp);
-
-            if(!STATE.cargos.length){
-              const note = document.createElement('div'); note.className='muted';
-              note.textContent = 'Adicione cargos na "Legenda de Cargos" acima.';
-              lg.appendChild(note);
-            }
-            fdiv.appendChild(lg);
-          } else if(f.type==='select'){
-            const sel = document.createElement('select');
-            const optPlaceholder = document.createElement('option');
-            optPlaceholder.value = '';
-            optPlaceholder.textContent = 'Selecione...';
-            sel.appendChild(optPlaceholder);
-            (f.options||[]).forEach(opt=>{
-              const o = document.createElement('option');
-              o.value = opt; o.textContent = opt;
-              sel.appendChild(o);
-            });
-            sel.value = entry.data[f.key] || '';
-            sel.onchange = ()=>{ entry.data[f.key] = sel.value; saveState(); renderPreview(); renderSection(section.id); };
-            fdiv.appendChild(sel);
-          } else if(f.type==='textarea'){
-            fdiv.style.gridColumn = '1 / -1';
-            const ta = document.createElement('textarea');
-            ta.className = 'field-textarea';
-            ta.value = entry.data[f.key] || '';
-            ta.rows = 3;
-            ta.oninput = ()=>{ entry.data[f.key] = ta.value; saveState(); renderPreview(); };
-            ta.onchange = ()=>{
-              const formatado = formatarTextoCapitalizado(ta.value);
-              ta.value = formatado;
-              entry.data[f.key] = formatado;
-              saveState(); renderPreview();
-              renderSection(section.id);
-            };
-            fdiv.appendChild(ta);
-          } else {
-            const inp = document.createElement('input');
-            inp.type = f.type;
-            inp.value = entry.data[f.key];
-            if(f.key === 'aprox') inp.placeholder = 'ex: 40';
-            
-            if (f.type === 'date') {
-              inp.onchange = () => {
-                entry.data[f.key] = inp.value;
-                saveState();
-                renderSection(section.id);
-                renderPreview();
-              };
-            } else {
-              inp.oninput = ()=>{ entry.data[f.key] = inp.value; saveState(); renderPreview(); };
-              // hora: quando sai do campo, a lista na tela se reorganiza (mesmo dia, ordem de horário)
-              if (f.type === 'time') inp.onblur = ()=>{ renderSection(section.id); };
-              if(f.type === 'text') {
-                  inp.onchange = ()=>{ 
-                      const formatado = formatarTextoCapitalizado(inp.value);
-                      inp.value = formatado;
-                      entry.data[f.key] = formatado; 
-                      saveState(); renderPreview(); 
-                      renderSection(section.id);
-                  };
-              }
-            }
-            fdiv.appendChild(inp);
-          }
-          grid.appendChild(fdiv);
-        });
-
-        eBody.appendChild(grid);
-        eDiv.appendChild(eBody);
-        body.appendChild(eDiv);
-      });
-
-      const addEntryBtn = document.createElement('button');
-      addEntryBtn.textContent = '+ adicionar linha';
-      addEntryBtn.onclick = ()=>addEntry(section.id);
-      body.appendChild(addEntryBtn);
-    }
-
-    wrap.appendChild(body);
-    return wrap;
 }
 
 function fmtDate(d){
@@ -1442,7 +1776,10 @@ function buildDocumentHTMLClassico(){
 
       // Colunas exibidas na tabela (a "Cidade" não vira coluna: ela vira o
       // cabeçalho de cada bloco, agrupando as reuniões daquela cidade).
-      const displayFields = def.fields.filter(f=>f.key!=='cidade');
+      // Por bairro (padrão): dentro de cada cidade, o Local (bairro) vira uma faixa que agrupa
+      // as reuniões dele; a coluna Local sai e os obreiros ficam numa coluna só.
+      const porBairro = section.porBairro !== false;
+      const displayFields = def.fields.filter(f=>f.key!=='cidade' && !(porBairro && f.key==='local'));
 
       const listFieldsCid = displayFields.filter(f=>f.type==='list');
       const maxCountsCid = {};
@@ -1452,7 +1789,7 @@ function buildDocumentHTMLClassico(){
           const filled = (entry.data[f.key]||[]).filter(x=>x && x.trim());
           max = Math.max(max, filled.length || 1);
         });
-        maxCountsCid[f.key] = max;
+        maxCountsCid[f.key] = (porBairro && f.key==='atende') ? 1 : max;
       });
 
       let totalColsCid = 0;
@@ -1487,6 +1824,17 @@ function buildDocumentHTMLClassico(){
       const groups = Array.from(groupsMap.entries())
         .map(([cidade, entries])=>({cidade, entries}))
         .sort((a,b)=> a.cidade.localeCompare(b.cidade, 'pt-BR'));
+      // bairro: sem diferenciar ponto, maiúscula, acento, "Jardim"/"Jd", "Parque"/"Pq", "Conjunto"/"Cj";
+      // bairros na ordem da 1ª reunião de cada um; dentro do bairro, por data e hora
+      const chLoc = e => (e.data.local||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+        .replace(/\./g,' ').replace(/^jardim\b/,'jd').replace(/^parque\b/,'pq').replace(/^conjunto\b/,'cj').replace(/\s+/g,' ').trim();
+      if (porBairro) groups.forEach(g=>{
+        const dh = e => String(e.data.data||'9999') + ' ' + String(e.data.hora||'');
+        const pri = new Map(); g.entries.forEach(e=>{ const k=chLoc(e); if(!pri.has(k) || dh(e)<pri.get(k)) pri.set(k, dh(e)); });
+        g.entries = g.entries.slice().sort((a,b)=> pri.get(chLoc(a)).localeCompare(pri.get(chLoc(b))) || chLoc(a).localeCompare(chLoc(b)) || dh(a).localeCompare(dh(b)));
+        // nome mostrado: a grafia mais completa (ex.: "Jd. Albuquerque" em vez de "Jd Albuquerque")
+        g.nomeLoc = new Map(); g.entries.forEach(e=>{ const k=chLoc(e), n=(e.data.local||'').trim(); const at=g.nomeLoc.get(k); if(!at || n.length>at.length) g.nomeLoc.set(k,n); });
+      });
 
       let colHeaderRowCid = `<tr>`;
       displayFields.forEach(f=>{
@@ -1517,13 +1865,19 @@ function buildDocumentHTMLClassico(){
         theadHtml += colHeaderRowCid;
 
         let rowsHtml = '';
-        g.entries.forEach(entry=>{
+        g.entries.forEach((entry, ei)=>{
+          if(porBairro && (ei===0 || chLoc(g.entries[ei-1])!==chLoc(entry))){
+            const lc = escapeHTML(g.nomeLoc.get(chLoc(entry)) || 'Local não informado');
+            rowsHtml += `<tr class="ev-loc${ei===0?' ev-loc-1':''}"><td colspan="${totalColsCid}"><span class="ev-bairro">${lc}</span></td></tr>`;
+          }
           rowsHtml += '<tr>';
           displayFields.forEach(f=>{
             if(f.type==='list'){
               const n = maxCountsCid[f.key];
               const vals = (entry.data[f.key]||[]).filter(x=>x && x.trim());
-              if(!vals.length){
+              if(porBairro && f.key==='atende'){
+                rowsHtml += `<td class="ev-atende">${vals.length ? vals.map(escapeHTML).join(' · ') : '-'}</td>`;
+              } else if(!vals.length){
                 rowsHtml += `<td colspan="${n}">-</td>`;
               } else {
                 vals.forEach((v, i)=>{
@@ -1546,7 +1900,7 @@ function buildDocumentHTMLClassico(){
             } else if(f.key === 'endereco'){
               let strEndereco = entry.data[f.key] || '';
               let formatedEndereco = escapeHTML(strEndereco).replace(/\s*\(/g, '<br>(');
-              rowsHtml += `<td style="line-height: 1.3;">${formatedEndereco || '-'}</td>`;
+              rowsHtml += `<td${porBairro ? ' class="ev-end"' : ''} style="line-height: 1.3;">${formatedEndereco || '-'}</td>`;
             } else {
               rowsHtml += `<td>${escapeHTML(entry.data[f.key]||'') || '-'}</td>`;
             }
@@ -1937,6 +2291,11 @@ function buildDocumentHTMLClassico(){
       page-break-before: always;
       break-before: page;
     }
+    tr.ev-loc { break-after: avoid; page-break-after: avoid; break-inside: avoid; }
+    tr.ev-loc td { text-align: left !important; background: #e8e8e8; padding: 2px 8px !important; border-top: 1.5px solid #000; }
+    .ev-bairro { font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+    td.ev-end { text-align: left !important; padding-left: 8px !important; }
+    td.ev-atende { white-space: nowrap; }
     .section-title-block.sem-quebra { page-break-before: auto; break-before: auto; }
 
     th.table-title-cidade {
@@ -2047,7 +2406,14 @@ function getMeasureFrame(){
   return f;
 }
 
+// a prévia é remontada logo depois que a pessoa para de digitar (não a cada tecla)
+let _tPrev = null;
 function renderPreview(){
+  clearTimeout(_tPrev);
+  _tPrev = setTimeout(renderPreviewAgora, 140);
+}
+function renderPreviewAgora(){
+  clearTimeout(_tPrev);
   saveState();
   const html = buildDocumentHTML();
   const mFrame = getMeasureFrame();
@@ -2171,7 +2537,8 @@ function buildPagePlan(mDoc){
       const chunk = [];
       while (rows.length) {
         const r = rows[0];
-        if (chunk.length > 0 && (curUsed + r.height) > contentBudget) break;
+        const junto = (/class="ev-loc/.test(r.html) && rows[1]) ? rows[1].height : 0;
+        if (chunk.length > 0 && (curUsed + r.height + junto) > contentBudget) break;
         chunk.push(r.html);
         curUsed += r.height;
         rows.shift();
@@ -2245,6 +2612,7 @@ function displayCurrentPreviewPage(){
 
   const pageNumEl = document.getElementById('currentPageNum');
   if (pageNumEl) pageNumEl.textContent = `${CURRENT_PREVIEW_PAGE} / ${totalPages}`;
+  if (window.atualizarResumo) atualizarResumo();
 }
 
 function attachSwipeListeners(frame){
@@ -2406,8 +2774,11 @@ window.onload = ()=>{
     if (e.key === 'Escape') closeMobilePreview();
   });
   
-  renderPreview();
-  document.getElementById('meta_periodo').addEventListener('change', ()=>{ saveState(); renderPreview(); });
+  try{ if (localStorage.getItem('lista_cm_aba')==='conf') aba('conf'); }catch(e){}
+  let ocultaPrev = false; try{ ocultaPrev = localStorage.getItem('lista_cm_prev_oculta')==='1'; }catch(e){}
+  togPrevia(ocultaPrev);
+  renderPreviewAgora();
+  document.getElementById('meta_periodo').addEventListener('change', ()=>{ saveState(); renderPreview(); atualizarResumo(); });
   document.getElementById('meta_titulo').addEventListener('input', ()=>{ saveState(); renderPreview(); });
   document.getElementById('meta_rodape_esq').addEventListener('input', ()=>{ saveState(); renderPreview(); });
 };
