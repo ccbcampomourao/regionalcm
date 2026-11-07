@@ -870,8 +870,10 @@ const SECTION_TYPES = {
   coleta_reforco_caixa: {
     // igual aos Batismos: ATENDE com o Ancião e os Diáconos
     label: "Coletas para Reforço de Caixa",
+    porCidade: true,   // separada por cidade, como a Evangelização
     columns: ["Data","Hora","Local","Ancião","Diáconos"],
     fields: [
+      {key:"cidade", label:"Cidade", type:"text"},
       {key:"data", label:"Data", type:"date"},
       {key:"hora", label:"Hora", type:"time"},
       {key:"local", label:"Local", type:"text"},
@@ -967,8 +969,8 @@ function minutosDaHora(h) {
 function sortStateDates() {
   STATE.sections.forEach(section => {
     if (section.entries && section.entries.length > 0) {
-      if (section.typeKey === 'evangelizacao') {
-        // Nas Reuniões de Evangelização, agrupa primeiro por cidade (em ordem
+      if (section.typeKey === 'evangelizacao' || section.typeKey === 'coleta_reforco_caixa') {
+        // Nas Reuniões de Evangelização (e nas Coletas), agrupa primeiro por cidade (em ordem
         // alfabética) e, dentro de cada cidade, ordena por data — igual ao
         // agrupamento que já é feito na pré-visualização/impressão.
         section.entries.sort((a, b) => {
@@ -1491,9 +1493,10 @@ function buildSectionElement(section, sIdx){
     const temOutra = STATE.sections.some(s => s.typeKey === section.typeKey && s.id !== section.id);
     let grupo = null, lastCidade = null, n = 0;
     const novoGrupo = ()=>{ grupo = document.createElement('div'); grupo.className = 'linhas'; body.appendChild(grupo); n = 0; };
-    if (section.typeKey !== 'evangelizacao') novoGrupo();
+    const porCid = section.typeKey === 'evangelizacao' || section.typeKey === 'coleta_reforco_caixa';
+    if (!porCid) novoGrupo();
     section.entries.forEach((entry)=>{
-      if (section.typeKey === 'evangelizacao') {
+      if (porCid) {
         const cid = (entry.data.cidade || '').trim() || 'Sem cidade informada';
         if (cid !== lastCidade) {
           lastCidade = cid;
@@ -1515,7 +1518,7 @@ function buildSectionElement(section, sIdx){
       v.textContent = 'Nenhuma linha ainda.'; body.appendChild(v);
     }
     const pe = document.createElement('div'); pe.className = 'sec-pe';
-    if (section.typeKey === 'evangelizacao'){
+    if (porCid){
       pe.innerHTML = `<button type="button">${ICO('pin')}Acrescentar outra cidade</button>`;
       pe.querySelector('button').onclick = ()=>novaCidade(section.id);
     } else {
@@ -1538,7 +1541,7 @@ function linhaEl(section, def, entry, primeira, temOutra){
 
   const princ = (def.fields.find(f=>!['data','hora','cidade'].includes(f.key) && f.type!=='list' && f.type!=='tags') || {}).key;
   def.fields.forEach(f=>{
-    if (section.typeKey==='evangelizacao' && f.key==='cidade') return; // a cidade fica no cabeçalho do grupo
+    if ((section.typeKey==='evangelizacao' || section.typeKey==='coleta_reforco_caixa') && f.key==='cidade') return; // a cidade fica no cabeçalho do grupo
     const c = document.createElement('div');
     c.className = 'c c-' + f.key + (f.key===princ ? ' c-princ' : (['data','hora'].includes(f.key) ? '' : ' c-extra'));
     const lab = document.createElement('label');
@@ -1653,6 +1656,7 @@ function linhaEl(section, def, entry, primeira, temOutra){
     } else {
       const inp = document.createElement('input'); inp.type = f.type; inp.value = entry.data[f.key] || ''; inp.dataset.foco = chave;
       if (f.key==='aprox') inp.placeholder = 'ex: 40';
+      if (f.key==='anciao' && section.typeKey==='coleta_reforco_caixa') inp.placeholder = 'Ancião (opcional)';
       if (f.key==='cidade') inp.placeholder = 'Cidade';
       if (f.key==='endereco') inp.placeholder = 'Rua, nº (família)';
       if (f.key==='local') inp.placeholder = section.typeKey==='evangelizacao' ? 'Bairro' : 'Casa de oração';
@@ -1673,7 +1677,7 @@ function linhaEl(section, def, entry, primeira, temOutra){
   const ac = document.createElement('div'); ac.className = 'lin-acoes';
   ac.innerHTML = `<button type="button" class="dup" title="Duplicar esta linha (mesmos dados, para mudar só a data)">${ICO('copy')}</button>`
     + (temOutra ? `<button type="button" class="mov" title="Mover para outra tabela do mesmo tipo">${ICO('move')}</button>` : '')
-    + (section.typeKey==='evangelizacao' ? `<button type="button" class="cid" title="Passar esta reunião para outra cidade">${ICO('pin')}</button>` : '')
+    + ((section.typeKey==='evangelizacao' || section.typeKey==='coleta_reforco_caixa') ? `<button type="button" class="cid" title="Passar esta reunião para outra cidade">${ICO('pin')}</button>` : '')
     + `<button type="button" class="del" title="Excluir esta linha">${ICO('trash')}</button>`;
   ac.querySelector('.dup').onclick = ()=>addEntry(sid, entry.id);
   if (temOutra) ac.querySelector('.mov').onclick = ()=>moveEntry(sid, entry.id);
@@ -1948,6 +1952,45 @@ function buildDocumentHTMLClassico(){
     }
 
     if(!section.entries.length) return;
+
+    // Coletas para Reforço de Caixa: separadas por cidade (barra com o nome da
+    // cidade, como na Evangelização) e Atende como nos Batismos. Sem o nome do
+    // ancião, só os diáconos aparecem (ocupando todo o Atende).
+    if(section.typeKey === 'coleta_reforco_caixa'){
+      const temCidade = section.entries.some(e=>(e.data.cidade||'').trim());
+      let nD = 1;
+      section.entries.forEach(e=>{ nD = Math.max(nD, (e.data.diaconos||[]).filter(x=>x && x.trim()).length || 1); });
+      const nAt = 1 + nD, total = 2 + 1 + 1 + nAt;
+      const cab = `<tr><th colspan="2" style="width:65px; max-width:65px;">DATA</th><th style="${narrowCols['HORA']}">HORA</th><th style="${narrowCols['LOCAL']}">LOCAL</th><th colspan="${nAt}">ATENDE</th></tr>`;
+      const linha = (entry)=>{
+        let r = '<tr>';
+        r += `<td style="width:10px; max-width:10px;">${fmtDate(entry.data.data)}</td><td style="width:6px; max-width:6px;">${getWeekdayAbbr(entry.data.data)}</td>`;
+        r += `<td>${fmtTime(entry.data.hora) || '-'}</td>`;
+        r += `<td>${escapeHTML(entry.data.local||'') || '-'}</td>`;
+        const anc = (entry.data.anciao||'').trim();
+        const nomes = (anc ? [anc] : []).concat((entry.data.diaconos||[]).filter(x=>x && x.trim()));
+        if (!nomes.length) r += `<td colspan="${nAt}">-</td>`;
+        else nomes.forEach((v,i)=>{
+          const ultimo = i === nomes.length - 1;
+          r += (ultimo && nomes.length < nAt) ? `<td colspan="${nAt - nomes.length + 1}">${escapeHTML(v)}</td>` : `<td>${escapeHTML(v)}</td>`;
+        });
+        return r + '</tr>';
+      };
+      if (!temCidade){
+        body += `<div class="table-wrapper"><table><thead><tr><th colspan="${total}" class="table-title">${escapeHTML(def.label.toUpperCase())}</th></tr>${cab}</thead><tbody>${section.entries.map(linha).join('')}</tbody></table></div>`;
+        return;
+      }
+      const gm = new Map();
+      section.entries.forEach(e=>{ const c = (e.data.cidade||'').trim() || 'SEM CIDADE INFORMADA'; if(!gm.has(c)) gm.set(c, []); gm.get(c).push(e); });
+      const grupos = Array.from(gm.entries()).sort((a,b)=>a[0].localeCompare(b[0],'pt-BR'));
+      // título da tabela num bloco próprio que não fica sozinho no pé da página (sem pular folha)
+      body += `<div class="section-title-block sem-quebra" data-keep-next="true"><table><thead><tr><th colspan="${total}" class="table-title">${escapeHTML(def.label.toUpperCase())}</th></tr></thead></table></div>`;
+      grupos.forEach(([cidade, ents])=>{
+        const th = `<tr><th colspan="4" class="table-title-cidade">${escapeHTML(cidade.toUpperCase())}</th><th colspan="${nAt}" class="table-title-cidade-rest"></th></tr>`;
+        body += `<div class="table-wrapper cidade-frame"><table><thead>${th}${cab}</thead><tbody>${ents.map(linha).join('')}</tbody></table></div>`;
+      });
+      return;
+    }
 
     if(section.typeKey === 'reuniaodiversa_cozinha'){
       // Agrupa só a coluna DATA (rowspan): cada refeição continua na sua
