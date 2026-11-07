@@ -867,6 +867,38 @@ const SECTION_TYPES = {
       {key:"atende", label:"Atende (opcional)", type:"list", itemLabel:"Obreiro"}
     ]
   },
+  coleta_reforco_caixa: {
+    // igual aos Batismos: ATENDE com o Ancião e os Diáconos
+    label: "Coletas para Reforço de Caixa",
+    columns: ["Data","Hora","Local","Ancião","Diáconos"],
+    fields: [
+      {key:"data", label:"Data", type:"date"},
+      {key:"hora", label:"Hora", type:"time"},
+      {key:"local", label:"Local", type:"text"},
+      {key:"anciao", label:"Ancião", type:"text"},
+      {key:"diaconos", label:"Diácono", type:"list", itemLabel:"Diácono", maxItems:3}
+    ]
+  },
+  abertura_casa_oracao: {
+    label: "Abertura de Casa de Oração",
+    columns: ["Data","Hora","Local","Atende"],
+    fields: [
+      {key:"data", label:"Data", type:"date"},
+      {key:"hora", label:"Hora", type:"time"},
+      {key:"local", label:"Local", type:"text"},
+      {key:"atende", label:"Atende", type:"list", itemLabel:"Obreiro"}
+    ]
+  },
+  reabertura_casa_oracao: {
+    label: "Reabertura de Casa de Oração",
+    columns: ["Data","Hora","Local","Atende"],
+    fields: [
+      {key:"data", label:"Data", type:"date"},
+      {key:"hora", label:"Hora", type:"time"},
+      {key:"local", label:"Local", type:"text"},
+      {key:"atende", label:"Atende", type:"list", itemLabel:"Obreiro"}
+    ]
+  },
   avisos: {
     label: "Avisos Diversos",
     isFreeText: true
@@ -1099,9 +1131,10 @@ const NOME_CURTO = {
   culto_ensinamento_pais_filhos:'Pais e Filhos', culto_ensinamento:'Ensinamento', ensaio_regional:'Ensaio Regional',
   ensaio_geral_categoria:'Ensaio por Categoria', santa_ceia:'Santa Ceia', santa_ceia_extra:'Santa Ceia Extra',
   reuniaodiversa:'Reuniões Diversas', reuniaodiversa_cozinha:'Cozinha Central', evangelizacao:'Evangelização',
-  assembleia_ordinaria:'Assembleia Ordinária', assembleia_extraordinaria:'Assembleia Extraord.', avisos:'Avisos'
+  assembleia_ordinaria:'Assembleia Ordinária', assembleia_extraordinaria:'Assembleia Extraord.', avisos:'Avisos',
+  coleta_reforco_caixa:'Coletas Reforço de Caixa', abertura_casa_oracao:'Abertura de Casa', reabertura_casa_oracao:'Reabertura de Casa'
 };
-const GRUPO_LIN = { batismo:'bat', ensaio_geral_categoria:'cat', reuniaodiversa:'div', reuniaodiversa_cozinha:'coz', evangelizacao:'eva' };
+const GRUPO_LIN = { coleta_reforco_caixa:'bat', batismo:'bat', ensaio_geral_categoria:'cat', reuniaodiversa:'div', reuniaodiversa_cozinha:'coz', evangelizacao:'eva' };
 const DIAS_SEM = ['dom','seg','ter','qua','qui','sex','sáb'];
 const CONV_ABERTO = new Set();   // linhas com o painel de convocados aberto
 
@@ -2016,7 +2049,7 @@ function buildDocumentHTMLClassico(){
 
     let theadHtml = `<tr><th colspan="${totalCols}" class="table-title">${escapeHTML(def.label.toUpperCase())}</th></tr>`;
 
-    if(section.typeKey === 'batismo' || section.typeKey === 'batissimo') {
+    if(section.typeKey === 'batismo' || section.typeKey === 'batissimo' || section.typeKey === 'coleta_reforco_caixa') {
       const atendeColspan = 1 + (maxCounts['diaconos'] || 1);
       theadHtml += `<tr>
                       <th colspan="2" style="width:65px; max-width:65px;">DATA</th>
@@ -2045,7 +2078,7 @@ function buildDocumentHTMLClassico(){
     
     section.entries.forEach(entry=>{
       body += '<tr>';
-      const isBatismo = (section.typeKey === 'batismo' || section.typeKey === 'batissimo');
+      const isBatismo = (section.typeKey === 'batismo' || section.typeKey === 'batissimo' || section.typeKey === 'coleta_reforco_caixa');
       const diaconosVaziosBatismo = isBatismo && !((entry.data['diaconos']||[]).filter(x=>x && x.trim()).length);
       def.fields.forEach(f=>{
         if(isBatismo && f.key === 'anciao' && diaconosVaziosBatismo){
@@ -2078,10 +2111,20 @@ function buildDocumentHTMLClassico(){
                 body += `<td>${escapeHTML(v)}</td>`;
               }
             });
+          } else if(!vals.length){
+            // ninguém lançado: um "-" só, ocupando todas as colunas de Atende
+            body += `<td colspan="${n}">-</td>`;
           } else {
-            for(let i=0;i<n;i++){
-              body += `<td>${vals[i] ? escapeHTML(vals[i]) : '-'}</td>`;
-            }
+            // igual aos Batismos: cada nome na sua coluna e o último se estica
+            // pelas colunas que sobrariam vazias (sem "-" sobrando)
+            vals.forEach((v, i)=>{
+              const isLast = i === vals.length - 1;
+              if(isLast && vals.length < n){
+                body += `<td colspan="${n - vals.length + 1}">${escapeHTML(v)}</td>`;
+              } else {
+                body += `<td>${escapeHTML(v)}</td>`;
+              }
+            });
           }
         } else if(f.type==='tags'){
           let tagData = entry.data[f.key];
