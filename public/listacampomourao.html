@@ -1470,6 +1470,13 @@ function buildSectionElement(section, sIdx){
   const body = document.createElement('div');
   body.className = 'section-body';
 
+  if (section.typeKey === 'coleta_reforco_caixa') {
+    const op = document.createElement('div');
+    op.className = 'sec-opcoes';
+    op.innerHTML = `<label title="As cidades ficam em duas colunas lado a lado, para ocupar menos espaço"><input type="checkbox" ${section.duasColunas === false ? '' : 'checked'}>Em duas colunas <small>(ocupa menos espaço)</small></label>`;
+    op.querySelector('input').onchange = (e)=>{ section.duasColunas = e.target.checked; saveState(); renderPreview(); };
+    body.appendChild(op);
+  }
   if (section.typeKey === 'evangelizacao') {
     const op = document.createElement('div');
     op.className = 'sec-opcoes';
@@ -1958,9 +1965,11 @@ function buildDocumentHTMLClassico(){
     // ancião, só os diáconos aparecem (ocupando todo o Atende).
     if(section.typeKey === 'coleta_reforco_caixa'){
       const temCidade = section.entries.some(e=>(e.data.cidade||'').trim());
-      let nD = 1;
-      section.entries.forEach(e=>{ nD = Math.max(nD, (e.data.diaconos||[]).filter(x=>x && x.trim()).length || 1); });
-      const nAt = 1 + nD, total = 2 + 1 + 1 + nAt;
+      // colunas de Atende = o maior nº de nomes numa linha (ancião, se tiver, + diáconos)
+      let nAt = 1;
+      section.entries.forEach(e=>{ nAt = Math.max(nAt, ((e.data.anciao||'').trim() ? 1 : 0) + (e.data.diaconos||[]).filter(x=>x && x.trim()).length); });
+      const total = 2 + 1 + 1 + nAt;
+      const duas = section.duasColunas !== false;
       const cab = `<tr><th colspan="2" style="width:65px; max-width:65px;">DATA</th><th style="${narrowCols['HORA']}">HORA</th><th style="${narrowCols['LOCAL']}">LOCAL</th><th colspan="${nAt}">ATENDE</th></tr>`;
       const linha = (entry)=>{
         let r = '<tr>';
@@ -1985,10 +1994,27 @@ function buildDocumentHTMLClassico(){
       const grupos = Array.from(gm.entries()).sort((a,b)=>a[0].localeCompare(b[0],'pt-BR'));
       // título da tabela num bloco próprio que não fica sozinho no pé da página (sem pular folha)
       body += `<div class="section-title-block sem-quebra" data-keep-next="true"><table><thead><tr><th colspan="${total}" class="table-title">${escapeHTML(def.label.toUpperCase())}</th></tr></thead></table></div>`;
-      grupos.forEach(([cidade, ents])=>{
+      // em duas colunas, larguras fixas: as tabelas das duas colunas ficam alinhadas
+      const colg = `<colgroup><col style="width:11%"><col style="width:9.5%"><col style="width:11%"><col style="width:27.5%">${Array.from({length:nAt},()=>`<col style="width:${(41/nAt).toFixed(2)}%">`).join('')}</colgroup>`;
+      const tabCidade = ([cidade, ents])=>{
         const th = `<tr><th colspan="4" class="table-title-cidade">${escapeHTML(cidade.toUpperCase())}</th><th colspan="${nAt}" class="table-title-cidade-rest"></th></tr>`;
-        body += `<div class="table-wrapper cidade-frame"><table><thead>${th}${cab}</thead><tbody>${ents.map(linha).join('')}</tbody></table></div>`;
-      });
+        return `<div class="table-wrapper cidade-frame"><table>${duas && grupos.length > 1 ? colg : ''}<thead>${th}${cab}</thead><tbody>${ents.map(linha).join('')}</tbody></table></div>`;
+      };
+      if (duas && grupos.length > 1){
+        // Duas colunas lado a lado: as cidades são divididas para as duas colunas
+        // ficarem com altura parecida (pelo nº de linhas), mantendo a ordem alfabética.
+        const peso = g => g[1].length + 2.2;
+        const tot = grupos.reduce((a,g)=>a+peso(g),0);
+        let melhor = 1, melhorMax = Infinity, acc = 0;
+        for (let i=1; i<grupos.length; i++){
+          acc += peso(grupos[i-1]);
+          const mx = Math.max(acc, tot-acc);
+          if (mx < melhorMax){ melhorMax = mx; melhor = i; }
+        }
+        body += `<div class="col2"><div class="col2-c">${grupos.slice(0,melhor).map(tabCidade).join('')}</div><div class="col2-c">${grupos.slice(melhor).map(tabCidade).join('')}</div></div>`;
+      } else {
+        grupos.forEach(g=>{ body += tabCidade(g); });
+      }
       return;
     }
 
@@ -2382,6 +2408,12 @@ function buildDocumentHTMLClassico(){
     .ev-bairro { font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
     td.ev-end { text-align: left !important; padding-left: 8px !important; }
     td.ev-atende { white-space: nowrap; }
+    .col2 { display: flex; gap: 2.5mm; align-items: flex-start; }
+    .col2-c { flex: 1 1 0; min-width: 0; }
+    .col2 table { table-layout: fixed; width: 100%; }
+    .col2 th, .col2 td { width: auto !important; max-width: none !important; overflow-wrap: break-word; padding-left: 2px !important; padding-right: 2px !important; }
+    .col2 tbody td:nth-child(-n+3) { white-space: nowrap; }
+    .col2-c > .table-wrapper:last-child { margin-bottom: 0; }
     .section-title-block.sem-quebra { page-break-before: auto; break-before: auto; }
 
     th.table-title-cidade {

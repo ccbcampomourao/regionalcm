@@ -168,6 +168,7 @@
     // classes por coluna (data, dia, hora, local...) para o estilo
     linhasPos.forEach(function (cells) {
       cells.forEach(function (x) {
+        if (x.td.parentNode.classList.contains('ev-loc')) return; // faixa do bairro
         var col = colDe(x.start);
         if (!col) return;
         var cls = ROTULOS[col.rotulo];
@@ -218,6 +219,7 @@
       th.innerHTML = '<span class="nv-cid">' + th.innerHTML + '</span>';
     });
     doc.querySelectorAll('.table-wrapper table').forEach(ajustarTabela);
+    doc.querySelectorAll('tr.ev-loc').forEach(function (tr) { var w = tr.closest('.table-wrapper'); if (w) w.classList.add('nv-bairros'); });
 
     // 4) avisos: títulos "-{ASSUNTO}-" viram subtítulos
     doc.querySelectorAll('th.avisos-title').forEach(function (th) {
@@ -277,6 +279,9 @@
     'tbody > tr:last-child > td{ border-bottom:none !important; }',
     'td{ padding:1px 4px; }',
     'td.col-atende{ white-space:nowrap; }',
+    /* coletas em duas colunas: colunas estreitas, o nome pode quebrar linha */
+    '.col2 td, .col2 th{ white-space:normal !important; letter-spacing:0 !important; padding-left:2px !important; padding-right:2px !important; }',
+    '.col2 td.col-data, .col2 td.col-dia, .col2 td.col-hora{ white-space:nowrap !important; }',
     'tbody tr:nth-child(even) > td{ background:var(--zebra); }',
     /* Reuniões Diversas: coluna de convocados um pouco mais larga (menos linhas quebradas) */
     'tr.nv-hd th.h-col-conv{ width:52mm !important; max-width:none !important; min-width:0 !important; }',
@@ -319,6 +324,15 @@
     '.nv-ev tbody tr:last-child td:first-child{ border-bottom-left-radius:2mm; }',
     '.nv-ev tbody tr:last-child td:last-child{ border-bottom-right-radius:2mm; }',
     'th.table-title-cidade-rest{ background:#fff !important; border-bottom:1pt solid var(--escuro) !important; }',
+    /* evangelização por bairro: faixa do bairro; reuniões em linhas brancas (sem zebra), endereço numa linha */
+    '.nv-bairros tbody tr > td{ background:#fff !important; }',
+    '.nv-bairros tbody tr.ev-loc > td{ background:var(--cidade) !important; text-align:left !important; padding:2px 8px 1px !important; border-top:.75pt solid var(--escuro) !important; border-bottom:.5pt solid var(--linhaH) !important; line-height:1.25 !important; }',
+    '.nv-bairros tbody tr.ev-loc-1 > td{ border-top:none !important; }',
+    '.nv-bairros .ev-bairro{ font-weight:700; letter-spacing:.06em; text-transform:uppercase; font-size:.95em; }',
+    '.nv-bairros td.col-end{ text-align:left !important; padding-left:8px !important; }',
+    '.nv-bairros td.col-data{ padding-left:8px !important; }',
+    '.nv-bairros .nv-casa{ display:inline; margin-left:.35em; color:#444; }',
+    '.nv-bairros tbody tr:not(.ev-loc) > td{ padding-top:2px !important; padding-bottom:2px !important; }',
 
     /* legenda */
     '.legenda-container{ margin:3px 0 0 !important; }',
@@ -343,6 +357,10 @@
     '.doc-header .org{ color:var(--escuro); }',
     '.doc-header .ttl{ color:var(--navy2); }',
     '.doc-header .nv-pt{ color:var(--ouro); }',
+    '.nv-bairros .ev-bairro{ color:var(--escuro); }',
+    '.nv-bairros tbody tr.ev-loc > td{ border-top-color:var(--ouro) !important; }',
+    '.nv-bairros tbody tr:not(.ev-loc) > td{ background:#fff !important; }',
+    '.nv-bairros tbody tr.ev-loc > td{ background:#f7f1e3 !important; }',
     '.doc-header .nv-per{ border-color:var(--ouro) !important; color:var(--escuro); background:#fbf8f1; }',
     '.doc-header .nv-per b{ color:var(--ouro); }',
     '.doc-header::after{ background:linear-gradient(90deg, #fff 0%, #a97d3d 12%, #a97d3d 46%, #fff 46%, #fff 54%, #a97d3d 54%, #a97d3d 88%, #fff 100%) top/100% 1.6px no-repeat, linear-gradient(90deg, #fff 0%, #a97d3d 6%, #a97d3d 46%, #fff 46%, #fff 54%, #a97d3d 54%, #a97d3d 94%, #fff 100%) bottom/100% .6px no-repeat !important; }',
