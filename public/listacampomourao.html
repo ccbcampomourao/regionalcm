@@ -2252,7 +2252,7 @@ function buildDocumentHTMLClassico(){
 
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escapeHTML(titulo)}</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght=400;700&display=swap');
+ ${fontesListaCSS()}
     
     @page { size:A4; margin:0; }
 
@@ -2263,7 +2263,7 @@ function buildDocumentHTMLClassico(){
 
     html,body { margin:0; padding:0; box-sizing: border-box; }
     body { 
-      font-family: 'Roboto', Arial, Helvetica, sans-serif; 
+      font-family: 'RobotoLista', Arial, Helvetica, sans-serif; 
       color:#000; 
       font-size:13px; 
     }
@@ -2525,7 +2525,7 @@ function getMeasureFrame(){
 }
 
 // a prévia é remontada logo depois que a pessoa para de digitar (não a cada tecla)
-let _tPrev = null;
+let _tPrev = null, _seqPrev = 0;
 function renderPreview(){
   clearTimeout(_tPrev);
   _tPrev = setTimeout(renderPreviewAgora, 140);
@@ -2535,7 +2535,11 @@ function renderPreviewAgora(){
   saveState();
   const html = buildDocumentHTML();
   const mFrame = getMeasureFrame();
-  mFrame.onload = function(){
+  const seq = ++_seqPrev;
+  mFrame.onload = async function(){
+    // mede as páginas só com a fonte da lista já carregada (igual ao PDF)
+    await esperarFontes(mFrame.contentDocument, 3000);
+    if (seq !== _seqPrev) return; // já veio uma prévia mais nova
     try {
       buildPagePlan(mFrame.contentDocument);
     } catch(e){
@@ -2810,15 +2814,31 @@ function changePreviewPage(dir) {
   displayCurrentPreviewPage();
 }
 
+/* A letra da lista vem do próprio site (assets/fonts), com um nome só dela
+   ("RobotoLista"): assim todo computador usa exatamente a mesma fonte e as
+   linhas quebram igual em qualquer lugar (antes dependia da fonte instalada). */
+function fontesListaCSS(){
+  const base = location.origin + '/assets/fonts/roboto-latin-';
+  const face = (peso, estilo) => `@font-face{font-family:'RobotoLista';font-style:${estilo};font-weight:${peso};font-display:block;src:url('${base}${peso}-${estilo}.woff2') format('woff2');}`;
+  return face(400,'normal') + face(700,'normal') + face(400,'italic') + face(700,'italic');
+}
+// espera a fonte da lista carregar no documento (com limite de tempo)
+function esperarFontes(doc, limiteMs){
+  const f = doc && doc.fonts;
+  if (!f || !f.load) return Promise.resolve();
+  const todas = Promise.all(['400 13px RobotoLista','700 13px RobotoLista','italic 400 13px RobotoLista','italic 700 13px RobotoLista'].map(x=>f.load(x).catch(()=>{}))).then(()=>f.ready);
+  return Promise.race([todas, new Promise(r=>setTimeout(r, limiteMs||4000))]);
+}
+
 function gerarPDF(){
   saveState();
   const html = buildDocumentHTML();
   const w = window.open('', '_blank');
   w.document.open(); w.document.write(html); w.document.close();
-  setTimeout(()=>{
-    w.focus();
-    w.print();
-  }, 400);
+  // só abre a impressão depois que a fonte e as imagens carregaram
+  const imgs = Array.from(w.document.images || []).map(im => im.complete ? null : new Promise(r=>{ im.onload = im.onerror = r; })).filter(Boolean);
+  Promise.all([esperarFontes(w.document, 5000), Promise.race([Promise.all(imgs), new Promise(r=>setTimeout(r, 5000))])])
+    .then(()=>setTimeout(()=>{ w.focus(); w.print(); }, 150));
 }
 
 function exportJSON(){
