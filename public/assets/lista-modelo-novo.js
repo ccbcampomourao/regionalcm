@@ -279,6 +279,8 @@
     /* células: linhas horizontais suaves, verticais quase invisíveis */
     'th, td{ border:none !important; border-right:.5pt solid var(--linhaV) !important; border-bottom:.5pt solid var(--linhaH) !important; line-height:1.18; }',
     'tr > th:last-child, tr > td:last-child{ border-right:none !important; }',
+    /* Atende: sem divisão quando não há o próximo nome */
+    'td.at-so{ border-right:none !important; }',
     'tbody > tr:last-child > td{ border-bottom:none !important; }',
     'td{ padding:1px 4px; }',
     'td.col-atende{ white-space:nowrap; }',
