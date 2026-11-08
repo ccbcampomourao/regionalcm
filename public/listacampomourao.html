@@ -459,7 +459,7 @@
   .g-div .c-convocados{display:flex; align-items:flex-start; gap:8px}
   .g-div .c-convocados::before{content:"Convoca"; padding-top:5px}
   .g-div .c-convocados>*{flex:1; min-width:0}
-  #formPanel .city-group-header{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:4px 6px 4px 12px}
+  #formPanel .city-group-header{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px 8px; padding:4px 6px 4px 12px}
   .cg-nome{display:inline-flex; align-items:center; gap:7px}
   .cg-nome svg.ic{width:14px; height:14px; color:#e0bd84}
   .cg-nome em{font-style:normal; font-size:11px; background:rgba(255,255,255,.16); border-radius:9px; padding:0 7px; line-height:18px}
@@ -467,6 +467,14 @@
   #formPanel .cg-acoes button{display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:600; padding:4px 9px; background:transparent; border-color:rgba(255,255,255,.25); color:#fdfbf6; letter-spacing:0; box-shadow:none; transform:none}
   #formPanel .cg-acoes button:hover{background:rgba(255,255,255,.12); border-color:#e0bd84}
   .cg-acoes svg.ic{width:13px; height:13px}
+  .cg-ord{display:inline-flex; gap:3px; margin-right:4px}
+  #formPanel .cg-ord .cg-up,#formPanel .cg-ord .cg-dn{padding:4px 6px}
+  .city-group-header.realce{animation:realce 1.6s ease}
+  .sec-ordem{font-size:12.5px; color:#7a6a45; margin:0 0 10px; display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+  #formPanel .sec-ordem button{font-size:12.5px; padding:4px 10px; background:#fff}
+  .cg-lado{display:inline-flex; align-items:center; gap:2px; margin-right:6px; font-size:11.5px; font-weight:600; color:#cfd6e2; letter-spacing:0}
+  #formPanel .cg-lado button{padding:3px 8px; font-size:11.5px; border-color:rgba(255,255,255,.22); margin-left:3px}
+  #formPanel .cg-lado button.on{background:#e0bd84; border-color:#e0bd84; color:#1b2a41}
 
   /* editor médio (prévia aberta numa tela comum): data, hora e o campo principal em cima; o resto embaixo, com o nome do campo */
   @container (max-width:900px){
@@ -976,6 +984,19 @@ function minutosDaHora(h) {
   if (!m) return 24 * 60 + 1;
   return (+m[1]) * 60 + (+(m[2] || 0));
 }
+/* Ordem das cidades (Evangelização e Coletas): alfabética, a não ser que a
+   pessoa tenha mudado a ordem (section.ordemCidades, lista de nomes em maiúsculas). */
+function chaveCidade(c){ return String(c||'').trim().toUpperCase(); }
+function compararCidades(section){
+  const ordem = Array.isArray(section.ordemCidades) ? section.ordemCidades : [];
+  return (a, b)=>{
+    const ka = chaveCidade(a), kb = chaveCidade(b);
+    const ia = ordem.indexOf(ka), ib = ordem.indexOf(kb);
+    if (ia !== ib){ if (ia === -1) return 1; if (ib === -1) return -1; return ia - ib; }
+    return ka.localeCompare(kb, 'pt-BR');
+  };
+}
+
 function sortStateDates() {
   STATE.sections.forEach(section => {
     if (section.entries && section.entries.length > 0) {
@@ -983,10 +1004,11 @@ function sortStateDates() {
         // Nas Reuniões de Evangelização (e nas Coletas), agrupa primeiro por cidade (em ordem
         // alfabética) e, dentro de cada cidade, ordena por data — igual ao
         // agrupamento que já é feito na pré-visualização/impressão.
+        const cmpCid = compararCidades(section);
         section.entries.sort((a, b) => {
           const cidadeA = (a.data && a.data.cidade ? a.data.cidade : '').trim();
           const cidadeB = (b.data && b.data.cidade ? b.data.cidade : '').trim();
-          const cidCompare = cidadeA.localeCompare(cidadeB, 'pt-BR');
+          const cidCompare = cmpCid(cidadeA, cidadeB);
           if (cidCompare !== 0) return cidCompare;
           const dateA = a.data && a.data.data ? a.data.data : "9999-12-31";
           const dateB = b.data && b.data.data ? b.data.data : "9999-12-31";
@@ -1355,6 +1377,7 @@ async function renomearCidade(sectionId, atual){
   const c = await pedirCidade('Renomear cidade', atual, section, 'Renomear');
   if (!c || c===atual) return;
   section.entries.forEach(e=>{ if ((e.data.cidade||'').trim()===atual) e.data.cidade = c; });
+  if (section.ladoCidade && section.ladoCidade[atual.toUpperCase()]){ section.ladoCidade[c.toUpperCase()] = section.ladoCidade[atual.toUpperCase()]; delete section.ladoCidade[atual.toUpperCase()]; }
   renderSection(sectionId); saveState(); renderPreview();
 }
 async function mudarCidade(sectionId, entryId){
@@ -1364,6 +1387,66 @@ async function mudarCidade(sectionId, entryId){
   if (!c) return;
   e.data.cidade = c;
   renderSection(sectionId); saveState(); renderPreview(); realcar(entryId);
+}
+
+// sobe/desce a cidade na ordem (a 1ª mudança parte da ordem que está na tela)
+function moverCidadeOrdem(sectionId, cidade, dir){
+  const section = STATE.sections.find(s=>s.id===sectionId);
+  const cmp = compararCidades(section);
+  const atuais = [...new Set(section.entries.map(e=>chaveCidade(e.data.cidade)))].sort(cmp);
+  const i = atuais.indexOf(chaveCidade(cidade)), j = i + dir;
+  if (i < 0 || j < 0 || j >= atuais.length) return;
+  [atuais[i], atuais[j]] = [atuais[j], atuais[i]];
+  section.ordemCidades = atuais;
+  sortStateDates(); renderSection(sectionId); saveState(); renderPreview();
+  const h = [...document.querySelectorAll(`[data-section-id="${sectionId}"] .city-group-header`)].find(x=>x.textContent.toUpperCase().includes(chaveCidade(cidade)));
+  if (h){ h.scrollIntoView({block:'center', behavior:'smooth'}); h.classList.remove('realce'); void h.offsetWidth; h.classList.add('realce'); }
+}
+function ordemAlfabetica(sectionId){
+  const section = STATE.sections.find(s=>s.id===sectionId);
+  delete section.ordemCidades;
+  sortStateDates(); renderSection(sectionId); saveState(); renderPreview();
+}
+// passa todas as linhas de uma cidade entre Evangelização e Coletas (com Desfazer)
+async function passarCidade(sectionId, cidade){
+  const orig = STATE.sections.find(s=>s.id===sectionId);
+  const tipoDest = orig.typeKey === 'evangelizacao' ? 'coleta_reforco_caixa' : 'evangelizacao';
+  const destinos = STATE.sections.filter(s=>s.typeKey===tipoDest);
+  let dest = destinos[0] || null;
+  if (destinos.length > 1){
+    const v = await UI.dialog({ title:'Para qual tabela?', icon:'move',
+      actions:[{label:'Cancelar', value:null}].concat(destinos.map(s=>({label:`Tabela ${STATE.sections.indexOf(s)+1}: ${SECTION_TYPES[s.typeKey].label}`, value:s.id}))) });
+    if (!v) return;
+    dest = destinos.find(s=>s.id===v);
+  }
+  const antes = JSON.stringify(STATE);
+  const linhas = orig.entries.filter(e=>(e.data.cidade||'').trim()===cidade);
+  let perdeEnd = false, cortados = 0;
+  const novas = linhas.map(e=>{
+    const d = e.data;
+    if (tipoDest === 'evangelizacao'){
+      const at = [(d.anciao||'').trim()].concat(d.diaconos||[]).filter(x=>x && x.trim());
+      return { id:newId(), data:{ cidade:d.cidade||'', data:d.data||'', hora:d.hora||'', local:d.local||'', endereco:'', atende: at.length ? at : [''] } };
+    }
+    if ((d.endereco||'').trim()) perdeEnd = true;
+    const at = (d.atende||[]).filter(x=>x && x.trim());
+    if (at.length > 3) cortados++;
+    return { id:newId(), data:{ cidade:d.cidade||'', data:d.data||'', hora:d.hora||'', local:d.local||'', anciao:'', diaconos: at.length ? at.slice(0,3) : [''] } };
+  });
+  if (!dest){
+    dest = { id:newId(), typeKey:tipoDest, entries:[], isOpen:true };
+    STATE.sections.push(dest);
+  }
+  dest.entries.push(...novas);
+  dest.isOpen = true;
+  orig.entries = orig.entries.filter(e=>(e.data.cidade||'').trim()!==cidade);
+  sortStateDates(); renderSections(); saveState(); renderPreview();
+  const avisos = [];
+  if (perdeEnd) avisos.push('os endereços ficaram de fora (Coletas não tem endereço)');
+  if (cortados) avisos.push(cortados + ' linha(s) tinham mais de 3 obreiros e ficaram com os 3 primeiros');
+  UI.toast(`${chaveCidade(cidade)} (${novas.length} ${novas.length===1?'linha':'linhas'}) foi para ${SECTION_TYPES[tipoDest].label}` + (avisos.length ? ' — ' + avisos.join('; ') : '') + '.',
+    {action:{label:'Desfazer', icon:'undo', fn:()=>loadStateFromJSON(antes)}, duration: avisos.length ? 10000 : 8000});
+  const el = document.querySelector(`[data-section-id="${dest.id}"]`); if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
 }
 
 /* ---------- foco e realce ---------- */
@@ -1485,8 +1568,14 @@ function buildSectionElement(section, sIdx){
     const op = document.createElement('div');
     op.className = 'sec-opcoes';
     op.innerHTML = `<label title="As cidades ficam em duas colunas lado a lado, para ocupar menos espaço"><input type="checkbox" ${section.duasColunas === false ? '' : 'checked'}>Em duas colunas <small>(ocupa menos espaço)</small></label>`;
-    op.querySelector('input').onchange = (e)=>{ section.duasColunas = e.target.checked; saveState(); renderPreview(); };
+    op.querySelector('input').onchange = (e)=>{ section.duasColunas = e.target.checked; saveState(); renderPreview(); renderSection(section.id); };
     body.appendChild(op);
+  }
+  if ((section.typeKey === 'evangelizacao' || section.typeKey === 'coleta_reforco_caixa') && Array.isArray(section.ordemCidades) && section.ordemCidades.length) {
+    const av = document.createElement('div'); av.className = 'sec-ordem';
+    av.innerHTML = `As cidades estão na ordem que você escolheu. <button type="button">Voltar para a ordem alfabética</button>`;
+    av.querySelector('button').onclick = ()=>ordemAlfabetica(section.id);
+    body.appendChild(av);
   }
   if (section.typeKey === 'evangelizacao') {
     const op = document.createElement('div');
@@ -1523,6 +1612,25 @@ function buildSectionElement(section, sIdx){
           const ch = document.createElement('div'); ch.className = 'city-group-header';
           ch.innerHTML = `<span class="cg-nome">${ICO('pin')}${escapeHTML(cid.toUpperCase())}<em>${qtdCid}</em></span>
             <span class="cg-acoes"><button type="button" class="cg-ren" title="Mudar o nome desta cidade em todas as linhas">${ICO('edit')}Renomear</button><button type="button" class="cg-add" title="Acrescentar uma reunião nesta cidade">${ICO('plus')}Linha</button></span>`;
+          if (section.typeKey === 'coleta_reforco_caixa' && section.duasColunas !== false && nomeReal) {
+            const chave = nomeReal.toUpperCase(), atual = (section.ladoCidade||{})[chave] || '';
+            const sel = document.createElement('span'); sel.className = 'cg-lado'; sel.title = 'Em qual coluna esta cidade fica na lista';
+            sel.innerHTML = 'Coluna:' + [['','Auto'],['esq','Esquerda'],['dir','Direita']].map(([v,t])=>`<button type="button" data-lado="${v}" class="${v===atual?'on':''}">${t}</button>`).join('');
+            sel.querySelectorAll('button').forEach(b=>b.onclick = ()=>{
+              section.ladoCidade = section.ladoCidade || {};
+              if (b.dataset.lado) section.ladoCidade[chave] = b.dataset.lado; else delete section.ladoCidade[chave];
+              sel.querySelectorAll('button').forEach(x=>x.classList.toggle('on', x===b));
+              saveState(); renderPreview();
+            });
+            ch.querySelector('.cg-acoes').prepend(sel);
+          }
+          const extra = document.createElement('span'); extra.className = 'cg-ord';
+          const outroTipo = section.typeKey === 'evangelizacao' ? 'Coletas' : 'Evangelização';
+          extra.innerHTML = `<button type="button" class="cg-up" title="Subir esta cidade">${ICO('chevron-up')}</button><button type="button" class="cg-dn" title="Descer esta cidade">${ICO('chevron-down')}</button><button type="button" class="cg-mov" title="Passar a cidade inteira para ${outroTipo}">${ICO('move')}${outroTipo}</button>`;
+          extra.querySelector('.cg-up').onclick = ()=>moverCidadeOrdem(section.id, nomeReal, -1);
+          extra.querySelector('.cg-dn').onclick = ()=>moverCidadeOrdem(section.id, nomeReal, +1);
+          extra.querySelector('.cg-mov').onclick = ()=>passarCidade(section.id, nomeReal);
+          ch.querySelector('.cg-acoes').prepend(extra);
           ch.querySelector('.cg-add').onclick = ()=>addEntry(section.id, null, nomeReal);
           ch.querySelector('.cg-ren').onclick = ()=>renomearCidade(section.id, nomeReal);
           body.appendChild(ch); novoGrupo();
@@ -1878,7 +1986,7 @@ function buildDocumentHTMLClassico(){
       });
       const groups = Array.from(groupsMap.entries())
         .map(([cidade, entries])=>({cidade, entries}))
-        .sort((a,b)=> a.cidade.localeCompare(b.cidade, 'pt-BR'));
+        .sort((a,b)=> compararCidades(section)(a.cidade, b.cidade));
       // bairro: sem diferenciar ponto, maiúscula, acento, "Jardim"/"Jd", "Parque"/"Pq", "Conjunto"/"Cj";
       // bairros na ordem da 1ª reunião de cada um; dentro do bairro, por data e hora
       const chLoc = e => (e.data.local||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
@@ -2002,7 +2110,7 @@ function buildDocumentHTMLClassico(){
       }
       const gm = new Map();
       section.entries.forEach(e=>{ const c = (e.data.cidade||'').trim() || 'SEM CIDADE INFORMADA'; if(!gm.has(c)) gm.set(c, []); gm.get(c).push(e); });
-      const grupos = Array.from(gm.entries()).sort((a,b)=>a[0].localeCompare(b[0],'pt-BR'));
+      const grupos = Array.from(gm.entries()).sort((a,b)=>compararCidades(section)(a[0], b[0]));
       // título da tabela num bloco próprio que não fica sozinho no pé da página (sem pular folha)
       body += `<div class="section-title-block sem-quebra" data-keep-next="true"><table><thead><tr><th colspan="${total}" class="table-title">${escapeHTML(def.label.toUpperCase())}</th></tr></thead></table></div>`;
       // em duas colunas, larguras fixas: as tabelas das duas colunas ficam alinhadas
@@ -2015,14 +2123,30 @@ function buildDocumentHTMLClassico(){
         // Duas colunas lado a lado: as cidades são divididas para as duas colunas
         // ficarem com altura parecida (pelo nº de linhas), mantendo a ordem alfabética.
         const peso = g => g[1].length + 2.2;
-        const tot = grupos.reduce((a,g)=>a+peso(g),0);
-        let melhor = 1, melhorMax = Infinity, acc = 0;
-        for (let i=1; i<grupos.length; i++){
-          acc += peso(grupos[i-1]);
-          const mx = Math.max(acc, tot-acc);
-          if (mx < melhorMax){ melhorMax = mx; melhor = i; }
+        const lado = section.ladoCidade || {};
+        const ladoDe = g => lado[g[0].toUpperCase()];
+        let esq, dir;
+        if (!grupos.some(ladoDe)) {
+          // automático: corta a lista (em ordem alfabética) onde as colunas ficam mais parecidas
+          const tot = grupos.reduce((a,g)=>a+peso(g),0);
+          let melhor = 1, melhorMax = Infinity, acc = 0;
+          for (let i=1; i<grupos.length; i++){
+            acc += peso(grupos[i-1]);
+            const mx = Math.max(acc, tot-acc);
+            if (mx < melhorMax){ melhorMax = mx; melhor = i; }
+          }
+          esq = grupos.slice(0,melhor); dir = grupos.slice(melhor);
+        } else {
+          // cidades com lado escolhido vão para ele; as outras completam a coluna mais baixa
+          esq = grupos.filter(g=>ladoDe(g)==='esq'); dir = grupos.filter(g=>ladoDe(g)==='dir');
+          let hE = esq.reduce((a,g)=>a+peso(g),0), hD = dir.reduce((a,g)=>a+peso(g),0);
+          grupos.filter(g=>!ladoDe(g)).sort((a,b)=>peso(b)-peso(a)).forEach(g=>{
+            if (hE <= hD){ esq.push(g); hE += peso(g); } else { dir.push(g); hD += peso(g); }
+          });
+          const alfa = (a,b)=>compararCidades(section)(a[0], b[0]);
+          esq.sort(alfa); dir.sort(alfa);
         }
-        body += `<div class="col2"><div class="col2-c">${grupos.slice(0,melhor).map(tabCidade).join('')}</div><div class="col2-c">${grupos.slice(melhor).map(tabCidade).join('')}</div></div>`;
+        body += `<div class="col2"><div class="col2-c">${esq.map(tabCidade).join('')}</div><div class="col2-c">${dir.map(tabCidade).join('')}</div></div>`;
       } else {
         grupos.forEach(g=>{ body += tabCidade(g); });
       }
