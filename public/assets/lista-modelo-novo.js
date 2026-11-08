@@ -241,14 +241,19 @@
   var CSS_NOVO = '\n' + [
     '/* ===== MODELO NOVO: a mesma lista, com acabamento elegante =====',
     '   Mesma estrutura e mesmos tamanhos de letra do modelo atual. */',
-    ':root{ --escuro:#2e2e2e; --linhaH:#bcbcbc; --linhaV:#d6d6d6; --faixa:#ededed; --cidade:#f3f3f3; --zebra:#f8f8f8; }',
+    /* linhas em PRETO puro: na impressora, cinza vira pontinhos (retícula) e a linha
+       fina sai falhada/apagada; preto sai contínuo. A leveza vem da espessura. */
+    ':root{ --escuro:#000; --linhaH:#000; --linhaV:#000; --lH:.45pt; --lV:.4pt; --faixa:#ededed; --cidade:#f3f3f3; --zebra:#f6f6f6; }',
     /* versão econômica: nada de fundo escuro — só cinzas bem claros, que quase não gastam tinta */
 
     /* página: sem moldura; rodapé com um filete fino */
     '.page-border{ display:none !important; }',
-    '.fixed-footer-left{ font-style:italic; bottom:2.6mm !important; }',
-    '.fixed-footer-right{ font-style:italic; bottom:2.6mm !important; }',
-    'div.fixed-footer-right[style*="absolute"]{ bottom:auto !important; transform:translateY(2.6mm); }',
+    /* rodapé a 6mm da borda (antes 2,6mm: a impressora não imprime tão perto da borda
+       e cortava); o espaço de baixo da folha cresce para o rodapé não encostar na lista */
+    '.fixed-footer-left{ font-style:italic; bottom:6mm !important; }',
+    '.fixed-footer-right{ font-style:italic; bottom:6mm !important; }',
+    'div.fixed-footer-right[style*="absolute"]{ bottom:auto !important; transform:translateY(-1.5mm); }',
+    '.spacer-pe{ height:10.5mm !important; }',
 
     /* cabeçalho: logo à esquerda, igreja e lista no centro, período num selo à direita.
        Altura total igual à do cabeçalho do modelo atual (44px + 8px de espaço). */
@@ -274,7 +279,7 @@
     '.table-wrapper > table, .section-title-block > table{ border:1pt solid var(--escuro) !important; border-radius:2mm; border-collapse:separate !important; border-spacing:0; overflow:hidden; }',
 
     /* células: linhas horizontais suaves, verticais quase invisíveis */
-    'th, td{ border:none !important; border-right:.5pt solid var(--linhaV) !important; border-bottom:.5pt solid var(--linhaH) !important; line-height:1.18; }',
+    'th, td{ border:none !important; border-right:var(--lV,.5pt) solid var(--linhaV) !important; border-bottom:var(--lH,.5pt) solid var(--linhaH) !important; line-height:1.18; }',
     'tr > th:last-child, tr > td:last-child{ border-right:none !important; }',
     'tbody > tr:last-child > td{ border-bottom:none !important; }',
     'td{ padding:1px 4px; }',
@@ -290,17 +295,17 @@
     /* título da seção: faixa escura com letra branca espaçada */
     'th.table-title, th.table-title.avisos-title{ background:var(--faixa) !important; color:#000 !important; letter-spacing:.12em; padding:2px 6px; border-right:none !important; border-bottom:1pt solid var(--escuro) !important; }',
     /* nomes das colunas: sem fundo, filete embaixo */
-    'tr.nv-hd th{ background:#fff !important; color:#000; letter-spacing:.04em; padding:1px 4px; border-right:.5pt solid var(--linhaV) !important; border-bottom:1pt solid var(--escuro) !important; }',
+    'tr.nv-hd th{ background:#fff !important; color:#000; letter-spacing:.04em; padding:1px 4px; border-right:var(--lV,.5pt) solid var(--linhaV) !important; border-bottom:1pt solid var(--escuro) !important; }',
     'tr.nv-hd th:last-child{ border-right:none !important; }',
 
     /* destaque só no que importa */
     'td{ font-weight:400 !important; }',
     'td.col-data, td.col-hora, td.col-local, td.col-evento{ font-weight:700 !important; }',
-    'td.col-dia{ font-weight:400 !important; color:#333; }',
+    'td.col-dia{ font-weight:400 !important; color:#000; }',
     'td.col-conv{ font-style:italic; }',
-    'td small{ display:block; font-size:inherit; font-weight:400; color:#333; }',
+    'td small{ display:block; font-size:inherit; font-weight:400; color:#000; }',
     'td.col-end{ line-height:1.2; }',
-    '.nv-casa{ display:block; font-style:italic; color:#333; }',
+    '.nv-casa{ display:block; font-style:italic; color:#000; }',
     'td.col-end{ line-height:1.12; }',
     /* evangelização: linhas mais justas (a casa ocupa a 2ª linha do endereço) — a letra não muda */
     '.nv-ev{ padding-top:1.3mm !important; }',
@@ -331,7 +336,7 @@
     '.nv-bairros .ev-bairro{ font-weight:700; letter-spacing:.06em; text-transform:uppercase; font-size:.95em; }',
     '.nv-bairros td.col-end{ text-align:left !important; padding-left:8px !important; }',
     '.nv-bairros td.col-data{ padding-left:8px !important; }',
-    '.nv-bairros .nv-casa{ display:inline; margin-left:.35em; color:#444; }',
+    '.nv-bairros .nv-casa{ display:inline; margin-left:.35em; color:#000; }',
     '.nv-bairros tbody tr:not(.ev-loc) > td{ padding-top:2px !important; padding-bottom:2px !important; }',
 
     /* legenda */
@@ -351,13 +356,15 @@
      Mesma folha do modelo novo, com as cores do aplicativo:
      azul-marinho #1b2a41 / #2c3f5c, dourado #a97d3d / #c99a55, creme #f5efe1. */
   var CSS_COR = '\n' + [
-    ':root{ --escuro:#1b2a41; --navy2:#2c3f5c; --ouro:#a97d3d; --ouro2:#c99a55; --linhaH:#ddd3bd; --linhaV:#ebe3cf; --faixa:#1b2a41; --cidade:#f3ecdb; --zebra:#fbf8f1; }',
+    ':root{ --escuro:#1b2a41; --navy2:#2c3f5c; --ouro:#a97d3d; --ouro2:#c99a55; --linhaH:#ddd3bd; --linhaV:#ebe3cf; --lH:.5pt; --lV:.5pt; --faixa:#1b2a41; --cidade:#f3ecdb; --zebra:#fbf8f1; }',
     'body{ color:#1f2a3d; }',
     /* cabeçalho */
     '.doc-header .org{ color:var(--escuro); }',
     '.doc-header .ttl{ color:var(--navy2); }',
     '.doc-header .nv-pt{ color:var(--ouro); }',
     '.nv-bairros .ev-bairro{ color:var(--escuro); }',
+    /* no Colorido os textos secundários continuam cinza (é para tela/PDF, não para imprimir em P&B) */
+    'td small, .nv-casa{ color:#333; }', '.nv-bairros .nv-casa{ color:#444; }',
     '.nv-bairros tbody tr.ev-loc > td{ border-top-color:var(--ouro) !important; }',
     '.nv-bairros tbody tr:not(.ev-loc) > td{ background:#fff !important; }',
     '.nv-bairros tbody tr.ev-loc > td{ background:#f7f1e3 !important; }',

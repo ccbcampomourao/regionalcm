@@ -2615,7 +2615,7 @@ function buildDocumentHTMLClassico(){
           </div>
           
         </td></tr></tbody>
-        <tfoot><tr><td><div class="spacer"></div></td></tr></tfoot>
+        <tfoot><tr><td><div class="spacer spacer-pe"></div></td></tr></tfoot>
       </table>
     </div>
   </body></html>`;
@@ -2700,9 +2700,13 @@ function buildPagePlan(mDoc){
 
   // O topo/rodapé (.spacer) se repete em toda página real (thead/tfoot da tabela de layout),
   // então o espaço útil de cada página deve descontar essa margem duas vezes.
+  // (o espaço de baixo pode ser maior que o de cima: no modelo Novo ele guarda lugar
+  // para o rodapé ficar longe da borda, onde a impressora não alcança)
   const spacerEl = offsetEl.querySelector('.spacer');
   const spacerHeightPx = spacerEl ? spacerEl.getBoundingClientRect().height : 0;
-  const contentBudget = Math.max(50, pageHeightPx - (spacerHeightPx * 2));
+  const spacerPeEl = offsetEl.querySelector('.spacer-pe');
+  const spacerPePx = spacerPeEl ? spacerPeEl.getBoundingClientRect().height : spacerHeightPx;
+  const contentBudget = Math.max(50, pageHeightPx - spacerHeightPx - spacerPePx);
 
   const contentPadding = offsetEl.querySelector('.content-padding');
   const units = [];
@@ -2817,7 +2821,7 @@ function buildPageHtmlDocument(pageIndex){
     <div class="content-padding">
       <div class="spacer"></div>
       ${fragments}
-      <div class="spacer"></div>
+      <div class="spacer spacer-pe"></div>
     </div>
   </body></html>`;
 }
