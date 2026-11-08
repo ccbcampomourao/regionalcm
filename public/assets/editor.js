@@ -26,6 +26,8 @@
     return /\.json$/.test(l) ? l : l + '.json';
   }
   function semExt(n) { return String(n || '').replace(/\.json$/i, ''); }
+  // arquivos que começam com "_" são de outras telas (ex.: _igrejas, do Relatório de Igrejas)
+  function soListas(a) { return (a || []).filter(function (f) { return !/^_/.test(f.nome); }); }
 
   function token() { return localStorage.getItem('session_token'); }
   function chaveUltimo() { return 'nuvem_ultimo_' + cfg.regiao; }
@@ -125,7 +127,7 @@
         validar(caixa);
         // Busca os arquivos existentes para avisar sobre substituição
         api('lista-list').then(function (d) {
-          arquivos = d.arquivos || [];
+          arquivos = soListas(d.arquivos);
           var host = corpo.querySelector('#nuvemExist');
           if (arquivos.length) {
             host.innerHTML = '<div class="ui-files__lbl">Ou atualize um arquivo existente</div>';
@@ -164,7 +166,7 @@
     var fim = UI.busy(btn, 'Buscando...');
     var arquivos;
     try {
-      arquivos = (await api('lista-list')).arquivos || [];
+      arquivos = soListas((await api('lista-list')).arquivos);
     } catch (e) {
       if (!e.silencioso) UI.toast(txt('Não foi possível acessar as listas salvas: ', 'Não foi possível acessar os calendários salvos: ') + e.message, 'error');
       fim();

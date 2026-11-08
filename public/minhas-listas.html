@@ -86,6 +86,11 @@ function renderListas(lists) {
   }
   html += bloco('Listas por localidade', locais, false);
   html += bloco('Calendários', cals, true);
+  // Relatório de Igrejas: para quem tem a lista de alguma região
+  const REG_IGREJAS = ['campomourao','cianorte','ubirata','pitanga','goioere','ivaipora'];
+  if ((lists || []).some(function (k) { return REG_IGREJAS.indexOf(k) !== -1; })) {
+    html += bloco('Cadastros', [{ url: '/relatorio-igrejas.html', label: 'Relatório de Igrejas', tipo: 'cal', desc: 'Casas de oração, cultos, ministério e parte musical da sua região' }], true);
+  }
   document.getElementById('conteudo').innerHTML = html;
   destacarUltima();
 }

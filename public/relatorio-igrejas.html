@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<script>
+/* Acesso: quem tem a lista de uma região edita o relatório de igrejas dessa região. */
+(function () {
+  document.documentElement.style.visibility = 'hidden';
+  var token = localStorage.getItem('session_token');
+  if (!token) { window.location.replace('/login.html'); return; }
+  fetch('/api/verify-session', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: token })
+  }).then(function (r) { return r.json(); }).then(function (data) {
+    if (data && data.ok) {
+      window.__SESSAO = data;
+      document.documentElement.style.visibility = 'visible';
+      var lists = Array.isArray(data.lists) ? data.lists : [];
+      function montarBarraTopo() {
+        var bar = document.createElement('div');
+        bar.style.cssText = 'position:absolute; top:12px; right:12px; z-index:99999; display:flex; gap:8px;';
+        var backBtn = document.createElement('a');
+        backBtn.href = data.role === 'admin' ? '/admin-listas.html' : '/minhas-listas.html';
+        backBtn.innerHTML = '<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-arrow-left"></use></svg>Voltar'; backBtn.className = 'topnav-btn';
+        backBtn.style.cssText = 'background:#fff; color:#1b2a41; text-decoration:none; padding:8px 16px; border-radius:9px; font-size:13px; font-weight:600; font-family:Inter, Arial, Helvetica, sans-serif; border:1.5px solid #e4dcc9;';
+        bar.appendChild(backBtn);
+        var sairBtn = document.createElement('a');
+        sairBtn.href = '#';
+        sairBtn.innerHTML = '<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-logout"></use></svg>Sair'; sairBtn.className = 'topnav-btn';
+        sairBtn.style.cssText = 'background:linear-gradient(180deg,#2c3f5c,#1b2a41); color:#fdfbf6; text-decoration:none; padding:8px 16px; border-radius:9px; font-size:13px; font-weight:600; font-family:Inter, Arial, Helvetica, sans-serif; border:1.5px solid #1b2a41;';
+        sairBtn.onclick = function (e) { e.preventDefault(); localStorage.removeItem('session_token'); window.location.href = '/login.html'; };
+        bar.appendChild(sairBtn);
+        document.body.appendChild(bar);
+      }
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', montarBarraTopo); else montarBarraTopo();
+      if (window.__aoEntrar) window.__aoEntrar(data);
+    } else {
+      localStorage.removeItem('session_token');
+      window.location.replace('/login.html');
+    }
+  }).catch(function () { window.location.replace('/login.html'); });
+})();
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Relatório de Igrejas</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--primary:#1b2a41;--primary-2:#2c3f5c;--brass:#a97d3d;--brass-lt:#c99a55;--accent:#b04b3c;--bg:#f5f1e8;--line:#e4dcc9;--ink:#24304a;--muted:#7a7263}
+*{box-sizing:border-box;font-family:'Inter',Arial,sans-serif}
+body{margin:0;background:var(--bg);color:var(--ink)}
+header{position:relative;padding:16px 200px 16px 22px;background:linear-gradient(180deg,var(--primary-2),var(--primary));color:#fdfbf6}
+header h1{margin:0;font-size:19px;font-family:'Fraunces',Georgia,serif;font-weight:600}
+header p{margin:4px 0 0;font-size:13px;opacity:.85}
+button{cursor:pointer;font-weight:600;border:1.5px solid var(--line);background:#fff;color:var(--primary);padding:8px 13px;border-radius:9px;font-size:13px;display:inline-flex;align-items:center;gap:7px;font-family:inherit}
+button:hover{border-color:var(--brass-lt)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--brass);outline-offset:1px}
+button.primary{background:linear-gradient(180deg,var(--primary-2),var(--primary));color:#fdfbf6;border-color:var(--primary)}
+button.danger{color:var(--accent)}
+button svg.ic{width:16px;height:16px}
+input,select,textarea{border:1.5px solid var(--line);border-radius:8px;padding:7px 9px;font-size:14px;width:100%;background:#fff;color:var(--ink);font-family:inherit}
+textarea{resize:vertical;min-height:60px}
+label{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#8f846b;display:block;margin:0 0 4px}
+
+/* barra de cima */
+.topo{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 16px;background:#faf6ec;border-bottom:1px solid #ebe3cf}
+.regs{display:flex;gap:4px;background:#ece6d6;padding:4px;border-radius:10px;flex-wrap:wrap}
+.regs button{border:none;background:transparent;padding:7px 12px;font-size:13.5px;color:#6d6652;border-radius:8px}
+.regs button.on{background:#fff;color:var(--primary);box-shadow:0 1px 3px rgba(27,42,65,.18)}
+.topo .esp{flex:1}
+.estado{font-size:12.5px;color:var(--muted);display:inline-flex;align-items:center;gap:6px}
+.estado b{color:#3d7a57}
+.estado.pend b{color:#a46a12}
+.menu{position:relative}
+.menu-box{display:none;position:absolute;right:0;top:calc(100% + 6px);min-width:250px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 18px 40px -16px rgba(27,42,65,.45);padding:6px;z-index:40}
+.menu.open .menu-box{display:block}
+.menu-box button{width:100%;border:none;justify-content:flex-start;padding:9px 12px;font-size:14px;border-radius:8px}
+.menu-box button:hover{background:#f6f1e4}
+.menu-box hr{border:none;border-top:1px solid var(--line);margin:5px 4px}
+
+/* corpo: lista de igrejas à esquerda, ficha à direita */
+.corpo{display:grid;grid-template-columns:320px minmax(0,1fr);gap:16px;padding:16px;align-items:start;max-width:1500px;margin:0 auto}
+.lado{position:sticky;top:76px;max-height:calc(100vh - 92px);display:flex;flex-direction:column;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.lado-top{padding:12px;border-bottom:1px solid #efe8d6;display:flex;flex-direction:column;gap:8px}
+.lado-top .busca{position:relative}
+.lado-top .busca svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:#a39a85}
+.lado-top .busca input{padding-left:34px}
+.lado-top .resumo{font-size:12px;color:var(--muted)}
+.lista{overflow:auto;padding:6px 6px 12px}
+.cid-h{display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--brass);padding:10px 8px 4px}
+.cid-h em{font-style:normal;background:#f1ebdc;color:#7a6a45;border-radius:9px;padding:0 7px;line-height:18px}
+.it{display:flex;flex-direction:column;align-items:flex-start;gap:1px;width:100%;border:1px solid transparent;background:none;padding:8px 10px;border-radius:9px;text-align:left;font-weight:600;font-size:14px;color:var(--primary)}
+.it:hover{background:#faf6ec;border-color:transparent}
+.it.on{background:var(--primary);color:#fdfbf6}
+.it small{font-weight:500;font-size:12px;color:#8f846b}
+.it.on small{color:#cfd6e2}
+.vazio{text-align:center;color:var(--muted);font-size:13px;padding:22px 12px}
+
+.ficha{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px 22px}
+.ficha-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px}
+.ficha-top h2{margin:0;font-family:'Fraunces',Georgia,serif;font-size:22px;color:var(--primary)}
+.ficha-top h2 small{display:block;font-family:'Inter',sans-serif;font-size:12.5px;font-weight:600;color:var(--brass);letter-spacing:.06em;text-transform:uppercase;margin-bottom:2px}
+.ficha-top .acoes{display:flex;gap:6px;flex-shrink:0}
+.bloco{border-top:1px solid #efe8d6;padding-top:16px;margin-top:16px}
+.bloco h3{display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:15px;color:var(--primary)}
+.bloco h3 svg{width:17px;height:17px;color:var(--brass)}
+.bloco h3 small{font-weight:500;font-size:12px;color:var(--muted)}
+.grid{display:grid;gap:12px}
+.g-id{grid-template-columns:1fr 1.2fr .8fr}
+.g-end{grid-template-columns:1fr}
+.g-2{grid-template-columns:1fr 1fr}
+/* linhas de culto / ensaio */
+.linhas{display:flex;flex-direction:column;gap:6px}
+.lc{display:grid;grid-template-columns:140px 130px 120px minmax(0,1fr) 34px;gap:8px;align-items:center}
+.le{display:grid;grid-template-columns:120px 140px 120px minmax(0,1fr) 34px;gap:8px;align-items:center}
+.lc-cab,.le-cab{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#9a8f76}
+.x{width:34px;height:34px;padding:0;justify-content:center;border-color:transparent;color:#a39a85;background:transparent}
+.x:hover{color:var(--accent);background:#fbeae4;border-color:#efc7bd}
+.mais{border-style:dashed;background:#fffdf8;font-size:13px;padding:7px 12px;align-self:flex-start}
+/* listas de nomes */
+.nomes{display:flex;flex-direction:column;gap:5px}
+.nomes .ni{display:flex;gap:4px}
+.nomes .ni input{flex:1}
+.nomes .ni button{width:34px;height:34px;padding:0;justify-content:center;border-color:transparent;background:transparent;color:#a39a85;flex-shrink:0}
+.nomes .ni button.add{color:var(--brass)}
+.nomes .ni button.add:hover{color:#fff;background:var(--brass)}
+.nomes .ni button.rem:hover{color:var(--accent);background:#fbeae4}
+.vazia-ficha{text-align:center;padding:60px 20px;color:var(--muted);background:#fff;border:1.5px dashed #dccfae;border-radius:14px}
+.vazia-ficha b{display:block;font-size:17px;color:var(--primary);margin-bottom:6px;font-family:'Fraunces',Georgia,serif}
+.dica{font-size:12.5px;color:var(--muted);margin-top:6px}
+
+@media (max-width:980px){
+  header{padding:64px 16px 14px}
+  .corpo{grid-template-columns:1fr;padding:10px}
+  .lado{position:static;max-height:none}
+  .lista{max-height:320px}
+  .g-id,.g-2{grid-template-columns:1fr}
+  .lc,.le{grid-template-columns:1fr 1fr 34px}
+  .lc>:nth-child(3),.le>:nth-child(3){grid-column:1}
+  .lc>:nth-child(4),.le>:nth-child(4){grid-column:2}
+  .lc-cab,.le-cab{display:none}
+  .topo{position:static}
+}
+</style>
+<link rel="stylesheet" href="/assets/ui.css">
+</head>
+<body>
+<header>
+  <h1>Relatório de Igrejas</h1>
+  <p>Casas de oração de cada região: endereço, código, cultos, ministério e parte musical. Fica salvo neste aparelho; use “Salvar na nuvem” para todos verem.</p>
+</header>
+
+<div class="topo">
+  <div class="regs" id="regs" role="tablist" aria-label="Região"></div>
+  <span class="esp"></span>
+  <span class="estado" id="estado"></span>
+  <div class="menu" id="menuArq">
+    <button type="button" onclick="togMenu(event,'menuArq')"><svg class="ic"><use href="/assets/icons.svg#i-file"></use></svg>Arquivo<svg class="ic"><use href="/assets/icons.svg#i-chevron-down"></use></svg></button>
+    <div class="menu-box">
+      <button type="button" id="btnNuvemSalvar" onclick="salvarNuvem()"><svg class="ic"><use href="/assets/icons.svg#i-cloud-up"></use></svg>Salvar na nuvem</button>
+      <button type="button" id="btnNuvemCarregar" onclick="carregarNuvem(true)"><svg class="ic"><use href="/assets/icons.svg#i-cloud-down"></use></svg>Recarregar da nuvem</button>
+      <hr>
+      <button type="button" onclick="baixarBackup()"><svg class="ic"><use href="/assets/icons.svg#i-download"></use></svg>Baixar backup (.json)</button>
+      <button type="button" onclick="document.getElementById('arqBackup').click()"><svg class="ic"><use href="/assets/icons.svg#i-upload"></use></svg>Abrir backup</button>
+    </div>
+  </div>
+  <button type="button" onclick="abrirPrevia()"><svg class="ic"><use href="/assets/icons.svg#i-eye"></use></svg>Pré-visualizar</button>
+  <button type="button" class="primary" onclick="gerarPDF()"><svg class="ic"><use href="/assets/icons.svg#i-print"></use></svg>Gerar PDF</button>
+  <input type="file" id="arqBackup" accept=".json" hidden onchange="abrirBackup(event)">
+</div>
+
+<div class="corpo">
+  <aside class="lado">
+    <div class="lado-top">
+      <div class="busca"><svg class="ic"><use href="/assets/icons.svg#i-search"></use></svg><input type="search" id="busca" placeholder="Buscar igreja, cidade ou nome" oninput="desenharLista()"></div>
+      <button type="button" class="primary" onclick="novaIgreja()"><svg class="ic"><use href="/assets/icons.svg#i-plus"></use></svg>Nova igreja</button>
+      <div class="resumo" id="resumo"></div>
+    </div>
+    <div class="lista" id="lista"></div>
+  </aside>
+  <main id="fichaHost"></main>
+</div>
+
+<script src="/assets/ui.js"></script>
+<script>
+/* =====================================================================
+   Relatório de Igrejas — um por região.
+   Dados: { regiao, igrejas:[{ id, cidade, nome, codigo, endereco,
+            cultos:[{dia, hora, tipo, obs}],
+            anciaes:[], diaconos:[], coopOficio:[], coopJovens:[],
+            encLocais:[], encRegionais:[], examinadoras:[],
+            ensaios:[{semana, dia, hora, obs}], obs }], atualizado }
+   Neste aparelho: localStorage 'ccb_igrejas_<regiao>'.
+   Na nuvem: arquivo "_igrejas" da região (o "_" esconde ele das listas).
+   ===================================================================== */
+const REGIOES = { campomourao:'Campo Mourão', cianorte:'Cianorte', ubirata:'Ubiratã', pitanga:'Pitanga', goioere:'Goioerê', ivaipora:'Ivaiporã' };
+const ARQ_NUVEM = '_igrejas';
+const DIAS = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+const TIPOS_CULTO = ['Culto','RJM','Culto de Jovens','Santa Ceia','Outro'];
+const SEMANAS = ['Todo','1º','2º','3º','4º','5º','Último'];
+const MINISTERIO = [
+  ['anciaes','Anciães','Ancião'], ['diaconos','Diáconos','Diácono'],
+  ['coopOficio','Cooperadores do Ofício Ministerial','Cooperador'], ['coopJovens','Cooperadores de Jovens e Menores','Cooperador']
+];
+const MUSICA = [
+  ['encLocais','Encarregados Locais','Encarregado'], ['encRegionais','Encarregados Regionais','Encarregado'], ['examinadoras','Examinadoras','Examinadora']
+];
+const ICO = n => `<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-${n}"></use></svg>`;
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const novoId = () => 'i' + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+
+let REG = null;            // região aberta
+let DADOS = null;          // { regiao, igrejas:[...], atualizado }
+let SEL = null;            // id da igreja aberta
+let NUVEM_EM = null;       // quando a nuvem foi atualizada (ms)
+let PENDENTE = false;      // há mudança não enviada para a nuvem
+
+function chaveLocal(r){ return 'ccb_igrejas_' + r; }
+function vazio(r){ return { regiao:r, igrejas:[], atualizado:0 }; }
+function ler(r){ try { const t = localStorage.getItem(chaveLocal(r)); if (t) return normalizar(JSON.parse(t), r); } catch(e){} return vazio(r); }
+function normalizar(d, r){
+  d = d && typeof d === 'object' ? d : {};
+  const lista = Array.isArray(d.igrejas) ? d.igrejas : [];
+  return { regiao: r, atualizado: d.atualizado || 0, igrejas: lista.map(i => Object.assign({
+    id: novoId(), cidade:'', nome:'', codigo:'', endereco:'', cultos:[], anciaes:[], diaconos:[], coopOficio:[], coopJovens:[],
+    encLocais:[], encRegionais:[], examinadoras:[], ensaios:[], obs:''
+  }, i)) };
+}
+let _tSalvar = null;
+function guardar(){
+  DADOS.atualizado = Date.now();
+  PENDENTE = true;
+  clearTimeout(_tSalvar);
+  _tSalvar = setTimeout(()=>{ try { localStorage.setItem(chaveLocal(REG), JSON.stringify(DADOS)); localStorage.setItem(chaveLocal(REG)+'_pend','1'); } catch(e){} mostrarEstado(); }, 250);
+}
+function mostrarEstado(){
+  const el = document.getElementById('estado');
+  const q = ms => { if (!ms) return ''; const d = new Date(ms); return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); };
+  el.className = 'estado' + (PENDENTE ? ' pend' : '');
+  el.innerHTML = PENDENTE
+    ? `${ICO('alert')}<span><b>Alterações só neste aparelho</b> — salve na nuvem para todos verem</span>`
+    : `${ICO('check-circle')}<span><b>Em dia com a nuvem</b>${NUVEM_EM ? ' · ' + q(NUVEM_EM) : ''}</span>`;
+}
+
+/* ---------- nuvem ---------- */
+async function api(rota, corpo){
+  const res = await fetch('/api/' + rota, { method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(Object.assign({ token: localStorage.getItem('session_token'), regiao: REG }, corpo || {})) });
+  let d = {}; try { d = await res.json(); } catch(e){}
+  if (!res.ok) throw new Error(d.error || 'Erro de comunicação com o servidor');
+  return d;
+}
+async function salvarNuvem(){
+  const btn = document.getElementById('btnNuvemSalvar');
+  const fim = UI.busy ? UI.busy(btn, 'Salvando...') : ()=>{};
+  try {
+    await api('lista-save', { nome: ARQ_NUVEM, conteudo: JSON.stringify(DADOS) });
+    PENDENTE = false; NUVEM_EM = Date.now();
+    try { localStorage.removeItem(chaveLocal(REG)+'_pend'); } catch(e){}
+    mostrarEstado();
+    UI.toast(`Relatório de ${REGIOES[REG]} salvo na nuvem.`, 'ok');
+  } catch(e){ UI.toast('Não foi possível salvar na nuvem: ' + e.message, 'error'); }
+  finally { fim(); }
+}
+// manual: pergunta antes de trocar o que está na tela
+async function carregarNuvem(manual){
+  try {
+    const lst = (await api('lista-list')).arquivos || [];
+    const arq = lst.find(a => a.nome === ARQ_NUVEM + '.json');
+    if (!arq){ if (manual) UI.toast(`Ainda não há relatório de ${REGIOES[REG]} salvo na nuvem.`, 'info'); NUVEM_EM = null; mostrarEstado(); return; }
+    NUVEM_EM = arq.modificado || null;
+    const pend = (()=>{ try { return localStorage.getItem(chaveLocal(REG)+'_pend')==='1'; } catch(e){ return false; } })();
+    if (pend && !manual){ PENDENTE = true; mostrarEstado(); return; } // não passa por cima do que ainda não foi enviado
+    if (manual && pend){
+      const ok = await UI.confirm('Trocar pelo que está na nuvem?', 'Este aparelho tem alterações que ainda não foram salvas na nuvem. Elas serão substituídas.', { ok:'Trocar', danger:true });
+      if (!ok) return;
+    }
+    const d = await api('lista-load', { nome: ARQ_NUVEM + '.json' });
+    const antes = JSON.stringify(DADOS);
+    DADOS = normalizar(typeof d.conteudo === 'string' ? JSON.parse(d.conteudo) : d.conteudo, REG);
+    try { localStorage.setItem(chaveLocal(REG), JSON.stringify(DADOS)); localStorage.removeItem(chaveLocal(REG)+'_pend'); } catch(e){}
+    PENDENTE = false;
+    if (!DADOS.igrejas.some(i=>i.id===SEL)) SEL = DADOS.igrejas[0] ? DADOS.igrejas[0].id : null;
+    desenharTudo();
+    if (manual) UI.toast('Relatório recarregado da nuvem.', { type:'ok', action:{ label:'Desfazer', icon:'undo', fn:()=>{ DADOS = normalizar(JSON.parse(antes), REG); guardar(); desenharTudo(); } } });
+  } catch(e){ if (manual) UI.toast('Não foi possível acessar a nuvem: ' + e.message, 'error'); }
+  mostrarEstado();
+}
+
+/* ---------- backup ---------- */
+function baixarBackup(){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(DADOS, null, 2)], {type:'application/json'}));
+  a.download = `relatorio_igrejas_${REG}.json`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+}
+function abrirBackup(ev){
+  const f = ev.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = ()=>{ try {
+    const antes = JSON.stringify(DADOS);
+    DADOS = normalizar(JSON.parse(r.result), REG); guardar(); SEL = DADOS.igrejas[0] ? DADOS.igrejas[0].id : null; desenharTudo();
+    UI.toast('Backup aberto.', { type:'ok', action:{ label:'Desfazer', icon:'undo', fn:()=>{ DADOS = normalizar(JSON.parse(antes), REG); guardar(); desenharTudo(); } } });
+  } catch(e){ UI.toast('Arquivo inválido.', 'error'); } };
+  r.readAsText(f); ev.target.value = '';
+}
+
+/* ---------- menus ---------- */
+function togMenu(ev, id){ ev.stopPropagation(); document.getElementById(id).classList.toggle('open'); }
+document.addEventListener('click', e=>{ document.querySelectorAll('.menu.open').forEach(m=>{ if (!m.contains(e.target) || e.target.closest('.menu-box button')) m.classList.remove('open'); }); });
+
+/* ---------- ordem e lista lateral ---------- */
+function ordenar(){
+  const ch = s => String(s||'').trim().toLowerCase();
+  DADOS.igrejas.sort((a,b)=> ch(a.cidade).localeCompare(ch(b.cidade),'pt-BR') || ((ch(b.nome)==='central') - (ch(a.nome)==='central')) || ch(a.nome).localeCompare(ch(b.nome),'pt-BR'));
+}
+function desenharRegioes(){
+  const permitidas = regioesPermitidas();
+  document.getElementById('regs').innerHTML = permitidas.map(r=>`<button type="button" role="tab" class="${r===REG?'on':''}" data-r="${r}">${esc(REGIOES[r])}</button>`).join('');
+  document.querySelectorAll('#regs [data-r]').forEach(b=>b.onclick=()=>abrirRegiao(b.dataset.r));
+}
+function desenharLista(){
+  ordenar();
+  const q = (document.getElementById('busca').value||'').trim().toLowerCase();
+  const casa = i => [i.cidade, i.nome, i.codigo, i.endereco, ...i.anciaes, ...i.diaconos, ...i.coopOficio, ...i.coopJovens, ...i.encLocais, ...i.encRegionais, ...i.examinadoras].join(' ').toLowerCase();
+  const vis = DADOS.igrejas.filter(i => !q || casa(i).includes(q));
+  const host = document.getElementById('lista');
+  const total = DADOS.igrejas.length, cidades = new Set(DADOS.igrejas.map(i=>(i.cidade||'').trim().toUpperCase()).filter(Boolean)).size;
+  document.getElementById('resumo').textContent = total ? `${total} ${total===1?'igreja':'igrejas'} em ${cidades} ${cidades===1?'cidade':'cidades'}` : '';
+  if (!total){ host.innerHTML = `<div class="vazio">Nenhuma igreja cadastrada em ${esc(REGIOES[REG])}.</div>`; return; }
+  if (!vis.length){ host.innerHTML = '<div class="vazio">Nada encontrado.</div>'; return; }
+  let h = '', ult = null;
+  vis.forEach(i=>{
+    const c = (i.cidade||'').trim().toUpperCase() || 'SEM CIDADE';
+    if (c !== ult){ ult = c; h += `<div class="cid-h">${esc(c)}<em>${vis.filter(x=>((x.cidade||'').trim().toUpperCase()||'SEM CIDADE')===c).length}</em></div>`; }
+    h += `<button type="button" class="it${i.id===SEL?' on':''}" data-id="${i.id}">${esc(i.nome || '(sem nome)')}<small>${esc([i.codigo, i.anciaes.filter(Boolean)[0]].filter(Boolean).join(' · ') || 'sem código')}</small></button>`;
+  });
+  host.innerHTML = h;
+  host.querySelectorAll('.it').forEach(b=>b.onclick=()=>{ SEL = b.dataset.id; desenharLista(); desenharFicha(); if (innerWidth<=980) document.getElementById('fichaHost').scrollIntoView({behavior:'smooth'}); });
+}
+
+/* ---------- ficha ---------- */
+const atual = () => DADOS.igrejas.find(i=>i.id===SEL);
+function campo(rot, valor, onInput, extra){
+  const d = document.createElement('div');
+  d.innerHTML = `<label>${esc(rot)}</label><input type="text" value="${esc(valor)}" ${extra||''}>`;
+  const inp = d.querySelector('input');
+  inp.oninput = ()=>{ onInput(inp.value); guardar(); };
+  return d;
+}
+function listaNomes(ig, chave, rot, item){
+  const d = document.createElement('div');
+  const desenhar = ()=>{
+    if (!ig[chave].length) ig[chave] = [''];
+    d.innerHTML = `<label>${esc(rot)}</label><div class="nomes"></div>`;
+    const box = d.querySelector('.nomes');
+    ig[chave].forEach((v, idx)=>{
+      const ni = document.createElement('div'); ni.className = 'ni';
+      const inp = document.createElement('input'); inp.type = 'text'; inp.value = v; inp.placeholder = item + ' (ex.: Ir. João)'; inp.setAttribute('aria-label', rot + ' ' + (idx+1));
+      inp.setAttribute('list', 'dlNomes');
+      inp.oninput = ()=>{ ig[chave][idx] = inp.value; guardar(); if (chave==='anciaes' || idx===0) desenharLista(); };
+      inp.onkeydown = e=>{ if (e.key==='Enter'){ e.preventDefault(); ig[chave].push(''); desenhar(); const t = d.querySelectorAll('input'); t[t.length-1].focus(); guardar(); } };
+      ni.appendChild(inp);
+      if (ig[chave].length > 1){ const x = document.createElement('button'); x.type='button'; x.className='rem'; x.title='Tirar'; x.innerHTML=ICO('x'); x.onclick=()=>{ ig[chave].splice(idx,1); guardar(); desenhar(); desenharLista(); }; ni.appendChild(x); }
+      if (idx === ig[chave].length-1){ const a = document.createElement('button'); a.type='button'; a.className='add'; a.title='Acrescentar ' + item.toLowerCase() + ' (ou Enter)'; a.innerHTML=ICO('plus'); a.onclick=()=>{ ig[chave].push(''); guardar(); desenhar(); const t = d.querySelectorAll('input'); t[t.length-1].focus(); }; ni.appendChild(a); }
+      else { const sp = document.createElement('span'); sp.style.width='34px'; ni.appendChild(sp); }
+      box.appendChild(ni);
+    });
+  };
+  desenhar();
+  return d;
+}
+function opcoes(lista, valor){ return lista.map(o=>`<option${o===valor?' selected':''}>${esc(o)}</option>`).join(''); }
+function linhasCultos(ig){
+  const d = document.createElement('div'); d.className = 'linhas';
+  const desenhar = ()=>{
+    d.innerHTML = ig.cultos.length ? `<div class="lc lc-cab"><span>Dia</span><span>Tipo</span><span>Horário</span><span>Observação</span><span></span></div>` : '<div class="dica">Nenhum culto lançado ainda.</div>';
+    ig.cultos.forEach((c, idx)=>{
+      const l = document.createElement('div'); l.className = 'lc';
+      l.innerHTML = `<select aria-label="Dia">${opcoes(DIAS, c.dia)}</select><select aria-label="Tipo">${opcoes(TIPOS_CULTO, c.tipo)}</select><input type="time" aria-label="Horário" value="${esc(c.hora)}"><input type="text" aria-label="Observação" placeholder="Ex.: 1º e 3º domingo" value="${esc(c.obs)}"><button type="button" class="x" title="Excluir">${ICO('x')}</button>`;
+      const [sd, st, ih, io] = l.querySelectorAll('select,input');
+      sd.onchange = ()=>{ c.dia = sd.value; guardar(); };
+      st.onchange = ()=>{ c.tipo = st.value; guardar(); };
+      ih.onchange = ih.oninput = ()=>{ c.hora = ih.value; guardar(); };
+      io.oninput = ()=>{ c.obs = io.value; guardar(); };
+      l.querySelector('.x').onclick = ()=>{ ig.cultos.splice(idx,1); guardar(); desenhar(); };
+      d.appendChild(l);
+    });
+    const m = document.createElement('button'); m.type='button'; m.className='mais'; m.innerHTML = ICO('plus') + 'Acrescentar culto';
+    m.onclick = ()=>{ const ult = ig.cultos[ig.cultos.length-1]; ig.cultos.push({ dia: ult ? ult.dia : 'Domingo', tipo: 'Culto', hora: '', obs: '' }); guardar(); desenhar(); d.querySelectorAll('.lc:last-of-type select')[0]?.focus(); };
+    d.appendChild(m);
+  };
+  desenhar(); return d;
+}
+function linhasEnsaios(ig){
+  const d = document.createElement('div'); d.className = 'linhas';
+  const desenhar = ()=>{
+    d.innerHTML = ig.ensaios.length ? `<div class="le le-cab"><span>Semana</span><span>Dia</span><span>Horário</span><span>Observação</span><span></span></div>` : '<div class="dica">Nenhum ensaio local lançado.</div>';
+    ig.ensaios.forEach((c, idx)=>{
+      const l = document.createElement('div'); l.className = 'le';
+      l.innerHTML = `<select aria-label="Semana do mês">${opcoes(SEMANAS, c.semana)}</select><select aria-label="Dia">${opcoes(DIAS, c.dia)}</select><input type="time" aria-label="Horário" value="${esc(c.hora)}"><input type="text" aria-label="Observação" placeholder="Ex.: meses ímpares" value="${esc(c.obs)}"><button type="button" class="x" title="Excluir">${ICO('x')}</button>`;
+      const [ss, sd, ih, io] = l.querySelectorAll('select,input');
+      ss.onchange = ()=>{ c.semana = ss.value; guardar(); };
+      sd.onchange = ()=>{ c.dia = sd.value; guardar(); };
+      ih.onchange = ih.oninput = ()=>{ c.hora = ih.value; guardar(); };
+      io.oninput = ()=>{ c.obs = io.value; guardar(); };
+      l.querySelector('.x').onclick = ()=>{ ig.ensaios.splice(idx,1); guardar(); desenhar(); };
+      d.appendChild(l);
+    });
+    const m = document.createElement('button'); m.type='button'; m.className='mais'; m.innerHTML = ICO('plus') + 'Acrescentar ensaio';
+    m.onclick = ()=>{ ig.ensaios.push({ semana:'1º', dia:'Domingo', hora:'', obs:'' }); guardar(); desenhar(); };
+    d.appendChild(m);
+  };
+  desenhar(); return d;
+}
+function bloco(icone, titulo, sub){
+  const b = document.createElement('section'); b.className = 'bloco';
+  b.innerHTML = `<h3>${ICO(icone)}${esc(titulo)}${sub ? ` <small>${esc(sub)}</small>` : ''}</h3>`;
+  return b;
+}
+function desenharFicha(){
+  const host = document.getElementById('fichaHost');
+  const ig = atual();
+  if (!ig){
+    host.innerHTML = `<div class="vazia-ficha"><b>${DADOS.igrejas.length ? 'Escolha uma igreja ao lado' : 'Nenhuma igreja cadastrada'}</b>${DADOS.igrejas.length ? 'ou cadastre uma nova.' : `Use <b style="display:inline;font-size:inherit;font-family:inherit">Nova igreja</b> para começar o relatório de ${esc(REGIOES[REG])}.`}</div>`;
+    return;
+  }
+  const f = document.createElement('div'); f.className = 'ficha';
+  const tit = ()=> `<small>${esc((ig.cidade||'Cidade').toUpperCase())}${ig.codigo ? ' · ' + esc(ig.codigo) : ''}</small>${esc(ig.nome || 'Nova igreja')}`;
+  f.innerHTML = `<div class="ficha-top"><h2 id="fTit">${tit()}</h2><div class="acoes">
+    <button type="button" id="bDup" title="Copiar esta ficha para cadastrar outra parecida">${ICO('copy')}Duplicar</button>
+    <button type="button" id="bDel" class="danger" title="Excluir esta igreja">${ICO('trash')}Excluir</button></div></div>`;
+  const reTit = ()=>{ f.querySelector('#fTit').innerHTML = tit(); desenharLista(); };
+
+  const b1 = bloco('pin', 'Identificação');
+  const g1 = document.createElement('div'); g1.className = 'grid g-id';
+  g1.appendChild(campo('Cidade', ig.cidade, v=>{ ig.cidade = v; reTit(); }, 'list="dlCidades" placeholder="Ex.: Campo Mourão"'));
+  g1.appendChild(campo('Casa de oração (bairro)', ig.nome, v=>{ ig.nome = v; reTit(); }, 'placeholder="Ex.: Central, Jd. Tropical"'));
+  g1.appendChild(campo('Código', ig.codigo, v=>{ ig.codigo = v; reTit(); }, 'placeholder="Ex.: BR-21-0123"'));
+  b1.appendChild(g1);
+  const g1b = document.createElement('div'); g1b.className = 'grid g-end'; g1b.style.marginTop = '12px';
+  g1b.appendChild(campo('Endereço', ig.endereco, v=>{ ig.endereco = v; }, 'placeholder="Rua, número, bairro"'));
+  b1.appendChild(g1b);
+  f.appendChild(b1);
+
+  const b2 = bloco('calendar', 'Cultos e RJM', 'dias e horários');
+  b2.appendChild(linhasCultos(ig)); f.appendChild(b2);
+
+  const b3 = bloco('users', 'Ministério');
+  const g3 = document.createElement('div'); g3.className = 'grid g-2';
+  MINISTERIO.forEach(([k, rot, item])=>g3.appendChild(listaNomes(ig, k, rot, item)));
+  b3.appendChild(g3); f.appendChild(b3);
+
+  const b4 = bloco('music', 'Parte musical');
+  const g4 = document.createElement('div'); g4.className = 'grid g-2';
+  MUSICA.forEach(([k, rot, item])=>g4.appendChild(listaNomes(ig, k, rot, item)));
+  b4.appendChild(g4);
+  const t4 = document.createElement('div'); t4.style.marginTop = '14px'; t4.innerHTML = '<label>Ensaio local</label>';
+  t4.appendChild(linhasEnsaios(ig)); b4.appendChild(t4);
+  f.appendChild(b4);
+
+  const b5 = bloco('file', 'Observações');
+  const ta = document.createElement('textarea'); ta.value = ig.obs || ''; ta.placeholder = 'Qualquer informação a mais sobre esta igreja';
+  ta.oninput = ()=>{ ig.obs = ta.value; guardar(); };
+  b5.appendChild(ta); f.appendChild(b5);
+
+  f.querySelector('#bDel').onclick = ()=>excluirIgreja(ig.id);
+  f.querySelector('#bDup').onclick = ()=>duplicarIgreja(ig.id);
+  host.replaceChildren(f);
+  atualizarSugestoes();
+}
+function novaIgreja(){
+  const base = atual();
+  const ig = normalizar({ igrejas:[{ cidade: base ? base.cidade : '' }] }, REG).igrejas[0];
+  ig.cultos = [{ dia:'Domingo', tipo:'Culto', hora:'', obs:'' }];
+  DADOS.igrejas.push(ig); SEL = ig.id; guardar(); desenharLista(); desenharFicha();
+  const n = document.querySelectorAll('#fichaHost .g-id input')[base && base.cidade ? 1 : 0]; if (n) n.focus();
+}
+function duplicarIgreja(id){
+  const o = DADOS.igrejas.find(i=>i.id===id); if (!o) return;
+  const c = JSON.parse(JSON.stringify(o)); c.id = novoId(); c.nome = (o.nome||'') + ' (cópia)'; c.codigo = '';
+  DADOS.igrejas.push(c); SEL = c.id; guardar(); desenharLista(); desenharFicha();
+  UI.toast('Ficha duplicada. Ajuste o nome e o código.', 'ok');
+}
+function excluirIgreja(id){
+  const i = DADOS.igrejas.findIndex(x=>x.id===id); if (i<0) return;
+  const [ig] = DADOS.igrejas.splice(i,1);
+  SEL = (DADOS.igrejas[i] || DADOS.igrejas[i-1] || {}).id || null;
+  guardar(); desenharLista(); desenharFicha();
+  UI.toast(`“${(ig.cidade?ig.cidade+' - ':'') + (ig.nome||'igreja')}” excluída.`, { action:{ label:'Desfazer', icon:'undo', fn:()=>{ DADOS.igrejas.splice(i,0,ig); SEL = ig.id; guardar(); desenharLista(); desenharFicha(); } } });
+}
+// sugestões: cidades e nomes já cadastrados na região
+function atualizarSugestoes(){
+  const mk = (id, vals)=>{ let dl = document.getElementById(id); if (!dl){ dl = document.createElement('datalist'); dl.id = id; document.body.appendChild(dl); } dl.innerHTML = [...new Set(vals.filter(v=>v && v.trim()).map(v=>v.trim()))].sort((a,b)=>a.localeCompare(b,'pt-BR')).map(v=>`<option value="${esc(v)}">`).join(''); };
+  mk('dlCidades', DADOS.igrejas.map(i=>i.cidade));
+  mk('dlNomes', DADOS.igrejas.flatMap(i=>[...i.anciaes, ...i.diaconos, ...i.coopOficio, ...i.coopJovens, ...i.encLocais, ...i.encRegionais, ...i.examinadoras]));
+}
+
+/* ---------- regiões ---------- */
+function regioesPermitidas(){
+  const s = window.__SESSAO || {};
+  const lists = s.role === 'admin' ? Object.keys(REGIOES) : (s.lists || []);
+  return Object.keys(REGIOES).filter(r => lists.includes(r));
+}
+function abrirRegiao(r){
+  REG = r; try { localStorage.setItem('ccb_igrejas_ultima', r); } catch(e){}
+  DADOS = ler(r);
+  PENDENTE = (()=>{ try { return localStorage.getItem(chaveLocal(r)+'_pend')==='1'; } catch(e){ return false; } })();
+  NUVEM_EM = null;
+  ordenar(); SEL = DADOS.igrejas[0] ? DADOS.igrejas[0].id : null;
+  document.getElementById('busca').value = '';
+  desenharTudo();
+  carregarNuvem(false);
+}
+function desenharTudo(){ desenharRegioes(); desenharLista(); desenharFicha(); mostrarEstado(); }
+
+window.__aoEntrar = function(){
+  const perm = regioesPermitidas();
+  if (!perm.length){
+    document.querySelector('.corpo').innerHTML = '<div class="vazia-ficha" style="grid-column:1/-1"><b>Nenhuma região liberada</b>Para editar o relatório de igrejas de uma região, peça ao administrador acesso à lista dessa região.</div>';
+    return;
+  }
+  let ult = null; try { ult = localStorage.getItem('ccb_igrejas_ultima'); } catch(e){}
+  const pedida = new URLSearchParams(location.search).get('regiao');
+  abrirRegiao(perm.includes(pedida) ? pedida : perm.includes(ult) ? ult : perm[0]);
+};
+if (window.__SESSAO) window.__aoEntrar(window.__SESSAO);
+
+/* =====================================================================
+   Impressão: uma ficha por igreja, duas por linha, agrupadas por cidade
+   ===================================================================== */
+function fontesCSS(){
+  const base = location.origin + '/assets/fonts/roboto-latin-';
+  const face = (p, e) => `@font-face{font-family:'RobotoLista';font-style:${e};font-weight:${p};font-display:block;src:url('${base}${p}-${e}.woff2') format('woff2');}`;
+  return face(400,'normal') + face(700,'normal') + face(400,'italic') + face(700,'italic');
+}
+function horaBR(h){ if (!h) return ''; const [H,M] = h.split(':'); return M && M !== '00' ? `${+H}h${M}` : `${+H}h`; }
+function nomesDe(v){ return (v||[]).map(x=>String(x||'').trim()).filter(Boolean); }
+function fichaHTML(ig){
+  const linha = (rot, vals) => { const n = nomesDe(vals); return n.length ? `<tr><th>${esc(rot)}</th><td>${n.map(esc).join(' · ')}</td></tr>` : ''; };
+  const ordemDia = d => DIAS.indexOf(d);
+  const cultos = (ig.cultos||[]).filter(c=>c.dia || c.hora).slice().sort((a,b)=> ordemDia(a.dia)-ordemDia(b.dia) || String(a.hora).localeCompare(String(b.hora)));
+  const cultosHTML = cultos.length ? `<table class="cultos"><tbody>${cultos.map(c=>`<tr><td class="cd">${esc(c.dia)}</td><td class="ch">${esc(horaBR(c.hora))}</td><td class="ct">${esc(c.tipo||'')}${c.obs ? ` <i>(${esc(c.obs)})</i>` : ''}</td></tr>`).join('')}</tbody></table>` : '<div class="nada">—</div>';
+  const ensaios = (ig.ensaios||[]).filter(e=>e.dia || e.hora).map(e=>`${e.semana && e.semana!=='Todo' ? esc(e.semana)+' ' : (e.semana==='Todo' ? 'Todo ' : '')}${esc((e.dia||'').toLowerCase())}${e.hora ? ' · ' + esc(horaBR(e.hora)) : ''}${e.obs ? ` <i>(${esc(e.obs)})</i>` : ''}`);
+  const CURTO = { anciaes:'Anciães', diaconos:'Diáconos', coopOficio:'Coop. do Ofício', coopJovens:'Coop. Jovens e Men.', encLocais:'Enc. Locais', encRegionais:'Enc. Regionais', examinadoras:'Examinadoras' };
+  const min = MINISTERIO.map(([k])=>linha(CURTO[k], ig[k])).join('');
+  const mus = MUSICA.map(([k])=>linha(CURTO[k], ig[k])).join('') + (ensaios.length ? `<tr><th>Ensaio local</th><td>${ensaios.join(' · ')}</td></tr>` : '');
+  return `<div class="ficha">
+    <div class="f-cab"><div><span class="f-cid">${esc((ig.cidade||'').toUpperCase())}</span><span class="f-nome">${esc(ig.nome||'')}</span></div>${ig.codigo ? `<span class="f-cod">${esc(ig.codigo)}</span>` : ''}</div>
+    ${ig.endereco ? `<div class="f-end">${esc(ig.endereco)}</div>` : ''}
+    <div class="f-sec">Cultos e RJM</div>${cultosHTML}
+    <div class="f-sec">Ministério</div>${min ? `<table class="pes"><tbody>${min}</tbody></table>` : '<div class="nada">—</div>'}
+    <div class="f-sec">Parte musical</div>${mus ? `<table class="pes"><tbody>${mus}</tbody></table>` : '<div class="nada">—</div>'}
+    ${ig.obs && ig.obs.trim() ? `<div class="f-obs"><b>Obs.:</b> ${esc(ig.obs).replace(/\n/g,'<br>')}</div>` : ''}
+  </div>`;
+}
+function documentoHTML(){
+  ordenar();
+  const grupos = new Map();
+  DADOS.igrejas.forEach(i=>{ const c = (i.cidade||'').trim().toUpperCase() || 'SEM CIDADE'; if (!grupos.has(c)) grupos.set(c, []); grupos.get(c).push(i); });
+  const hoje = new Date().toLocaleDateString('pt-BR');
+  let corpo = '';
+  grupos.forEach((igs, c)=>{
+    corpo += `<section class="cidade"><h2 class="c-tit"><span>${esc(c)}</span><em>${igs.length} ${igs.length===1?'igreja':'igrejas'}</em></h2><div class="fichas">${igs.map(fichaHTML).join('')}</div></section>`;
+  });
+  if (!corpo) corpo = '<p style="text-align:center;color:#777;margin-top:40mm">Nenhuma igreja cadastrada.</p>';
+  return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Relatório de Igrejas - ${esc(REGIOES[REG])}</title><style>
+${fontesCSS()}
+@page{size:A4 portrait;margin:11mm 10mm 13mm;
+  @bottom-left{content:"Relatório de Igrejas · Região ${esc(REGIOES[REG])} · emitido em ${hoje}";font-family:'RobotoLista',Arial,sans-serif;font-size:7.5pt;color:#555}
+  @bottom-right{content:"Página " counter(page) " de " counter(pages);font-family:'RobotoLista',Arial,sans-serif;font-size:7.5pt;color:#555}}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:'RobotoLista',Arial,sans-serif;color:#111;font-size:9.6pt;line-height:1.28;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.topo{display:flex;align-items:center;gap:4mm;border-bottom:1.2pt solid #1b2a41;padding-bottom:2.5mm;margin-bottom:4mm}
+.topo img{height:13mm}
+.topo .tx{flex:1;text-align:center}
+.topo h1{margin:0;font-size:13pt;letter-spacing:.14em}
+.topo h2{margin:1mm 0 0;font-size:10.5pt;letter-spacing:.06em;font-weight:700}
+.topo .dt{font-size:8pt;color:#555;text-align:right;width:28mm}
+.cidade{margin-bottom:3mm}
+.c-tit{display:flex;align-items:baseline;justify-content:space-between;margin:0 0 2mm;padding:1.2mm 3mm;background:#1b2a41;color:#fff;border-radius:1.6mm;font-size:10.5pt;letter-spacing:.1em}
+.c-tit em{font-style:normal;font-weight:400;font-size:8.5pt;letter-spacing:0;opacity:.85}
+.fichas{display:grid;grid-template-columns:1fr 1fr;gap:3mm}
+.ficha{border:.8pt solid #9aa3b2;border-radius:2mm;padding:2.4mm 3mm 2.6mm;break-inside:avoid;page-break-inside:avoid}
+.f-cab{display:flex;justify-content:space-between;align-items:flex-start;gap:2mm;border-bottom:.8pt solid #1b2a41;padding-bottom:1.2mm;margin-bottom:1.2mm}
+.f-cid{display:block;font-size:7.5pt;font-weight:700;letter-spacing:.1em;color:#a97d3d}
+.f-nome{display:block;font-size:11.5pt;font-weight:700}
+.f-cod{font-size:8.5pt;font-weight:700;border:.8pt solid #1b2a41;border-radius:1.2mm;padding:.3mm 1.6mm;white-space:nowrap}
+.f-end{font-size:9pt;margin-bottom:.6mm}
+.f-sec{font-size:7.6pt;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#a97d3d;margin:1.6mm 0 .5mm}
+table{width:100%;border-collapse:collapse}
+.cultos td{padding:.25mm 0;vertical-align:top}
+.cultos .cd{width:17mm;font-weight:700}
+.cultos .ch{width:11mm}
+.pes th{width:27mm;white-space:nowrap;text-align:left;font-weight:700;vertical-align:top;padding:.25mm 1.5mm .25mm 0;font-size:8.6pt}
+.pes td{padding:.25mm 0;vertical-align:top}
+.pes tr+tr th,.pes tr+tr td,.cultos tr+tr td{border-top:.4pt solid #e1e1e1}
+.nada{color:#888}
+.f-obs{margin-top:1.4mm;font-size:8.8pt;border-top:.4pt solid #ddd;padding-top:1mm}
+</style></head><body>
+<div class="topo"><img src="${location.origin}/assets/ccb-logo.png" alt=""><div class="tx"><h1>CONGREGAÇÃO CRISTÃ NO BRASIL</h1><h2>RELATÓRIO DE IGREJAS · REGIÃO ${esc(REGIOES[REG].toUpperCase())} - PR</h2></div><div class="dt">Emitido em<br>${hoje}</div></div>
+${corpo}
+</body></html>`;
+}
+function esperarFontes(doc, ms){
+  const f = doc && doc.fonts; if (!f || !f.load) return Promise.resolve();
+  const t = Promise.all(['400 12px RobotoLista','700 12px RobotoLista','italic 400 12px RobotoLista'].map(x=>f.load(x).catch(()=>{}))).then(()=>f.ready);
+  return Promise.race([t, new Promise(r=>setTimeout(r, ms||4000))]);
+}
+function abrirDoc(imprimir){
+  const w = window.open('', imprimir ? '_blank' : 'previaIgrejas');
+  if (!w){ UI.toast('O navegador bloqueou a janela nova. Permita pop-ups para este site.', 'error'); return; }
+  w.document.open(); w.document.write(documentoHTML()); w.document.close();
+  if (imprimir){
+    const imgs = Array.from(w.document.images).map(im => im.complete ? null : new Promise(r=>{ im.onload = im.onerror = r; })).filter(Boolean);
+    Promise.all([esperarFontes(w.document, 5000), Promise.race([Promise.all(imgs), new Promise(r=>setTimeout(r,5000))])]).then(()=>setTimeout(()=>{ w.focus(); w.print(); }, 150));
+  } else w.focus();
+}
+function abrirPrevia(){ abrirDoc(false); }
+function gerarPDF(){ abrirDoc(true); }
+window.__documentoHTML = documentoHTML;
+</script>
+</body>
+</html>
