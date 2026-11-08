@@ -447,7 +447,7 @@
   .lin{--dt:12.2em; --hr:6.6em}
   .g-simp{grid-template-columns:var(--dt) var(--hr) minmax(0,1fr) minmax(0,1.1fr) auto; grid-template-areas:"data hora local atende acoes"}
   .g-bat{grid-template-columns:var(--dt) var(--hr) minmax(0,1fr) minmax(0,.9fr) minmax(0,1fr) auto; grid-template-areas:"data hora local anciao diaconos acoes"}
-  .g-cat{grid-template-columns:var(--dt) var(--hr) minmax(0,1fr) minmax(0,1fr) auto; grid-template-areas:"data hora local categoria acoes"}
+  .g-cat{grid-template-columns:var(--dt) var(--hr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) auto; grid-template-areas:"data hora local categoria atende acoes"}
   .g-div{grid-template-columns:var(--dt) var(--hr) minmax(0,1fr) minmax(0,1fr) auto; grid-template-areas:"data hora local evento acoes" "conv conv conv conv acoes"}
   .g-coz{grid-template-columns:var(--dt) var(--hr) 9.5em 7em minmax(0,1fr) auto; grid-template-areas:"data hora tipo aprox evento acoes"}
   .g-eva{grid-template-columns:var(--dt) var(--hr) minmax(0,.75fr) minmax(0,1.35fr) minmax(0,.9fr) auto; grid-template-areas:"data hora local endereco atende acoes"}
@@ -793,12 +793,13 @@ const SECTION_TYPES = {
   },
   ensaio_geral_categoria: {
     label: "Ensaio Geral por Categoria",
-    columns: ["Data","Hora","Local","Categoria"],
+    columns: ["Data","Hora","Local","Categoria","Atende"],
     fields: [
       {key:"data", label:"Data", type:"date"},
       {key:"hora", label:"Hora", type:"time"},
       {key:"local", label:"Local", type:"text"},
-      {key:"categoria", label:"Categoria", type:"text"}
+      {key:"categoria", label:"Categoria", type:"text"},
+      {key:"atende", label:"Atende", type:"list", itemLabel:"Obreiro"}
     ]
   },
   santa_ceia: {
@@ -986,6 +987,14 @@ function minutosDaHora(h) {
 }
 /* Ordem das cidades (Evangelização e Coletas): alfabética, a não ser que a
    pessoa tenha mudado a ordem (section.ordemCidades, lista de nomes em maiúsculas). */
+/* Obreiros do Atende sempre alinhados: cada nome na sua coluna (o 1º — o ancião —
+   sempre na primeira) e as colunas que sobram ficam em branco, sem esticar/centralizar. */
+function celulasAtende(vals, n){
+  if (!vals.length) vals = ['-']; // ninguém: "-" na 1ª coluna, também alinhado
+  let h = vals.slice(0, n).map(v=>`<td>${escapeHTML(v)}</td>`).join('');
+  for (let i = vals.length; i < n; i++) h += '<td></td>';
+  return h;
+}
 function chaveCidade(c){ return String(c||'').trim().toUpperCase(); }
 function compararCidades(section){
   const ordem = Array.isArray(section.ordemCidades) ? section.ordemCidades : [];
@@ -2028,20 +2037,8 @@ function buildDocumentHTMLClassico(){
               const vals = (entry.data[f.key]||[]).filter(x=>x && x.trim());
               if(porBairro && f.key==='atende'){
                 rowsHtml += `<td class="ev-atende">${vals.length ? vals.map(escapeHTML).join(' · ') : '-'}</td>`;
-              } else if(!vals.length){
-                rowsHtml += `<td colspan="${n}">-</td>`;
               } else {
-                vals.forEach((v, i)=>{
-                  const isLast = i === vals.length - 1;
-                  if(isLast && vals.length < n){
-                    // Não tem próximo obreiro: mescla essa célula com as
-                    // colunas que sobrariam vazias, em vez de deixá-las em branco.
-                    const span = n - vals.length + 1;
-                    rowsHtml += `<td colspan="${span}">${escapeHTML(v)}</td>`;
-                  } else {
-                    rowsHtml += `<td>${escapeHTML(v)}</td>`;
-                  }
-                });
+                rowsHtml += celulasAtende(vals, n);
               }
             } else if(f.type==='date'){
               rowsHtml += `<td style="width:10px; max-width:10px;">${fmtDate(entry.data[f.key])}</td>`;
@@ -2073,8 +2070,11 @@ function buildDocumentHTMLClassico(){
     if(section.typeKey === 'coleta_reforco_caixa'){
       const temCidade = section.entries.some(e=>(e.data.cidade||'').trim());
       // colunas de Atende = o maior nº de nomes numa linha (ancião, se tiver, + diáconos)
-      let nAt = 1;
-      section.entries.forEach(e=>{ nAt = Math.max(nAt, ((e.data.anciao||'').trim() ? 1 : 0) + (e.data.diaconos||[]).filter(x=>x && x.trim()).length); });
+      // colunas de Atende: a do ancião (só se alguma coleta tiver ancião) + as dos diáconos
+      const temAnc = section.entries.some(e=>(e.data.anciao||'').trim());
+      let nDc = 0;
+      section.entries.forEach(e=>{ nDc = Math.max(nDc, (e.data.diaconos||[]).filter(x=>x && x.trim()).length); });
+      const nAt = Math.max(1, (temAnc ? 1 : 0) + nDc);
       const total = 2 + 1 + 1 + nAt;
       const duas = section.duasColunas !== false;
       const cab = `<tr><th colspan="2" style="width:65px; max-width:65px;">DATA</th><th style="${narrowCols['HORA']}">HORA</th><th style="${narrowCols['LOCAL']}">LOCAL</th><th colspan="${nAt}">ATENDE</th></tr>`;
@@ -2084,12 +2084,15 @@ function buildDocumentHTMLClassico(){
         r += `<td>${fmtTime(entry.data.hora) || '-'}</td>`;
         r += `<td>${escapeHTML(entry.data.local||'') || '-'}</td>`;
         const anc = (entry.data.anciao||'').trim();
-        const nomes = (anc ? [anc] : []).concat((entry.data.diaconos||[]).filter(x=>x && x.trim()));
-        if (!nomes.length) r += `<td colspan="${nAt}">-</td>`;
-        else nomes.forEach((v,i)=>{
-          const ultimo = i === nomes.length - 1;
-          r += (ultimo && nomes.length < nAt) ? `<td colspan="${nAt - nomes.length + 1}">${escapeHTML(v)}</td>` : `<td>${escapeHTML(v)}</td>`;
-        });
+        const dcs = (entry.data.diaconos||[]).filter(x=>x && x.trim());
+        if (!anc && !dcs.length) r += '<td>-</td>' + '<td></td>'.repeat(nAt - 1);
+        else {
+          // ancião sempre na 1ª coluna (em branco se não tiver); diáconos alinhados depois
+          if (temAnc) r += `<td>${escapeHTML(anc)}</td>`;
+          const nd = nAt - (temAnc ? 1 : 0);
+          r += dcs.slice(0, nd).map(v=>`<td>${escapeHTML(v)}</td>`).join('');
+          for (let i = dcs.length; i < nd; i++) r += '<td></td>';
+        }
         return r + '</tr>';
       };
       if (!temCidade){
@@ -2273,50 +2276,18 @@ function buildDocumentHTMLClassico(){
       const isBatismo = (section.typeKey === 'batismo' || section.typeKey === 'batissimo' || section.typeKey === 'coleta_reforco_caixa');
       const diaconosVaziosBatismo = isBatismo && !((entry.data['diaconos']||[]).filter(x=>x && x.trim()).length);
       def.fields.forEach(f=>{
-        if(isBatismo && f.key === 'anciao' && diaconosVaziosBatismo){
-          // Sem diácono preenchido: a célula do Ancião ocupa também o
-          // espaço das colunas de diácono, em vez de deixar um "-" ali.
-          const n = maxCounts['diaconos'] || 1;
-          body += `<td colspan="${1+n}">${escapeHTML(entry.data[f.key]||'') || '-'}</td>`;
-          return;
-        }
+        // (o Ancião fica sempre na sua coluna, mesmo sem diácono — alinhado com as outras linhas)
         if(f.type==='list'){
           const n = maxCounts[f.key];
           const vals = (entry.data[f.key]||[]).filter(x=>x && x.trim());
           const isDiaconosBatismo = isBatismo && f.key === 'diaconos';
           if(isDiaconosBatismo){
-            if(diaconosVaziosBatismo){
-              // Já foi absorvido pela célula do Ancião acima: não emite
-              // nenhuma célula extra aqui.
-              return;
-            }
-            // Cada linha usa só as colunas de que precisa: se essa entrada
-            // tem menos diáconos que o máximo da seção, a última célula
-            // preenchida se estica (colspan) e ocupa o espaço das colunas
-            // que sobrariam vazias, em vez de mostrar "-" nelas.
-            vals.forEach((v, i)=>{
-              const isLast = i === vals.length - 1;
-              if(isLast && vals.length < n){
-                const span = n - vals.length + 1;
-                body += `<td colspan="${span}">${escapeHTML(v)}</td>`;
-              } else {
-                body += `<td>${escapeHTML(v)}</td>`;
-              }
-            });
-          } else if(!vals.length){
-            // ninguém lançado: um "-" só, ocupando todas as colunas de Atende
-            body += `<td colspan="${n}">-</td>`;
+            // diáconos alinhados depois do ancião; colunas que sobram em branco
+            let h = vals.slice(0, n).map(v=>`<td>${escapeHTML(v)}</td>`).join('');
+            for (let i = vals.length; i < n; i++) h += '<td></td>';
+            body += h;
           } else {
-            // igual aos Batismos: cada nome na sua coluna e o último se estica
-            // pelas colunas que sobrariam vazias (sem "-" sobrando)
-            vals.forEach((v, i)=>{
-              const isLast = i === vals.length - 1;
-              if(isLast && vals.length < n){
-                body += `<td colspan="${n - vals.length + 1}">${escapeHTML(v)}</td>`;
-              } else {
-                body += `<td>${escapeHTML(v)}</td>`;
-              }
-            });
+            body += celulasAtende(vals, n);
           }
         } else if(f.type==='tags'){
           let tagData = entry.data[f.key];
