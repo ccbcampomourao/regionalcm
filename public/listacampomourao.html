@@ -1407,45 +1407,34 @@ function ordemAlfabetica(sectionId){
   delete section.ordemCidades;
   sortStateDates(); renderSection(sectionId); saveState(); renderPreview();
 }
-// passa todas as linhas de uma cidade entre Evangelização e Coletas (com Desfazer)
+// move todas as linhas de uma cidade para outra tabela do MESMO tipo
+// (Coletas -> outra tabela de Coletas; Evangelização -> outra de Evangelização), com Desfazer
 async function passarCidade(sectionId, cidade){
   const orig = STATE.sections.find(s=>s.id===sectionId);
-  const tipoDest = orig.typeKey === 'evangelizacao' ? 'coleta_reforco_caixa' : 'evangelizacao';
-  const destinos = STATE.sections.filter(s=>s.typeKey===tipoDest);
-  let dest = destinos[0] || null;
-  if (destinos.length > 1){
-    const v = await UI.dialog({ title:'Para qual tabela?', icon:'move',
-      actions:[{label:'Cancelar', value:null}].concat(destinos.map(s=>({label:`Tabela ${STATE.sections.indexOf(s)+1}: ${SECTION_TYPES[s.typeKey].label}`, value:s.id}))) });
-    if (!v) return;
-    dest = destinos.find(s=>s.id===v);
-  }
+  const def = SECTION_TYPES[orig.typeKey];
+  const outras = STATE.sections.filter(s=>s.typeKey===orig.typeKey && s.id!==orig.id);
+  const v = await UI.dialog({ title:`Mover ${chaveCidade(cidade)} para…`, icon:'move',
+    body: outras.length ? '' : `<p class="ui-modal__p">Não há outra tabela de ${escapeHTML(def.label)}. Posso criar uma nova logo abaixo desta e levar a cidade para ela.</p>`,
+    actions:[{label:'Cancelar', value:null}]
+      .concat(outras.map(s=>({label:`Tabela ${STATE.sections.indexOf(s)+1}: ${def.label}`, value:s.id})))
+      .concat([{label:`Nova tabela de ${def.label}`, value:'__nova', primary:!outras.length}]) });
+  if (!v) return;
   const antes = JSON.stringify(STATE);
+  let dest;
+  if (v === '__nova'){
+    dest = { id:newId(), typeKey:orig.typeKey, entries:[], isOpen:true };
+    // a tabela nova herda as opções da original
+    ['novaPagina','porBairro','duasColunas'].forEach(k=>{ if (k in orig) dest[k] = orig[k]; });
+    STATE.sections.splice(STATE.sections.indexOf(orig)+1, 0, dest);
+  } else dest = STATE.sections.find(s=>s.id===v);
   const linhas = orig.entries.filter(e=>(e.data.cidade||'').trim()===cidade);
-  let perdeEnd = false, cortados = 0;
-  const novas = linhas.map(e=>{
-    const d = e.data;
-    if (tipoDest === 'evangelizacao'){
-      const at = [(d.anciao||'').trim()].concat(d.diaconos||[]).filter(x=>x && x.trim());
-      return { id:newId(), data:{ cidade:d.cidade||'', data:d.data||'', hora:d.hora||'', local:d.local||'', endereco:'', atende: at.length ? at : [''] } };
-    }
-    if ((d.endereco||'').trim()) perdeEnd = true;
-    const at = (d.atende||[]).filter(x=>x && x.trim());
-    if (at.length > 3) cortados++;
-    return { id:newId(), data:{ cidade:d.cidade||'', data:d.data||'', hora:d.hora||'', local:d.local||'', anciao:'', diaconos: at.length ? at.slice(0,3) : [''] } };
-  });
-  if (!dest){
-    dest = { id:newId(), typeKey:tipoDest, entries:[], isOpen:true };
-    STATE.sections.push(dest);
-  }
-  dest.entries.push(...novas);
+  dest.entries.push(...linhas);
   dest.isOpen = true;
   orig.entries = orig.entries.filter(e=>(e.data.cidade||'').trim()!==cidade);
+  if (orig.ladoCidade && orig.ladoCidade[chaveCidade(cidade)]){ dest.ladoCidade = dest.ladoCidade || {}; dest.ladoCidade[chaveCidade(cidade)] = orig.ladoCidade[chaveCidade(cidade)]; delete orig.ladoCidade[chaveCidade(cidade)]; }
   sortStateDates(); renderSections(); saveState(); renderPreview();
-  const avisos = [];
-  if (perdeEnd) avisos.push('os endereços ficaram de fora (Coletas não tem endereço)');
-  if (cortados) avisos.push(cortados + ' linha(s) tinham mais de 3 obreiros e ficaram com os 3 primeiros');
-  UI.toast(`${chaveCidade(cidade)} (${novas.length} ${novas.length===1?'linha':'linhas'}) foi para ${SECTION_TYPES[tipoDest].label}` + (avisos.length ? ' — ' + avisos.join('; ') : '') + '.',
-    {action:{label:'Desfazer', icon:'undo', fn:()=>loadStateFromJSON(antes)}, duration: avisos.length ? 10000 : 8000});
+  UI.toast(`${chaveCidade(cidade)} (${linhas.length} ${linhas.length===1?'linha':'linhas'}) foi para a tabela ${STATE.sections.indexOf(dest)+1}.`,
+    {action:{label:'Desfazer', icon:'undo', fn:()=>loadStateFromJSON(antes)}});
   const el = document.querySelector(`[data-section-id="${dest.id}"]`); if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
 }
 
@@ -1625,8 +1614,7 @@ function buildSectionElement(section, sIdx){
             ch.querySelector('.cg-acoes').prepend(sel);
           }
           const extra = document.createElement('span'); extra.className = 'cg-ord';
-          const outroTipo = section.typeKey === 'evangelizacao' ? 'Coletas' : 'Evangelização';
-          extra.innerHTML = `<button type="button" class="cg-up" title="Subir esta cidade">${ICO('chevron-up')}</button><button type="button" class="cg-dn" title="Descer esta cidade">${ICO('chevron-down')}</button><button type="button" class="cg-mov" title="Passar a cidade inteira para ${outroTipo}">${ICO('move')}${outroTipo}</button>`;
+          extra.innerHTML = `<button type="button" class="cg-up" title="Subir esta cidade">${ICO('chevron-up')}</button><button type="button" class="cg-dn" title="Descer esta cidade">${ICO('chevron-down')}</button><button type="button" class="cg-mov" title="Mover a cidade inteira para outra tabela de ${escapeAttr(SECTION_TYPES[section.typeKey].label)}">${ICO('move')}Mover</button>`;
           extra.querySelector('.cg-up').onclick = ()=>moverCidadeOrdem(section.id, nomeReal, -1);
           extra.querySelector('.cg-dn').onclick = ()=>moverCidadeOrdem(section.id, nomeReal, +1);
           extra.querySelector('.cg-mov').onclick = ()=>passarCidade(section.id, nomeReal);
