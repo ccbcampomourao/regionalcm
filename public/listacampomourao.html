@@ -901,6 +901,16 @@ const SECTION_TYPES = {
       {key:"atende", label:"Atende", type:"list", itemLabel:"Obreiro"}
     ]
   },
+  culto_busca_dons: {
+    label: "Culto com Busca de Dons",
+    columns: ["Data","Hora","Local","Atende"],
+    fields: [
+      {key:"data", label:"Data", type:"date"},
+      {key:"hora", label:"Hora", type:"time"},
+      {key:"local", label:"Local", type:"text"},
+      {key:"atende", label:"Atende", type:"list", itemLabel:"Obreiro", maxItems:1}
+    ]
+  },
   avisos: {
     label: "Avisos Diversos",
     isFreeText: true
@@ -1134,7 +1144,8 @@ const NOME_CURTO = {
   ensaio_geral_categoria:'Ensaio por Categoria', santa_ceia:'Santa Ceia', santa_ceia_extra:'Santa Ceia Extra',
   reuniaodiversa:'Reuniões Diversas', reuniaodiversa_cozinha:'Cozinha Central', evangelizacao:'Evangelização',
   assembleia_ordinaria:'Assembleia Ordinária', assembleia_extraordinaria:'Assembleia Extraord.', avisos:'Avisos',
-  coleta_reforco_caixa:'Coletas Reforço de Caixa', abertura_casa_oracao:'Abertura de Casa', reabertura_casa_oracao:'Reabertura de Casa'
+  coleta_reforco_caixa:'Coletas Reforço de Caixa', abertura_casa_oracao:'Abertura de Casa', reabertura_casa_oracao:'Reabertura de Casa',
+  culto_busca_dons:'Busca de Dons'
 };
 const GRUPO_LIN = { coleta_reforco_caixa:'bat', batismo:'bat', ensaio_geral_categoria:'cat', reuniaodiversa:'div', reuniaodiversa_cozinha:'coz', evangelizacao:'eva' };
 const DIAS_SEM = ['dom','seg','ter','qua','qui','sex','sáb'];
