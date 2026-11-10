@@ -308,5 +308,5 @@
   var _usar = usar;
   usar = function (d) { _usar(d); try { anotarTudo(document.getElementById('sectionsContainer')); } catch (e) {} };
 
-  window.SugestoesIgrejas = { total: function () { return IGREJAS.length; }, usar: usar, anotar: anotarTudo };
+  window.SugestoesIgrejas = { total: function () { return IGREJAS.length; }, usar: usar, anotar: anotarTudo, analisar: analisar, tabelasCulto: TABELAS_CULTO };
 })();

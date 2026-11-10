@@ -326,6 +326,67 @@
       }
     });
   })();
+  /* ---------- Modo escuro (só na tela; a folha da prévia e o PDF continuam brancos) ---------- */
+  (function () {
+    var KEY = 'ccb_tema', raiz = document.documentElement;
+    var escuro = function () { try { return localStorage.getItem(KEY) === 'escuro'; } catch (e) { return false; } };
+    if (escuro()) raiz.classList.add('escuro');
+    var VOLTA = 'img, body > header, header.top, body > div:has(> .topnav-btn), #previewScaleWrapper, #prev, .heroi, .feat, .tile.dark, .primary-action, .appbar .destaque, .city-group-header, .ui-toast, .entry-summary-date, .sh-tp, .nt-cor, .cid-barra, .quickaccess';
+    var st = document.createElement('style'); st.id = 'cssTema';
+    st.textContent = '@media screen{' +
+      'html.escuro{filter:invert(1) hue-rotate(180deg);background:#0e1117}' +
+      VOLTA.split(',').map(function (x) { return 'html.escuro ' + x.trim(); }).join(',') + '{filter:invert(1) hue-rotate(180deg)}' +
+      'html.escuro body{background:#f4f1ea!important}' +
+      'html.escuro .quickaccess img,html.escuro .feat img,html.escuro .heroi img,html.escuro header img,html.escuro #previewScaleWrapper img,html.escuro #prev img{filter:none}' +
+      'html.escuro #previewScaleWrapper{box-shadow:none}' +
+      '.tema-btn{cursor:pointer}' +
+      'a.topnav-btn.tema-btn{background:rgba(255,255,255,.1)!important;color:#fdfbf6!important;border:1.5px solid rgba(255,255,255,.28)!important;box-shadow:none!important;padding:8px 10px!important;display:inline-flex;align-items:center}' +
+      'a.topnav-btn.tema-btn svg.ic{margin:0!important}' +
+      'body.tem-tema > header{padding-right:262px}' +
+      '}' +
+      '@media screen and (max-width:700px){body.tem-tema > header{padding-right:148px!important}}';
+    (document.head || raiz).appendChild(st);
+    function icone() { return '<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-' + (raiz.classList.contains('escuro') ? 'sun' : 'moon') + '"></use></svg>'; }
+    function trocar(e) {
+      if (e) e.preventDefault();
+      var on = !raiz.classList.contains('escuro');
+      raiz.classList.toggle('escuro', on);
+      try { localStorage.setItem(KEY, on ? 'escuro' : 'claro'); } catch (err) {}
+      document.querySelectorAll('.tema-btn').forEach(function (b) { b.innerHTML = icone() + (b.dataset.rot ? '<span class="lbl-md">' + b.dataset.rot + '</span>' : ''); b.title = on ? 'Voltar para o modo claro' : 'Modo escuro (para editar à noite)'; });
+    }
+    function botao(classe) {
+      var b = document.createElement('a'); b.href = '#'; b.className = classe + ' tema-btn'; b.setAttribute('role', 'button'); b.setAttribute('aria-label', 'Modo claro ou escuro');
+      b.innerHTML = icone(); b.title = raiz.classList.contains('escuro') ? 'Voltar para o modo claro' : 'Modo escuro (para editar à noite)'; b.onclick = trocar; return b;
+    }
+    function colocar() {
+      if (document.querySelector('.tema-btn')) return true;
+      var nav = document.querySelector('.topnav-btn');
+      if (nav && nav.parentNode) { nav.parentNode.insertBefore(botao('topnav-btn'), nav.parentNode.firstChild); document.body.classList.add('tem-tema'); return true; }
+      var top = document.querySelector('.top-actions');
+      if (top) { var ref = top.querySelector('a.btn-ghost'); top.insertBefore(botao('btn-ghost'), ref); return true; }
+      return false;
+    }
+    quandoPronto(function () { var n = 0; (function tenta() { if (!colocar() && n++ < 40) setTimeout(tenta, 250); })(); });
+    window.Tema = { trocar: trocar };
+  })();
+
+  // Anota quando cada lista/calendário foi mexido neste aparelho (para o "Continuar de onde parou")
+  (function () {
+    try {
+      var RE = /^ccb_(lista_|generator_state|calendario_)/, orig = Storage.prototype.setItem;
+      Storage.prototype.setItem = function (k, v) {
+        var mudou = false;
+        try { mudou = this === window.localStorage && RE.test(k) && this.getItem(k) !== String(v); } catch (e) {}
+        orig.apply(this, arguments);
+        if (mudou) {
+          try {
+            var m = JSON.parse(this.getItem('ccb_mexido') || '{}'); m[k] = Date.now();
+            orig.call(this, 'ccb_mexido', JSON.stringify(m));
+          } catch (e) {}
+        }
+      };
+    } catch (e) {}
+  })();
   function ultimaLista() {
     try { return JSON.parse(localStorage.getItem('ultima_lista') || 'null'); } catch (e) { return null; }
   }

@@ -379,6 +379,12 @@
   .sh-esq{display:flex; align-items:center; gap:2px; min-width:0}
   .sh-esq h3{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .sh-num{font-size:12px; font-weight:800; color:var(--brass); margin-right:6px}
+  .sh-tp{display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:8px; background:var(--tb,#ece6d6); color:var(--tc,#6d6652); margin-right:8px; flex:none}
+  .sh-tp svg.ic{width:15px; height:15px}
+  #sectionsContainer > .section{border-left:4px solid var(--tb,#ece6d6)}
+  #sectionsContainer > .section.open{border-left-color:var(--tc,#a97d3d)}
+  #sectionsContainer > .section .section-body{border-left:none}
+  .nav-tab .nt-cor{width:9px; height:9px; border-radius:50%; border:1px solid; flex:none}
   .sh-cnt{margin-left:8px; font-size:11.5px; font-weight:700; background:#fff; border:1px solid #e6dcc4; color:#7a6a45; border-radius:999px; padding:1px 8px; white-space:nowrap}
   .sh-dir{display:flex; align-items:center; gap:6px; flex-shrink:0}
   #formPanel .sh-dir button{display:inline-flex; align-items:center; gap:5px; padding:5px 9px; font-size:12.5px; background:#fff}
@@ -548,13 +554,26 @@
   #formPanel .sh-dir .sh-add{padding:6px 8px; font-size:0; gap:0}
   #formPanel .sh-dir .sh-add svg.ic{width:17px; height:17px}
 }
+@media screen and (max-width:600px){
+  .topo-ed{gap:8px; padding:8px; position:relative}
+  .abas{flex:1 1 100%}
+  #formPanel .abas button{flex:1; justify-content:center; padding:9px 8px}
+  .acoes-ed{flex:1 1 100%; flex-wrap:nowrap}
+  .acoes-ed .salvo{margin-right:auto}
+  .acoes-ed .salvo span{display:none}
+  .acoes-ed .menu{position:static}
+  .acoes-ed .menu-box{left:8px; right:8px; top:calc(100% - 2px); min-width:0}
+  #formPanel .acoes-ed>button, #formPanel .acoes-ed .menu>button{min-height:42px; padding:8px 14px; font-size:14px}
+  #formPanel .acoes-ed>button.primary-action, #formPanel .acoes-ed>button.primary{flex:1; justify-content:center}
+  #formPanel .res-acoes>button, #formPanel .res-acoes .menu>button{white-space:nowrap; min-height:44px; font-size:14px; padding:8px 10px; justify-content:center}
+}
 </style>
 <script src="/assets/ui.js"></script>
 <script src="/assets/lista-modelo-novo.js"></script>
 </head>
 <body>
 <header>
-  <h1>Lista de Serviços · Campo Mourão</h1>
+  <h1 data-trilha="Listas  ›  Localidades">Lista de Serviços · Campo Mourão</h1>
   <p>Congregação Cristã no Brasil — Regional Campo Mourão - PR. Tudo o que você digita fica salvo automaticamente neste aparelho.</p>
 </header>
 
@@ -1058,15 +1077,20 @@ function saveState(){
 
 function populatePeriodoOptions(selectedValue){
   const sel = document.getElementById('meta_periodo');
+  // até 2026 as listas eram bimestrais; a partir de 2027 são trimestrais
   const bimestres = [
     "JANEIRO/FEVEREIRO","MARÇO/ABRIL","MAIO/JUNHO",
     "JULHO/AGOSTO","SETEMBRO/OUTUBRO","NOVEMBRO/DEZEMBRO"
+  ];
+  const trimestres = [
+    "JANEIRO/FEVEREIRO/MARÇO","ABRIL/MAIO/JUNHO",
+    "JULHO/AGOSTO/SETEMBRO","OUTUBRO/NOVEMBRO/DEZEMBRO"
   ];
   const anoAtual = new Date().getFullYear();
   const anos = [anoAtual-1, anoAtual, anoAtual+1, anoAtual+2];
   sel.innerHTML = '';
   anos.forEach(ano=>{
-    bimestres.forEach(b=>{
+    (ano >= 2027 ? trimestres : bimestres).forEach(b=>{
       const opt = document.createElement('option');
       opt.value = `${b} - ${ano}`;
       opt.textContent = `${b} - ${ano}`;
@@ -1171,6 +1195,22 @@ function removeCargo(idx){
    editáveis direto (sem abrir/fechar). Não muda nada do PDF.
    ===================================================================== */
 const ICO = n => `<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-${n}"></use></svg>`;
+// cor (tons pastéis) e ícone de cada tipo de tabela — só na tela de edição
+const TIPO_COR = (()=>{
+  const azul=['#dde8f5','#4a6c97'], verde=['#dcecdf','#4c7a5c'], terra=['#f1e2d2','#8c6240'], lilas=['#e7e0f0','#6f5b93'],
+        cinza=['#e4e7ec','#566176'], rosa=['#f4dfdb','#9c5a50'], areia=['#f3ead0','#8a6f2c'], agua=['#d9ecea','#3f7572'], malva=['#efe2ec','#86597d'], vinho=['#f0dde3','#8f4d62'];
+  return {
+    batismo:[...azul,'user'], reuniao_mocidade:[...verde,'users'], culto_mocidade:[...verde,'users'],
+    culto_ensinamento_pais_filhos:[...terra,'users'], culto_ensinamento:[...terra,'users'],
+    ensaio_regional:[...lilas,'music'], ensaio_geral_categoria:[...lilas,'music'],
+    santa_ceia:[...vinho,'calendar'], santa_ceia_extra:[...vinho,'calendar'],
+    reuniaodiversa:[...cinza,'calendar'], reuniaodiversa_cozinha:[...cinza,'calendar'],
+    evangelizacao:[...areia,'pin'], assembleia_ordinaria:[...cinza,'file'], assembleia_extraordinaria:[...cinza,'file'],
+    coleta_reforco_caixa:[...agua,'clock'], abertura_casa_oracao:[...malva,'pin'], reabertura_casa_oracao:[...malva,'pin'],
+    culto_busca_dons:[...azul,'calendar'], avisos:[...rosa,'info']
+  };
+})();
+const tipoCor = k => TIPO_COR[k] || ['#ece6d6','#6d6652','grid'];
 const NOME_CURTO = {
   batismo:'Batismos', reuniao_mocidade:'Mocidade', culto_mocidade:'Culto Mocidade',
   culto_ensinamento_pais_filhos:'Pais e Filhos', culto_ensinamento:'Ensinamento', ensaio_regional:'Ensaio Regional',
@@ -1243,7 +1283,7 @@ function renderNav(){
   nav.innerHTML = STATE.sections.map((s,i)=>{
     const n = s.entries ? s.entries.length : (s.text && s.text.trim() ? s.text.trim().split('\n').length : 0);
     const nome = NOME_CURTO[s.typeKey] || (SECTION_TYPES[s.typeKey]||{}).label || s.typeKey;
-    return `<button type="button" data-ir="${s.id}" class="${s.isOpen && abertas===1 ? 'on' : ''}" title="${escapeAttr((SECTION_TYPES[s.typeKey]||{}).label||'')}"><span class="nt-n">${i+1}</span>${escapeHTML(nome)}<em>${n}</em></button>`;
+    return `<button type="button" data-ir="${s.id}" class="${s.isOpen && abertas===1 ? 'on' : ''}" title="${escapeAttr((SECTION_TYPES[s.typeKey]||{}).label||'')}"><i class="nt-cor" style="background:${tipoCor(s.typeKey)[0]};border-color:${tipoCor(s.typeKey)[1]}"></i><span class="nt-n">${i+1}</span>${escapeHTML(nome)}<em>${n}</em></button>`;
   }).join('') + `<span class="nt-sep"></span><button type="button" class="nt-tudo" data-tudo="${abertas===STATE.sections.length?'0':'1'}">${abertas===STATE.sections.length?'Recolher todas':'Abrir todas'}</button>`;
   nav.querySelectorAll('[data-ir]').forEach(b=>b.onclick=()=>focoTabela(b.dataset.ir));
   const t = nav.querySelector('[data-tudo]');
@@ -1517,6 +1557,7 @@ function buildSectionElement(section, sIdx){
   if (typeof section.isOpen === 'undefined') section.isOpen = true;
   wrap.className = section.isOpen ? 'section open' : 'section';
   wrap.dataset.index = sIdx;
+  { const tc = tipoCor(section.typeKey); wrap.style.setProperty('--tb', tc[0]); wrap.style.setProperty('--tc', tc[1]); }
 
   // arrastar a tabela pelo cabeçalho para mudar a ordem
   const head = document.createElement('div');
@@ -1543,7 +1584,7 @@ function buildSectionElement(section, sIdx){
     <div class="sh-esq">
       <span class="drag-handle" title="Arraste para mudar a ordem das tabelas">${ICO('grip')}</span>
       <span class="section-caret">${ICO('chevron-right')}</span>
-      <span class="sh-num">${sIdx+1}</span><h3>${escapeHTML(def.label)}</h3>
+      <span class="sh-num">${sIdx+1}</span><span class="sh-tp" aria-hidden="true">${ICO(tipoCor(section.typeKey)[2])}</span><h3>${escapeHTML(def.label)}</h3>
       ${qtd!==null ? `<span class="sh-cnt">${qtd} ${qtd===1?'linha':'linhas'}</span>` : ''}
     </div>
     <div class="sh-dir">
@@ -3026,6 +3067,7 @@ window.onload = ()=>{
 <script src="/assets/editor.js"></script>
 <script src="/assets/calendario-ponte.js"></script>
 <script src="/assets/sugestoes-igrejas.js"></script>
+<script src="/assets/conferencia.js"></script>
 <script>
 /* Salvar / carregar na nuvem: lógica em /assets/editor.js */
 Nuvem.configurar({
@@ -3035,6 +3077,16 @@ Nuvem.configurar({
   conteudo: function () { saveState(); return JSON.stringify(STATE, null, 2); },
   aplicar: function (texto) { return loadStateFromJSON(texto); }
 });
+</script>
+<script src="/assets/appbar.js"></script>
+<script>
+/* barra de aplicativo (só aparece no celular) */
+AppBar.montar([
+  { ic:'grid', rot:'Tabelas', fn:()=>{ closeMobilePreview(); aba('tab'); window.scrollTo({ top:0, behavior:'smooth' }); }, ativo:()=>!document.body.classList.contains('mobile-preview-active') },
+  { ic:'eye', rot:'Prévia', fn:()=>openMobilePreview(), ativo:()=>document.body.classList.contains('mobile-preview-active') },
+  { ic:'file', rot:'Arquivo', menu:'#menuArq .menu-box' },
+  { ic:'print', rot:'Gerar PDF', fn:()=>gerarPDF(), destaque:true }
+]);
 </script>
 </body>
 </html>

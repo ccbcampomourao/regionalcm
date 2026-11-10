@@ -46,108 +46,287 @@
 <title>Relatório de Igrejas</title>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--primary:#1b2a41;--primary-2:#2c3f5c;--brass:#a97d3d;--brass-lt:#c99a55;--accent:#b04b3c;--bg:#f5f1e8;--line:#e4dcc9;--ink:#24304a;--muted:#7a7263}
+:root{--primary:#1b2a41;--primary-2:#2c3f5c;--brass:#a97d3d;--brass-lt:#c99a55;--accent:#b04b3c;--bg:#f5f1e8;--line:#e4dcc9;--ink:#24304a;--muted:#7a7263;--ok:#3d7a57}
 *{box-sizing:border-box;font-family:'Inter',Arial,sans-serif}
 body{margin:0;background:var(--bg);color:var(--ink)}
 header{position:relative;padding:16px 200px 16px 22px;background:linear-gradient(180deg,var(--primary-2),var(--primary));color:#fdfbf6}
 header h1{margin:0;font-size:19px;font-family:'Fraunces',Georgia,serif;font-weight:600}
 header p{margin:4px 0 0;font-size:13px;opacity:.85}
-button{cursor:pointer;font-weight:600;border:1.5px solid var(--line);background:#fff;color:var(--primary);padding:8px 13px;border-radius:9px;font-size:13px;display:inline-flex;align-items:center;gap:7px;font-family:inherit}
+button{cursor:pointer;font-weight:600;border:1.5px solid var(--line);background:#fff;color:var(--primary);padding:8px 13px;border-radius:9px;font-size:13px;display:inline-flex;align-items:center;gap:7px;font-family:inherit;transition:background-color .15s,border-color .15s,box-shadow .15s,color .15s}
 button:hover{border-color:var(--brass-lt)}
 button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--brass);outline-offset:1px}
-button.primary{background:linear-gradient(180deg,var(--primary-2),var(--primary));color:#fdfbf6;border-color:var(--primary)}
+button.primary{background:linear-gradient(180deg,#34496a,var(--primary));color:#fdfbf6;border-color:transparent;box-shadow:0 8px 18px -10px rgba(27,42,65,.7),inset 0 1px 0 rgba(255,255,255,.18)}
+button.primary:hover{background:linear-gradient(180deg,#3d5478,#22344f)}
 button.danger{color:var(--accent)}
-button svg.ic{width:16px;height:16px}
-input,select,textarea{border:1.5px solid var(--line);border-radius:8px;padding:7px 9px;font-size:14px;width:100%;background:#fff;color:var(--ink);font-family:inherit}
-textarea{resize:vertical;min-height:60px}
+button svg.ic{width:16px;height:16px;flex:none}
+input,select,textarea{border:1.5px solid #e2d9c4;border-radius:9px;padding:8px 10px;font-size:14px;width:100%;background:#fffdf8;color:var(--ink);font-family:inherit;transition:border-color .15s,box-shadow .15s,background-color .15s}
+input:hover,select:hover,textarea:hover{border-color:#d3c4a2}
+input:focus,select:focus,textarea:focus{outline:none;background:#fff;border-color:var(--brass);box-shadow:0 0 0 3.5px rgba(169,125,61,.17)}
+input::placeholder,textarea::placeholder{color:#b3aa95}
+textarea{resize:vertical;min-height:74px;line-height:1.5}
 label{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#8f846b;display:block;margin:0 0 4px}
 
 /* barra de cima */
-.topo{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 16px;background:#faf6ec;border-bottom:1px solid #ebe3cf}
-.regs{display:flex;gap:4px;background:#ece6d6;padding:4px;border-radius:10px;flex-wrap:wrap}
-.regs button{border:none;background:transparent;padding:7px 12px;font-size:13.5px;color:#6d6652;border-radius:8px}
+.topo{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 18px;background:rgba(250,246,236,.96);backdrop-filter:blur(6px);border-bottom:1px solid #ebe3cf;box-shadow:0 8px 20px -18px rgba(27,42,65,.6)}
+.regs{display:flex;gap:4px;background:#ece6d6;padding:4px;border-radius:11px;flex-wrap:wrap}
+.regs button{border:none;background:transparent;padding:7px 13px;font-size:13.5px;color:#6d6652;border-radius:8px}
+.regs button:hover{color:var(--primary)}
 .regs button.on{background:#fff;color:var(--primary);box-shadow:0 1px 3px rgba(27,42,65,.18)}
 .topo .esp{flex:1}
 .estado{font-size:12.5px;color:var(--muted);display:inline-flex;align-items:center;gap:6px}
-.estado b{color:#3d7a57}
-.estado.pend b{color:#a46a12}
+.estado svg.ic{width:15px;height:15px;color:var(--ok);flex:none}
+.estado b{color:var(--ok)}
+.estado.pend b,.estado.pend svg.ic{color:#a46a12}
+.estado.pend{background:#fdf3dc;border:1px solid #ecd49a;border-radius:999px;padding:5px 12px}
 .menu{position:relative}
 .menu-box{display:none;position:absolute;right:0;top:calc(100% + 6px);min-width:250px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 18px 40px -16px rgba(27,42,65,.45);padding:6px;z-index:40}
 .menu.open .menu-box{display:block}
-.menu-box button{width:100%;border:none;justify-content:flex-start;padding:9px 12px;font-size:14px;border-radius:8px}
+.menu-box button{width:100%;border:none;justify-content:flex-start;padding:9px 12px;font-size:14px;border-radius:8px;gap:10px}
+.menu-box button svg.ic{color:var(--brass)}
 .menu-box button:hover{background:#f6f1e4}
 .menu-box hr{border:none;border-top:1px solid var(--line);margin:5px 4px}
 
-/* corpo: lista de igrejas à esquerda, ficha à direita */
-.corpo{display:grid;grid-template-columns:320px minmax(0,1fr);gap:16px;padding:16px;align-items:start;max-width:1500px;margin:0 auto}
-.lado{position:sticky;top:76px;max-height:calc(100vh - 92px);display:flex;flex-direction:column;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
-.lado-top{padding:12px;border-bottom:1px solid #efe8d6;display:flex;flex-direction:column;gap:8px}
-.lado-top .busca{position:relative}
-.lado-top .busca svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:#a39a85}
-.lado-top .busca input{padding-left:34px}
-.lado-top .resumo{font-size:12px;color:var(--muted)}
-.lista{overflow:auto;padding:6px 6px 12px}
-.cid-h{display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--brass);padding:10px 8px 4px}
-.cid-h em{font-style:normal;background:#f1ebdc;color:#7a6a45;border-radius:9px;padding:0 7px;line-height:18px}
-.it{display:flex;flex-direction:column;align-items:flex-start;gap:1px;width:100%;border:1px solid transparent;background:none;padding:8px 10px;border-radius:9px;text-align:left;font-weight:600;font-size:14px;color:var(--primary)}
-.it:hover{background:#faf6ec;border-color:transparent}
-.it.on{background:var(--primary);color:#fdfbf6}
-.it small{font-weight:500;font-size:12px;color:#8f846b}
-.it.on small{color:#cfd6e2}
-.vazio{text-align:center;color:var(--muted);font-size:13px;padding:22px 12px}
+.miolo{max-width:1500px;margin:0 auto;padding:16px 18px 40px}
 
-.ficha{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px 22px}
-.ficha-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px}
-.ficha-top h2{margin:0;font-family:'Fraunces',Georgia,serif;font-size:22px;color:var(--primary)}
-.ficha-top h2 small{display:block;font-family:'Inter',sans-serif;font-size:12.5px;font-weight:600;color:var(--brass);letter-spacing:.06em;text-transform:uppercase;margin-bottom:2px}
-.ficha-top .acoes{display:flex;gap:6px;flex-shrink:0}
-.bloco{border-top:1px solid #efe8d6;padding-top:16px;margin-top:16px}
-.bloco h3{display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:15px;color:var(--primary)}
-.bloco h3 svg{width:17px;height:17px;color:var(--brass)}
+/* resumo da região */
+.painel{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.tile{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;box-shadow:0 1px 2px rgba(27,42,65,.04);text-align:left;min-width:0}
+.tile .ti{flex:none;width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--brass);background:linear-gradient(180deg,#f6ecd6,#ecdcb4)}
+.tile .ti svg.ic{width:19px;height:19px}
+.tile b{display:block;font-family:'Fraunces',Georgia,serif;font-size:24px;font-weight:600;line-height:1;color:var(--primary)}
+.tile span{display:block;margin-top:3px;font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile.dark{background:linear-gradient(115deg,#15233a,#2f4566);border-color:transparent;box-shadow:0 12px 26px -16px rgba(27,42,65,.8)}
+.tile.dark .ti{background:rgba(255,255,255,.12);color:#e9cf9c}
+.tile.dark b{color:#fdfbf6}.tile.dark span{color:#cfd8e5}
+button.tile{cursor:pointer;font-weight:inherit}
+button.tile.aviso .ti{background:linear-gradient(180deg,#fdeccb,#f6d99c);color:#a46a12}
+button.tile.tudo-ok .ti{background:linear-gradient(180deg,#e3f1e7,#cfe6d6);color:var(--ok)}
+button.tile.on{border-color:#d9a94f;box-shadow:0 0 0 3px rgba(217,169,79,.25)}
+
+/* corpo: lista de igrejas à esquerda, ficha à direita */
+.corpo{display:grid;grid-template-columns:330px minmax(0,1fr);gap:16px;align-items:start}
+.lado{position:sticky;top:74px;max-height:calc(100vh - 90px);display:flex;flex-direction:column;background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 1px 2px rgba(27,42,65,.04),0 18px 40px -26px rgba(27,42,65,.35)}
+.lado-top{padding:12px;border-bottom:1px solid #efe8d6;display:flex;flex-direction:column;gap:8px;background:linear-gradient(180deg,#fbf8f1,#f7f2e6)}
+.lado-top .busca{position:relative}
+.lado-top .busca svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:#a39a85}
+.lado-top .busca input{padding-left:35px;background:#fff}
+.lado-top button.primary{justify-content:center;padding:10px}
+.lado-top .resumo{font-size:12px;color:var(--muted);display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:16px}
+.lado-top .resumo button{border:none;background:none;padding:0;font-size:12px;color:var(--brass);text-decoration:underline;text-underline-offset:2px}
+.lista{overflow:auto;padding:4px 8px 12px}
+.cid-h{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--brass);padding:12px 6px 5px}
+.cid-h::after{content:"";flex:1;height:1px;background:#efe8d6;order:1}
+.cid-h em{order:2;font-style:normal;background:#f1ebdc;color:#7a6a45;border-radius:9px;padding:0 7px;line-height:18px}
+.it{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:2px 10px;width:100%;border:1px solid transparent;background:none;padding:9px 10px;border-radius:11px;text-align:left;font-weight:600;font-size:14px;color:var(--primary)}
+.it:hover{background:#faf6ec;border-color:#efe8d6}
+.it.on{background:linear-gradient(115deg,#15233a,#2c3f5c);color:#fdfbf6;border-color:transparent;box-shadow:0 10px 20px -14px rgba(27,42,65,.9)}
+.it .it-n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.it small{grid-column:1;font-weight:500;font-size:12px;color:#8f846b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.it.on small{color:#cfd6e2}
+.it .sem{grid-column:2;grid-row:1 / span 2;display:flex;gap:2px}
+.sem i{font-style:normal;width:15px;height:18px;border-radius:5px;font-size:9.5px;font-weight:800;display:flex;align-items:center;justify-content:center;background:#f3eee1;color:#c3b99f}
+.sem i.s{background:var(--brass);color:#fff}
+.it.on .sem i{background:rgba(255,255,255,.1);color:rgba(255,255,255,.35)}
+.it.on .sem i.s{background:#e0bd84;color:#1b2a41}
+.it .falta{display:inline-block;width:7px;height:7px;border-radius:50%;background:#d9972b;margin-left:6px;vertical-align:1px}
+.vazio{text-align:center;color:var(--muted);font-size:13px;padding:26px 12px}
+
+/* ficha */
+.ficha{display:flex;flex-direction:column;gap:14px}
+.heroi{position:relative;overflow:hidden;border-radius:16px;padding:18px 20px 16px;color:#fdfbf6;background:linear-gradient(115deg,#15233a 0%,#22344f 55%,#2f4566 100%);box-shadow:0 18px 36px -22px rgba(27,42,65,.9)}
+.heroi::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,#a97d3d,#e0bd84 50%,#a97d3d)}
+.heroi::after{content:"";position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(circle,rgba(255,255,255,.12) 1.3px,transparent 1.4px);background-size:20px 20px;-webkit-mask-image:radial-gradient(460px 200px at 100% 0%,#000 0%,transparent 72%);mask-image:radial-gradient(460px 200px at 100% 0%,#000 0%,transparent 72%)}
+.heroi > *{position:relative;z-index:1}
+.h-l1{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.h-tit{min-width:0}
+.h-tit small{display:block;font-size:12px;font-weight:700;color:#e0bd84;letter-spacing:.09em;text-transform:uppercase;margin-bottom:3px}
+.h-tit h2{margin:0;font-family:'Fraunces',Georgia,serif;font-size:27px;font-weight:600;line-height:1.15;overflow-wrap:anywhere}
+.h-end{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:13.5px;color:#cfd8e5}
+.h-end svg.ic{width:15px;height:15px;color:#e0bd84;flex:none}
+.h-acoes{display:flex;gap:6px;flex:none}
+.h-acoes button{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.22);color:#fdfbf6}
+.h-acoes button:hover{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.5)}
+.h-acoes button.danger:hover{background:#b04b3c;border-color:#b04b3c;color:#fff}
+.heroi .h-volta{display:none}
+.h-cultos{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.h-cultos span{display:inline-flex;align-items:baseline;gap:6px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);border-radius:999px;padding:4px 11px;font-size:12.5px;font-weight:600}
+.h-cultos span b{color:#e9cf9c;font-weight:700}
+.h-cultos span em{font-style:normal;font-weight:500;color:#cfd8e5;font-size:11.5px}
+.h-cultos .nenhum{background:none;border-style:dashed;color:#cfd8e5;font-weight:500}
+.h-prog{display:flex;align-items:center;gap:10px;margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.12);font-size:12.5px;color:#cfd8e5;flex-wrap:wrap}
+.h-prog .barra{display:flex;gap:4px;flex:none}
+.h-prog .barra i{width:26px;height:6px;border-radius:3px;background:rgba(255,255,255,.16)}
+.h-prog .barra i.s{background:#e0bd84}
+.h-prog b{color:#fdfbf6}
+.h-prog.cheia .barra i.s{background:#7fc99b}
+
+.cartoes{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start}
+.colm{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:14px}
+.bloco{container-type:inline-size;background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px 18px 18px;box-shadow:0 1px 2px rgba(27,42,65,.04),0 14px 30px -26px rgba(27,42,65,.4)}
+.bloco.larg{flex:1 1 100%}
+.bloco h3{display:flex;align-items:center;gap:10px;margin:0 0 14px;font-size:15.5px;color:var(--primary)}
+.bloco h3 .bi{flex:none;width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--brass);background:linear-gradient(180deg,#f6ecd6,#ecdcb4)}
+.bloco h3 .bi svg{width:17px;height:17px}
 .bloco h3 small{font-weight:500;font-size:12px;color:var(--muted)}
+.bloco h3 em{margin-left:auto;font-style:normal;font-size:11.5px;font-weight:700;color:#7a6a45;background:#f4eedf;border-radius:999px;padding:2px 10px;white-space:nowrap}
+.bloco h3 em.zero{background:#fdf3dc;color:#a46a12}
 .grid{display:grid;gap:12px}
-.g-id{grid-template-columns:1fr 1.2fr .8fr}
+.g-id{grid-template-columns:1fr 1fr}
+.g-id > :nth-child(3){grid-column:1}
 .g-end{grid-template-columns:1fr}
 .g-2{grid-template-columns:1fr 1fr}
+.sub-t{display:flex;align-items:center;gap:8px;margin:16px 0 8px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#8f846b}
+.sub-t::after{content:"";flex:1;height:1px;background:#efe8d6}
 /* linhas de culto / ensaio */
 .linhas{display:flex;flex-direction:column;gap:6px}
-.lc{display:grid;grid-template-columns:140px 130px 120px minmax(0,1fr) 34px;gap:8px;align-items:center}
-.le{display:grid;grid-template-columns:120px 140px 120px minmax(0,1fr) 34px;gap:8px;align-items:center}
+.lc{display:grid;grid-template-columns:130px 130px 112px minmax(0,1fr) 34px;gap:8px;align-items:center}
+.le{display:grid;grid-template-columns:110px 130px 112px minmax(0,1fr) 34px;gap:8px;align-items:center}
 .lc-cab,.le-cab{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#9a8f76}
+@container (max-width:600px){
+  .lc,.le{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 34px;padding:8px;border:1px solid #efe8d6;border-radius:11px;background:#fdfbf6}
+  .lc>:nth-child(3),.le>:nth-child(3){grid-column:1}
+  .lc>:nth-child(4),.le>:nth-child(4){grid-column:2 / -1}
+  .lc>:nth-child(5),.le>:nth-child(5){grid-column:3;grid-row:1}
+  .lc-cab,.le-cab{display:none}
+}
+@container (max-width:420px){ .g-2,.g-id{grid-template-columns:1fr} .g-id > :nth-child(3){grid-column:auto} }
 .x{width:34px;height:34px;padding:0;justify-content:center;border-color:transparent;color:#a39a85;background:transparent}
 .x:hover{color:var(--accent);background:#fbeae4;border-color:#efc7bd}
-.mais{border-style:dashed;background:#fffdf8;font-size:13px;padding:7px 12px;align-self:flex-start}
+.mais{border-style:dashed;border-color:#d9cba6;background:#fdfbf6;color:#6d5a2c;font-size:13px;padding:8px 12px;align-self:stretch;justify-content:center}
+.mais:hover{background:#f7f0df;border-style:solid}
 /* listas de nomes */
 .nomes{display:flex;flex-direction:column;gap:5px}
 .nomes .ni{display:flex;gap:4px}
-.nomes .ni input{flex:1}
+.nomes .ni input{flex:1;min-width:0}
 .nomes .ni button{width:34px;height:34px;padding:0;justify-content:center;border-color:transparent;background:transparent;color:#a39a85;flex-shrink:0}
 .nomes .ni button.add{color:var(--brass)}
 .nomes .ni button.add:hover{color:#fff;background:var(--brass)}
 .nomes .ni button.rem:hover{color:var(--accent);background:#fbeae4}
-.vazia-ficha{text-align:center;padding:60px 20px;color:var(--muted);background:#fff;border:1.5px dashed #dccfae;border-radius:14px}
-.vazia-ficha b{display:block;font-size:17px;color:var(--primary);margin-bottom:6px;font-family:'Fraunces',Georgia,serif}
-.dica{font-size:12.5px;color:var(--muted);margin-top:6px}
+.vazia-ficha{text-align:center;padding:64px 20px;color:var(--muted);background:linear-gradient(180deg,#fdfbf6,#f8f3e7);border:1.5px dashed #dccfae;border-radius:16px;font-size:14px;line-height:1.5}
+.vazia-ficha .vi{width:62px;height:62px;margin:0 auto 14px;border-radius:18px;display:flex;align-items:center;justify-content:center;color:var(--brass);background:linear-gradient(180deg,#f6ecd6,#ecdcb4)}
+.vazia-ficha .vi svg{width:28px;height:28px}
+.vazia-ficha b{display:block;font-size:19px;color:var(--primary);margin-bottom:6px;font-family:'Fraunces',Georgia,serif;font-weight:600}
+.vazia-ficha button{margin-top:16px;padding:10px 18px;font-size:14px}
+.dica{font-size:12.5px;color:var(--muted);margin:2px 0 4px}
 
+.vis{display:inline-flex;gap:4px;background:#ece6d6;padding:4px;border-radius:10px;margin:0 0 12px}
+.vis[hidden]{display:none}
+.vis button{border:none;background:transparent;box-shadow:none;padding:7px 14px;font-size:13px;color:#6d6652;border-radius:8px}
+.vis button svg.ic{width:15px;height:15px}
+.vis button.on{background:#fff;color:var(--primary);box-shadow:0 1px 3px rgba(27,42,65,.18)}
+body.v-geral .corpo{display:none}
+.tab{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 14px 30px -26px rgba(27,42,65,.5);font-size:13.5px;color:var(--ink)}
+.tab th{background:var(--primary);color:#e9d9b4;font-size:11px;letter-spacing:.07em;text-transform:uppercase;text-align:left;padding:11px 14px;font-weight:700}
+.tab td{padding:10px 14px;border-top:1px solid #efe8d7;vertical-align:top}
+.tab tr.cid td{background:#f6f0e1;font-size:11.5px;font-weight:700;letter-spacing:.08em;color:var(--brass);text-transform:uppercase;padding:7px 14px}
+.tab tr.ig{cursor:pointer}
+.tab tr.ig:hover td{background:#fbf7ec}
+.tab tr.ig:focus-visible{outline:2px solid var(--brass);outline-offset:-2px}
+.tab td b{font-weight:650;color:var(--primary)}
+.tab td small{display:block;color:#8a8371;font-size:12px;margin-top:1px}
+.tab .ch{display:inline-block;background:#f1ebdc;border-radius:999px;padding:2px 9px;margin:0 4px 4px 0;font-size:12px;white-space:nowrap}
+.tab .ch b{color:var(--brass);margin-right:4px}
+.tab .ch em{font-style:normal;color:#8a8371;margin-left:4px}
+.tab .fa{color:var(--accent);font-weight:600;font-size:12px}
+.tab .tr{color:#b9b19c}
+.geral-vazio{padding:34px 18px;text-align:center;color:var(--muted);background:#fff;border:1.5px dashed #dccfae;border-radius:16px}
+@media (max-width:1180px){
+  .painel{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .cartoes{flex-direction:column;flex-wrap:nowrap;align-items:stretch}
+  .colm{display:contents}
+  .colm.a > :nth-child(1){order:1}.colm.b > :nth-child(1){order:2}.colm.a > :nth-child(2){order:3}.colm.b > :nth-child(2){order:4}.bloco.larg{order:5;flex:none}
+}
 @media (max-width:980px){
   header{padding:64px 16px 14px}
-  .corpo{grid-template-columns:1fr;padding:10px}
+  .topo{position:static;padding:8px 10px;gap:8px}
+  .regs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;flex:1 1 100%}
+  .regs::-webkit-scrollbar{display:none}
+  .regs button{flex:none;white-space:nowrap;padding:9px 14px}
+  .topo .esp{display:none}
+  .estado{flex:1;min-width:0;font-size:12px}
+  .estado span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .estado.pend{padding:5px 10px}
+  .topo > button,.topo .menu > button{min-height:42px}
+  .topo .menu{position:static}
+  .topo{position:relative}
+  .topo .menu-box{left:10px;right:10px;top:calc(100% - 4px);min-width:0}
+  .menu-box button{padding:12px;font-size:15px}
+  .miolo{padding:10px 10px 90px}
+  .painel{display:flex;overflow-x:auto;gap:8px;margin:0 -10px 12px;padding:0 10px 2px;scrollbar-width:none;scroll-snap-type:x proximity}
+  .painel::-webkit-scrollbar{display:none}
+  .tile{flex:0 0 auto;min-width:132px;padding:10px 12px;gap:10px;scroll-snap-align:start}
+  .tile .ti{width:34px;height:34px;border-radius:10px}
+  .tile b{font-size:21px}
+  /* navegação de aplicativo: lista -> ficha -> voltar */
+  .corpo{grid-template-columns:minmax(0,1fr)}
+  .corpo.det .lado{display:none}
+  .corpo:not(.det) #fichaHost{display:none}
+  body.na-ficha .painel{display:none}
   .lado{position:static;max-height:none}
-  .lista{max-height:320px}
-  .g-id,.g-2{grid-template-columns:1fr}
-  .lc,.le{grid-template-columns:1fr 1fr 34px}
-  .lc>:nth-child(3),.le>:nth-child(3){grid-column:1}
-  .lc>:nth-child(4),.le>:nth-child(4){grid-column:2}
-  .lc-cab,.le-cab{display:none}
-  .topo{position:static}
+  .lista{max-height:none;padding-bottom:8px}
+  .it{padding:12px 10px;font-size:15px}
+  .it small{font-size:12.5px}
+  .sem i{width:17px;height:20px}
+  .heroi .h-volta{display:inline-flex;margin:-4px 0 12px -6px;padding:7px 12px 7px 8px;background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.22);color:#fdfbf6;font-size:13.5px}
+  .heroi{padding:14px 14px 14px;border-radius:14px}
+  .h-l1{flex-direction:column;gap:10px}
+  .h-tit h2{font-size:23px}
+  .h-acoes{width:100%}
+  .h-acoes button{flex:1;justify-content:center;min-height:40px}
+  .bloco{padding:14px 12px 16px;border-radius:14px}
+  input,select,textarea{font-size:16px;min-height:44px}
+  .x,.nomes .ni button{width:40px;height:44px}
+  .nomes .ni span{width:40px!important}
+  .mais{min-height:44px;font-size:14px}
+  .vis{display:flex;margin:0 0 10px}
+  .vis button{flex:1;justify-content:center;min-height:40px;font-size:14px}
+  body.na-ficha .vis{display:none}
+  .tab,.tab tbody,.tab tr,.tab td{display:block}
+  .tab{border:none;background:transparent;box-shadow:none;border-radius:0;overflow:visible}
+  .tab thead{display:none}
+  .tab tr.cid td{background:transparent;border:none;padding:10px 4px 6px}
+  .tab tr.ig{background:#fff;border:1px solid var(--line);border-radius:14px;margin-bottom:8px;padding:6px 0;box-shadow:0 1px 2px rgba(27,42,65,.04)}
+  .tab tr.ig td{border:none;padding:5px 14px}
+  .tab tr.ig td:first-child b{font-size:16px}
+  .tab tr.ig td[data-r]{display:grid;grid-template-columns:92px 1fr;gap:8px;font-size:13.5px}
+  .tab tr.ig td[data-r]::before{content:attr(data-r);font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#9a917c;padding-top:2px}
+  .tab tr.ig td[data-r] br{display:none}
+  .tab tr.ig td[data-r] span.nm ~ span.nm::before{content:" · ";color:#b9b19c}
+  .fab-nova{display:inline-flex!important}
+  body.na-ficha .fab-nova{display:none!important}
+}
+@media (max-width:560px){
+  .topo > button,.topo .menu > button{white-space:nowrap}
+  .topo .menu > button{padding:8px 12px}
+  .topo .b-previa{flex:none;width:44px;padding:0;justify-content:center}
+  .topo .b-previa span{display:none}
+  .topo .b-pdf{flex:1;justify-content:center}
+  .estado:not(.pend){flex:none}
+  .estado:not(.pend) span{display:none}
+  .estado.pend{flex:1 1 100%;order:9;justify-content:center}
+  .topo .menu{flex:1}
+  .topo .menu > button{width:100%;justify-content:center}
+  body.na-ficha .regs{display:none}
+}
+.fab-nova.fab-nova{display:none;position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:50;border:none;border-radius:999px;padding:14px 20px;font-size:14.5px;font-weight:700;color:#fff;background:linear-gradient(180deg,#d1a464,#a97d3d);box-shadow:0 12px 26px -8px rgba(27,42,65,.6)}
+@media (prefers-reduced-motion:reduce){ *{transition:none!important} }
+@media screen and (max-width:700px){
+  body.tem-appbar .topo .menu, body.tem-appbar .topo .b-pdf{display:none}
+  body.tem-appbar .topo .b-previa{margin-left:auto}
+  body.tem-appbar .estado:not(.pend){flex:1}
+  body.tem-appbar .estado:not(.pend) span{display:inline}
+  body.tem-appbar .vis{display:none}
+  body.tem-appbar .fab-nova.fab-nova{bottom:calc(86px + env(safe-area-inset-bottom))}
+  body.tem-appbar .miolo{padding-bottom:150px}
 }
 </style>
+<link rel="stylesheet" href="/assets/editor.css">
 <link rel="stylesheet" href="/assets/ui.css">
 </head>
 <body>
 <header>
-  <h1>Relatório de Igrejas</h1>
-  <p>Casas de oração de cada região: endereço, código, cultos, ministério e parte musical. Fica salvo neste aparelho; use “Salvar na nuvem” para todos verem.</p>
+  <h1 data-trilha="Listas  ›  Cadastros">Relatório de Igrejas</h1>
+  <p>Casas de oração de cada região: endereço, cultos, ministério e parte musical. Fica salvo neste aparelho; use “Salvar na nuvem” para todos verem.</p>
 </header>
 
 <div class="topo">
@@ -164,12 +343,19 @@ label{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:upperca
       <button type="button" onclick="document.getElementById('arqBackup').click()"><svg class="ic"><use href="/assets/icons.svg#i-upload"></use></svg>Abrir backup</button>
     </div>
   </div>
-  <button type="button" onclick="abrirPrevia()"><svg class="ic"><use href="/assets/icons.svg#i-eye"></use></svg>Pré-visualizar</button>
-  <button type="button" class="primary" onclick="gerarPDF()"><svg class="ic"><use href="/assets/icons.svg#i-print"></use></svg>Gerar PDF</button>
+  <button type="button" class="b-previa" onclick="abrirPrevia()" title="Pré-visualizar" aria-label="Pré-visualizar"><svg class="ic"><use href="/assets/icons.svg#i-eye"></use></svg><span>Pré-visualizar</span></button>
+  <button type="button" class="primary b-pdf" onclick="gerarPDF()"><svg class="ic"><use href="/assets/icons.svg#i-print"></use></svg>Gerar PDF</button>
   <input type="file" id="arqBackup" accept=".json" hidden onchange="abrirBackup(event)">
 </div>
 
-<div class="corpo">
+<div class="miolo">
+<div class="painel" id="painel" aria-label="Resumo da região"></div>
+<div class="vis" id="vis" role="tablist" aria-label="Modo de ver" hidden>
+  <button type="button" data-v="fichas" role="tab"><svg class="ic"><use href="/assets/icons.svg#i-edit"></use></svg>Fichas</button>
+  <button type="button" data-v="geral" role="tab"><svg class="ic"><use href="/assets/icons.svg#i-grid"></use></svg>Visão geral</button>
+</div>
+<div id="geral" hidden></div>
+<div class="corpo" id="corpo">
   <aside class="lado">
     <div class="lado-top">
       <div class="busca"><svg class="ic"><use href="/assets/icons.svg#i-search"></use></svg><input type="search" id="busca" placeholder="Buscar igreja, cidade ou nome" oninput="desenharLista()"></div>
@@ -180,6 +366,8 @@ label{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:upperca
   </aside>
   <main id="fichaHost"></main>
 </div>
+</div>
+<button type="button" class="fab-nova" onclick="novaIgreja()"><svg class="ic"><use href="/assets/icons.svg#i-plus"></use></svg>Nova igreja</button>
 
 <script src="/assets/ui.js"></script>
 <script>
@@ -231,6 +419,7 @@ function guardar(){
   DADOS.atualizado = Date.now();
   PENDENTE = true;
   clearTimeout(_tSalvar);
+  agendarRefresco();
   _tSalvar = setTimeout(()=>{ try { localStorage.setItem(chaveLocal(REG), JSON.stringify(DADOS)); localStorage.setItem(chaveLocal(REG)+'_pend','1'); } catch(e){} mostrarEstado(); }, 250);
 }
 function mostrarEstado(){
@@ -318,24 +507,140 @@ function desenharRegioes(){
   document.getElementById('regs').innerHTML = permitidas.map(r=>`<button type="button" role="tab" class="${r===REG?'on':''}" data-r="${r}">${esc(REGIOES[r])}</button>`).join('');
   document.querySelectorAll('#regs [data-r]').forEach(b=>b.onclick=()=>abrirRegiao(b.dataset.r));
 }
+/* ---------- o que já foi preenchido em cada ficha ---------- */
+const INICIAIS = ['D','S','T','Q','Q','S','S'];
+const DIA_CURTO = { Domingo:'Dom', Segunda:'Seg', 'Terça':'Ter', Quarta:'Qua', Quinta:'Qui', Sexta:'Sex', 'Sábado':'Sáb' };
+const temNome = v => (v||[]).some(x => String(x||'').trim());
+function partes(ig){
+  return [
+    ['código', !!String(ig.codigo||'').trim()],
+    ['endereço', !!String(ig.endereco||'').trim()],
+    ['cultos', (ig.cultos||[]).some(c => c.dia && c.hora)],
+    ['ministério', MINISTERIO.some(([k]) => temNome(ig[k]))],
+    ['parte musical', MUSICA.some(([k]) => temNome(ig[k])) || (ig.ensaios||[]).some(e => e.dia && e.hora)]
+  ];
+}
+const incompleta = ig => partes(ig).some(p => !p[1]);
+let SO_INCOMPLETAS = false;
+function semanaHTML(ig){
+  const tem = new Set((ig.cultos||[]).filter(c => c.hora).map(c => DIAS.indexOf(c.dia)));
+  return '<span class="sem" aria-hidden="true">' + INICIAIS.map((l, n) => `<i class="${tem.has(n) ? 's' : ''}">${l}</i>`).join('') + '</span>';
+}
+function desenharPainel(){
+  const host = document.getElementById('painel'); if (!host) return;
+  const igs = DADOS.igrejas;
+  const unicos = ch => new Set(igs.flatMap(i => (i[ch]||[]).map(x => String(x||'').trim().toLowerCase()).filter(Boolean))).size;
+  const cidades = new Set(igs.map(i => (i.cidade||'').trim().toUpperCase()).filter(Boolean)).size;
+  const horarios = igs.reduce((a, i) => a + (i.cultos||[]).filter(c => c.dia && c.hora).length, 0);
+  const inc = igs.filter(incompleta).length;
+  if (!inc) SO_INCOMPLETAS = false;
+  const t = (ic, n, rot, cls) => `<div class="tile ${cls||''}"><span class="ti">${ICO(ic)}</span><div><b>${n}</b><span>${rot}</span></div></div>`;
+  host.innerHTML =
+    t('pin', igs.length, `${igs.length===1?'igreja':'igrejas'} em ${cidades} ${cidades===1?'cidade':'cidades'}`, 'dark') +
+    t('users', unicos('anciaes'), 'anciães') +
+    t('user', unicos('diaconos'), 'diáconos') +
+    t('clock', horarios, 'horários de culto') +
+    `<button type="button" class="tile ${inc ? 'aviso' : 'tudo-ok'}${SO_INCOMPLETAS ? ' on' : ''}" id="tInc" ${inc ? '' : 'disabled'} title="${inc ? 'Mostrar só as fichas em que falta alguma parte' : 'Todas as fichas estão completas'}"><span class="ti">${ICO(inc ? 'alert' : 'check-circle')}</span><div><b>${inc}</b><span>${inc===1?'ficha incompleta':'fichas incompletas'}</span></div></button>`;
+  host.hidden = !igs.length;
+  const b = document.getElementById('tInc');
+  if (b && inc) b.onclick = ()=>{ SO_INCOMPLETAS = !SO_INCOMPLETAS; desenharPainel(); desenharLista(); if (document.body.classList.contains('na-ficha')) fecharFicha(); };
+}
 function desenharLista(){
-  ordenar();
+  ordenar(); desenharGeral();
   const q = (document.getElementById('busca').value||'').trim().toLowerCase();
   const casa = i => [i.cidade, i.nome, i.codigo, i.endereco, ...i.anciaes, ...i.diaconos, ...i.coopOficio, ...i.coopJovens, ...i.encLocais, ...i.encRegionais, ...i.examinadoras].join(' ').toLowerCase();
-  const vis = DADOS.igrejas.filter(i => !q || casa(i).includes(q));
+  const vis = DADOS.igrejas.filter(i => (!q || casa(i).includes(q)) && (!SO_INCOMPLETAS || incompleta(i)));
   const host = document.getElementById('lista');
-  const total = DADOS.igrejas.length, cidades = new Set(DADOS.igrejas.map(i=>(i.cidade||'').trim().toUpperCase()).filter(Boolean)).size;
-  document.getElementById('resumo').textContent = total ? `${total} ${total===1?'igreja':'igrejas'} em ${cidades} ${cidades===1?'cidade':'cidades'}` : '';
+  const total = DADOS.igrejas.length;
+  const res = document.getElementById('resumo');
+  res.innerHTML = !total ? '' : SO_INCOMPLETAS ? `<span>Só as incompletas (${vis.length})</span><button type="button" id="bTodas">ver todas</button>`
+    : q ? `<span>${vis.length} de ${total} ${total===1?'igreja':'igrejas'}</span>` : '<span>Toque numa igreja para abrir a ficha</span>';
+  const bt = document.getElementById('bTodas'); if (bt) bt.onclick = ()=>{ SO_INCOMPLETAS = false; desenharPainel(); desenharLista(); };
   if (!total){ host.innerHTML = `<div class="vazio">Nenhuma igreja cadastrada em ${esc(REGIOES[REG])}.</div>`; return; }
   if (!vis.length){ host.innerHTML = '<div class="vazio">Nada encontrado.</div>'; return; }
   let h = '', ult = null;
   vis.forEach(i=>{
     const c = (i.cidade||'').trim().toUpperCase() || 'SEM CIDADE';
     if (c !== ult){ ult = c; h += `<div class="cid-h">${esc(c)}<em>${vis.filter(x=>((x.cidade||'').trim().toUpperCase()||'SEM CIDADE')===c).length}</em></div>`; }
-    h += `<button type="button" class="it${i.id===SEL?' on':''}" data-id="${i.id}">${esc(i.nome || '(sem nome)')}<small>${esc([i.codigo, i.anciaes.filter(Boolean)[0]].filter(Boolean).join(' · ') || 'sem código')}</small></button>`;
+    const falta = partes(i).filter(p => !p[1]).map(p => p[0]);
+    h += `<button type="button" class="it${i.id===SEL?' on':''}" data-id="${i.id}"><span class="it-n">${esc(i.nome || '(sem nome)')}${falta.length ? `<span class="falta" title="Falta: ${esc(falta.join(', '))}"></span>` : ''}</span>${semanaHTML(i)}<small>${esc([i.codigo, i.anciaes.filter(Boolean)[0]].filter(Boolean).join(' · ') || 'sem código')}</small></button>`;
   });
   host.innerHTML = h;
-  host.querySelectorAll('.it').forEach(b=>b.onclick=()=>{ SEL = b.dataset.id; desenharLista(); desenharFicha(); if (innerWidth<=980) document.getElementById('fichaHost').scrollIntoView({behavior:'smooth'}); });
+  host.querySelectorAll('.it').forEach(b=>b.onclick=()=>{ SEL = b.dataset.id; desenharLista(); desenharFicha(); abrirFicha(); });
+}
+
+/* ---------- visão geral: a região inteira numa tabela ---------- */
+let VISAO = (()=>{ try { return localStorage.getItem('ccb_igrejas_visao') === 'geral' ? 'geral' : 'fichas'; } catch(e){ return 'fichas'; } })();
+function mudarVisao(v){
+  VISAO = v; try { localStorage.setItem('ccb_igrejas_visao', v); } catch(e){}
+  if (v === 'geral' && document.body.classList.contains('na-ficha')) fecharFicha();
+  desenharGeral();
+}
+function desenharGeral(){
+  const bar = document.getElementById('vis'), host = document.getElementById('geral'); if (!bar || !host) return;
+  const tem = DADOS && DADOS.igrejas.length > 0;
+  bar.hidden = !tem;
+  const geral = tem && VISAO === 'geral';
+  document.body.classList.toggle('v-geral', geral); host.hidden = !geral;
+  bar.querySelectorAll('button').forEach(b=>{ const on = b.dataset.v === (geral ? 'geral' : 'fichas'); b.classList.toggle('on', on); b.setAttribute('aria-selected', on); b.onclick = ()=>mudarVisao(b.dataset.v); });
+  if (!geral){ host.innerHTML = ''; return; }
+  ordenar();
+  const igs = DADOS.igrejas.filter(i => !SO_INCOMPLETAS || incompleta(i));
+  const nm = v => { const n = nomesDe(v); return n.length ? n.map(x=>`<span class="nm">${esc(x)}</span>`).join('<br>') : '<span class="fa">falta</span>'; };
+  const op = v => { const n = nomesDe(v); return n.length ? n.map(x=>`<span class="nm">${esc(x)}</span>`).join('<br>') : '<span class="tr">—</span>'; };
+  let h = '<table class="tab"><thead><tr><th>Casa de oração</th><th>Cultos</th><th>Anciães</th><th>Diáconos</th><th>Enc. locais</th><th>Ensaio local</th></tr></thead><tbody>', ult = null;
+  igs.forEach(i=>{
+    const c = (i.cidade||'').trim().toUpperCase() || 'SEM CIDADE';
+    if (c !== ult){ ult = c; h += `<tr class="cid"><td colspan="6">${esc(c)}</td></tr>`; }
+    const cultos = (i.cultos||[]).filter(x=>x.dia && x.hora).slice().sort((a,b)=> DIAS.indexOf(a.dia)-DIAS.indexOf(b.dia) || String(a.hora).localeCompare(String(b.hora)));
+    const ens = (i.ensaios||[]).filter(e=>e.dia && e.hora);
+    h += `<tr class="ig" data-id="${i.id}" tabindex="0" title="Abrir a ficha"><td><b>${esc(i.nome || '(sem nome)')}</b><small>${esc([i.codigo, i.endereco].filter(Boolean).join(' · ')) || '<span class="fa">falta código e endereço</span>'}</small></td>` +
+      `<td data-r="Cultos">${cultos.length ? '<div>' + cultos.map(x=>`<span class="ch"><b>${esc(x.dia.slice(0,3))}</b>${esc(horaBR(x.hora))}${x.tipo && x.tipo !== 'Culto' ? `<em>${esc(x.tipo)}</em>` : ''}${x.obs ? `<em>${esc(x.obs)}</em>` : ''}</span>`).join('') + '</div>' : '<span class="fa">falta</span>'}</td>` +
+      `<td data-r="Anciães"><div>${nm(i.anciaes)}</div></td><td data-r="Diáconos"><div>${nm(i.diaconos)}</div></td><td data-r="Enc. locais"><div>${op(i.encLocais)}</div></td>` +
+      `<td data-r="Ensaio">${ens.length ? '<div>' + ens.map(e=>`<span class="nm">${esc([e.semana, e.dia.slice(0,3), horaBR(e.hora)].filter(Boolean).join(' '))}</span>`).join('<br>') + '</div>' : '<span class="tr">—</span>'}</td></tr>`;
+  });
+  host.innerHTML = igs.length ? h + '</tbody></table>' : '<div class="geral-vazio">Nenhuma ficha para mostrar.</div>';
+  const abrir = id => { SEL = id; VISAO = 'fichas'; try { localStorage.setItem('ccb_igrejas_visao', 'fichas'); } catch(e){} desenharGeral(); desenharLista(); desenharFicha(); abrirFicha(); window.scrollTo(0, 0); };
+  host.querySelectorAll('tr.ig').forEach(tr=>{ tr.onclick = ()=>abrir(tr.dataset.id); tr.onkeydown = e=>{ if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); abrir(tr.dataset.id); } }; });
+}
+
+/* ---------- celular: lista -> ficha -> voltar ---------- */
+const telaPequena = () => window.matchMedia('(max-width:980px)').matches;
+function abrirFicha(){
+  if (!telaPequena() || document.body.classList.contains('na-ficha')) return;
+  document.getElementById('corpo').classList.add('det'); document.body.classList.add('na-ficha');
+  try { history.pushState({ ficha:1 }, ''); } catch(e){}
+  window.scrollTo(0, 0);
+}
+function fecharFicha(porHistorico){
+  if (!document.body.classList.contains('na-ficha')) return;
+  document.getElementById('corpo').classList.remove('det'); document.body.classList.remove('na-ficha');
+  if (!porHistorico){ try { if (history.state && history.state.ficha) history.back(); } catch(e){} }
+  const on = document.querySelector('#lista .it.on'); if (on) on.scrollIntoView({ block:'center' });
+}
+window.addEventListener('popstate', ()=>fecharFicha(true));
+
+/* a ficha mudou: atualiza o topo dela, o resumo da região e a lista (sem tirar o cursor do campo) */
+let _tRefresco = null;
+function agendarRefresco(){ clearTimeout(_tRefresco); _tRefresco = setTimeout(()=>{ atualizarHeroi(); desenharPainel(); desenharLista(); }, 160); }
+function atualizarHeroi(){
+  const ig = atual(); const h = document.getElementById('heroiCorpo'); if (!ig || !h) return;
+  const ordemDia = d => DIAS.indexOf(d);
+  const cultos = (ig.cultos||[]).filter(c => c.dia && c.hora).slice().sort((a,b)=> ordemDia(a.dia)-ordemDia(b.dia) || String(a.hora).localeCompare(String(b.hora)));
+  const ps = partes(ig), feitas = ps.filter(p => p[1]).length, falta = ps.filter(p => !p[1]).map(p => p[0]);
+  document.getElementById('hSub').textContent = (ig.cidade || 'Cidade').toUpperCase() + (ig.codigo ? ' · ' + ig.codigo : '');
+  document.getElementById('hNome').textContent = ig.nome || 'Nova igreja';
+  h.innerHTML =
+    (ig.endereco && ig.endereco.trim() ? `<div class="h-end">${ICO('pin')}<span>${esc(ig.endereco)}</span></div>` : '') +
+    `<div class="h-cultos">${cultos.length ? cultos.map(c => `<span><b>${esc(DIA_CURTO[c.dia] || c.dia)}</b>${esc(horaBR(c.hora))}${c.tipo && c.tipo !== 'Culto' ? `<em>${esc(c.tipo)}</em>` : ''}${c.obs ? `<em>${esc(c.obs)}</em>` : ''}</span>`).join('') : '<span class="nenhum">Nenhum culto com horário ainda</span>'}</div>` +
+    `<div class="h-prog${falta.length ? '' : ' cheia'}"><span class="barra">${ps.map(p => `<i class="${p[1] ? 's' : ''}"></i>`).join('')}</span>` +
+    (falta.length ? `<span><b>${feitas} de ${ps.length}</b> partes preenchidas · falta ${esc(falta.join(', '))}</span>` : `<span><b>Ficha completa</b></span>`) + `</div>`;
+  document.querySelectorAll('#fichaHost .bloco h3 em[data-cnt]').forEach(em=>{
+    const k = em.dataset.cnt;
+    const n = k === 'cultos' ? (ig.cultos||[]).length : k === 'min' ? MINISTERIO.reduce((a,[c])=>a+nomesDe(ig[c]).length,0) : MUSICA.reduce((a,[c])=>a+nomesDe(ig[c]).length,0);
+    const um = k === 'cultos' ? 'horário' : 'nome', mais = k === 'cultos' ? 'horários' : 'nomes';
+    em.textContent = n + ' ' + (n === 1 ? um : mais); em.classList.toggle('zero', !n);
+  });
 }
 
 /* ---------- ficha ---------- */
@@ -412,24 +717,34 @@ function linhasEnsaios(ig){
   };
   desenhar(); return d;
 }
-function bloco(icone, titulo, sub){
+function bloco(icone, titulo, sub, cnt){
   const b = document.createElement('section'); b.className = 'bloco';
-  b.innerHTML = `<h3>${ICO(icone)}${esc(titulo)}${sub ? ` <small>${esc(sub)}</small>` : ''}</h3>`;
+  b.innerHTML = `<h3><span class="bi">${ICO(icone)}</span><span>${esc(titulo)}${sub ? ` <small>${esc(sub)}</small>` : ''}</span>${cnt ? `<em data-cnt="${cnt}"></em>` : ''}</h3>`;
   return b;
 }
 function desenharFicha(){
   const host = document.getElementById('fichaHost');
   const ig = atual();
   if (!ig){
-    host.innerHTML = `<div class="vazia-ficha"><b>${DADOS.igrejas.length ? 'Escolha uma igreja ao lado' : 'Nenhuma igreja cadastrada'}</b>${DADOS.igrejas.length ? 'ou cadastre uma nova.' : `Use <b style="display:inline;font-size:inherit;font-family:inherit">Nova igreja</b> para começar o relatório de ${esc(REGIOES[REG])}.`}</div>`;
+    host.innerHTML = `<div class="vazia-ficha"><div class="vi">${ICO('pin')}</div><b>${DADOS.igrejas.length ? 'Escolha uma igreja' : 'Nenhuma igreja cadastrada'}</b>${DADOS.igrejas.length ? 'Abra uma ficha pela lista ou cadastre uma nova.' : `Comece o relatório de ${esc(REGIOES[REG])} cadastrando a primeira casa de oração.`}<br><button type="button" class="primary" onclick="novaIgreja()">${ICO('plus')}Nova igreja</button></div>`;
+    if (document.body.classList.contains('na-ficha')) fecharFicha();
     return;
   }
   const f = document.createElement('div'); f.className = 'ficha';
-  const tit = ()=> `<small>${esc((ig.cidade||'Cidade').toUpperCase())}${ig.codigo ? ' · ' + esc(ig.codigo) : ''}</small>${esc(ig.nome || 'Nova igreja')}`;
-  f.innerHTML = `<div class="ficha-top"><h2 id="fTit">${tit()}</h2><div class="acoes">
-    <button type="button" id="bDup" title="Copiar esta ficha para cadastrar outra parecida">${ICO('copy')}Duplicar</button>
-    <button type="button" id="bDel" class="danger" title="Excluir esta igreja">${ICO('trash')}Excluir</button></div></div>`;
-  const reTit = ()=>{ f.querySelector('#fTit').innerHTML = tit(); desenharLista(); };
+  f.innerHTML = `<div class="heroi">
+    <button type="button" class="h-volta" id="bVolta">${ICO('chevron-left')}Igrejas</button>
+    <div class="h-l1"><div class="h-tit"><small id="hSub"></small><h2 id="hNome"></h2></div>
+      <div class="h-acoes">
+        <button type="button" id="bDup" title="Copiar esta ficha para cadastrar outra parecida">${ICO('copy')}Duplicar</button>
+        <button type="button" id="bDel" class="danger" title="Excluir esta igreja">${ICO('trash')}Excluir</button>
+      </div></div>
+    <div id="heroiCorpo"></div></div>
+    <div class="cartoes"></div>`;
+  const cart = f.querySelector('.cartoes');
+  const colA = document.createElement('div'); colA.className = 'colm a';
+  const colB = document.createElement('div'); colB.className = 'colm b';
+  cart.append(colA, colB);
+  const reTit = ()=>{};
 
   const b1 = bloco('pin', 'Identificação');
   const g1 = document.createElement('div'); g1.className = 'grid g-id';
@@ -440,39 +755,42 @@ function desenharFicha(){
   const g1b = document.createElement('div'); g1b.className = 'grid g-end'; g1b.style.marginTop = '12px';
   g1b.appendChild(campo('Endereço', ig.endereco, v=>{ ig.endereco = v; }, 'placeholder="Rua, número, bairro"'));
   b1.appendChild(g1b);
-  f.appendChild(b1);
+  colA.appendChild(b1);
 
-  const b2 = bloco('calendar', 'Cultos e RJM', 'dias e horários');
-  b2.appendChild(linhasCultos(ig)); f.appendChild(b2);
+  const b2 = bloco('calendar', 'Cultos e RJM', 'dias e horários', 'cultos');
+  b2.appendChild(linhasCultos(ig)); colB.appendChild(b2);
 
-  const b3 = bloco('users', 'Ministério');
+  const b3 = bloco('users', 'Ministério', '', 'min');
   const g3 = document.createElement('div'); g3.className = 'grid g-2';
   MINISTERIO.forEach(([k, rot, item])=>g3.appendChild(listaNomes(ig, k, rot, item)));
-  b3.appendChild(g3); f.appendChild(b3);
+  b3.appendChild(g3); colA.appendChild(b3);
 
-  const b4 = bloco('music', 'Parte musical');
+  const b4 = bloco('music', 'Parte musical', '', 'mus');
   const g4 = document.createElement('div'); g4.className = 'grid g-2';
   MUSICA.forEach(([k, rot, item])=>g4.appendChild(listaNomes(ig, k, rot, item)));
   b4.appendChild(g4);
-  const t4 = document.createElement('div'); t4.style.marginTop = '14px'; t4.innerHTML = '<label>Ensaio local</label>';
+  const t4 = document.createElement('div'); t4.innerHTML = '<div class="sub-t">Ensaio local</div>';
   t4.appendChild(linhasEnsaios(ig)); b4.appendChild(t4);
-  f.appendChild(b4);
+  colB.appendChild(b4);
 
-  const b5 = bloco('file', 'Observações');
+  const b5 = bloco('file', 'Observações'); b5.classList.add('larg');
   const ta = document.createElement('textarea'); ta.value = ig.obs || ''; ta.placeholder = 'Qualquer informação a mais sobre esta igreja';
   ta.oninput = ()=>{ ig.obs = ta.value; guardar(); };
-  b5.appendChild(ta); f.appendChild(b5);
+  b5.appendChild(ta); cart.appendChild(b5);
 
   f.querySelector('#bDel').onclick = ()=>excluirIgreja(ig.id);
   f.querySelector('#bDup').onclick = ()=>duplicarIgreja(ig.id);
+  f.querySelector('#bVolta').onclick = ()=>fecharFicha();
   host.replaceChildren(f);
+  atualizarHeroi();
   atualizarSugestoes();
 }
 function novaIgreja(){
+  if (VISAO === 'geral'){ VISAO = 'fichas'; try { localStorage.setItem('ccb_igrejas_visao', 'fichas'); } catch(e){} }
   const base = atual();
   const ig = normalizar({ igrejas:[{ cidade: base ? base.cidade : '' }] }, REG).igrejas[0];
   ig.cultos = [{ dia:'Domingo', tipo:'Culto', hora:'', obs:'' }];
-  DADOS.igrejas.push(ig); SEL = ig.id; guardar(); desenharLista(); desenharFicha();
+  DADOS.igrejas.push(ig); SEL = ig.id; SO_INCOMPLETAS = false; guardar(); desenharLista(); desenharFicha(); abrirFicha();
   const n = document.querySelectorAll('#fichaHost .g-id input')[base && base.cidade ? 1 : 0]; if (n) n.focus();
 }
 function duplicarIgreja(id){
@@ -507,11 +825,12 @@ function abrirRegiao(r){
   PENDENTE = (()=>{ try { return localStorage.getItem(chaveLocal(r)+'_pend')==='1'; } catch(e){ return false; } })();
   NUVEM_EM = null;
   ordenar(); SEL = DADOS.igrejas[0] ? DADOS.igrejas[0].id : null;
-  document.getElementById('busca').value = '';
+  document.getElementById('busca').value = ''; SO_INCOMPLETAS = false;
+  if (document.body.classList.contains('na-ficha')) fecharFicha();
   desenharTudo();
   carregarNuvem(false);
 }
-function desenharTudo(){ desenharRegioes(); desenharLista(); desenharFicha(); mostrarEstado(); }
+function desenharTudo(){ desenharRegioes(); desenharPainel(); desenharLista(); desenharFicha(); mostrarEstado(); }
 
 window.__aoEntrar = function(){
   const perm = regioesPermitidas();
@@ -522,6 +841,9 @@ window.__aoEntrar = function(){
   let ult = null; try { ult = localStorage.getItem('ccb_igrejas_ultima'); } catch(e){}
   const pedida = new URLSearchParams(location.search).get('regiao');
   abrirRegiao(perm.includes(pedida) ? pedida : perm.includes(ult) ? ult : perm[0]);
+  // vindo da busca da tela inicial: &igreja=<id> abre a ficha
+  const igPedida = new URLSearchParams(location.search).get('igreja');
+  if (igPedida && DADOS.igrejas.some(i => i.id === igPedida)){ SEL = igPedida; if (VISAO === 'geral') mudarVisao('fichas'); desenharLista(); desenharFicha(); abrirFicha(); }
 };
 if (window.__SESSAO) window.__aoEntrar(window.__SESSAO);
 
@@ -619,6 +941,16 @@ function abrirDoc(imprimir){
 function abrirPrevia(){ abrirDoc(false); }
 function gerarPDF(){ abrirDoc(true); }
 window.__documentoHTML = documentoHTML;
+</script>
+<script src="/assets/appbar.js"></script>
+<script>
+/* barra de aplicativo (só aparece no celular) */
+AppBar.montar([
+  { ic:'pin', rot:'Igrejas', fn:()=>{ if (document.body.classList.contains('na-ficha')) fecharFicha(); mudarVisao('fichas'); window.scrollTo({ top:0, behavior:'smooth' }); }, ativo:()=>!document.body.classList.contains('v-geral') },
+  { ic:'grid', rot:'Visão geral', fn:()=>{ mudarVisao('geral'); window.scrollTo({ top:0, behavior:'smooth' }); }, ativo:()=>document.body.classList.contains('v-geral') },
+  { ic:'file', rot:'Arquivo', menu:'#menuArq .menu-box' },
+  { ic:'print', rot:'Gerar PDF', fn:()=>gerarPDF(), destaque:true }
+]);
 </script>
 </body>
 </html>
