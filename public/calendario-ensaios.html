@@ -121,49 +121,142 @@
   #previewFrame { width: 210mm; min-height: 297mm; border: none; background: #fff; transform-origin: top center; box-shadow: 0 4px 12px rgba(0,0,0,0.25); flex-shrink: 0; }
 
   @media (max-width:980px){ .wrap{flex-direction:column;} #previewHost{position:static; height:auto; min-width:100%;} }
+
+  /* ---------- acabamento da tela de edição (não vale na impressão) ---------- */
+  @media screen{
+    .wrap{gap:18px; padding:18px}
+    #formPanel{flex:1.1}
+    #previewHost{flex:1.2; min-width:440px}
+    #regionalContainer .regional{margin-bottom:16px}
+    .section-head{cursor:pointer; padding:10px 12px; flex-wrap:nowrap}
+    .section-head b{font-size:14px; color:var(--primary); letter-spacing:.02em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+    .sec-n{flex:none; min-width:22px; height:22px; border-radius:7px; background:var(--primary); color:#fdfbf6; font-size:12px; font-weight:800; display:inline-flex; align-items:center; justify-content:center}
+    .sec-cnt{flex:none; font-size:11.5px; font-weight:700; color:#7a6a45; background:#fff; border:1px solid #e6dcc3; border-radius:999px; padding:1px 9px; white-space:nowrap}
+    #formPanel .sec-rm{display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; padding:0; border-color:transparent; background:transparent; color:#b3a98f; box-shadow:none}
+    #formPanel .sec-rm:hover{color:var(--accent); background:#fbeae4; border-color:#e3b3a9}
+    .sec-rm svg.ic{width:16px; height:16px}
+    .loc-cab, .localidade-item{display:grid; grid-template-columns:minmax(0,1fr) 90px 150px 34px; gap:6px; align-items:center}
+    .loc-cab{font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#9a8f76; padding:0 2px 4px}
+    .localidade-item input, .localidade-item select{flex:none !important; min-width:0}
+    #formPanel .localidade-item button{display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; padding:0; border-color:transparent; background:transparent; color:#b3a98f}
+    #formPanel .localidade-item button:hover{color:var(--accent); background:#fbeae4; border-color:#e3b3a9}
+    #formPanel .add-loc{display:flex; align-items:center; justify-content:center; gap:6px; width:100%; margin-top:6px; padding:9px; border-style:dashed; border-color:#d9cba6; background:#fdfbf6; color:#6d5a2c}
+    #formPanel .add-loc:hover{background:#f7f0df; border-style:solid}
+    .add-loc svg.ic{width:15px; height:15px}
+  }
+  @media screen and (max-width:980px){
+    .wrap{padding:10px; gap:10px}
+    #formPanel{min-width:0}
+    #previewHost{min-width:0 !important; width:100%; height:auto}
+    #formPanel input[type=text], #formPanel input[type=number], #formPanel input[type=date], #formPanel select{font-size:16px; padding:10px 11px; min-height:44px}
+    #formPanel label{font-size:13.5px; margin-bottom:4px}
+    .row-grid{grid-template-columns:1fr 1fr !important}
+    .sec-cnt{display:none}
+    #formPanel .sec-rm{width:40px; height:40px}
+    .loc-cab{display:none}
+    .localidade-item{grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) 40px; padding:10px 0; margin:0; border-top:1px solid #efe8d6}
+    .localidade-item:first-child, .loc-cab + .localidade-item{border-top:none; padding-top:0}
+    .localidade-item > input:first-child{grid-column:1 / -1}
+    #formPanel .localidade-item button{width:40px; height:40px}
+    #formPanel .add-loc{min-height:44px; font-size:14.5px}
+    .regional-item input{font-size:16px; min-height:44px}
+  }
+  @media screen and (max-width:480px){ .wrap{padding:6px} }
+  /* ---------- seções por dia da semana ---------- */
+  @media screen{
+    .sem-tabs{display:flex; gap:4px; margin:0 0 12px; background:#ece6d6; padding:4px; border-radius:12px}
+    .sem-tabs[hidden]{display:none}
+    #formPanel .sem-tabs button{flex:1 1 0; min-width:0; display:inline-flex; align-items:center; justify-content:center; gap:5px; border:none; background:transparent; box-shadow:none; transform:none; padding:8px 2px; min-height:0; font-size:13px; font-weight:600; color:#6d6652; border-radius:9px}
+    #formPanel .sem-tabs button em{font-style:normal; font-size:11px; opacity:.7}
+    #formPanel .sem-tabs button.on{background:#fff; color:var(--primary); box-shadow:0 1px 3px rgba(27,42,65,.18)}
+    #formPanel .sem-tabs button.z{opacity:.4; cursor:default}
+  }
+  @media screen and (max-width:600px){
+    .sem-tabs{overflow-x:auto; scrollbar-width:none}
+    .sem-tabs::-webkit-scrollbar{display:none}
+    #formPanel .sem-tabs button{flex:0 0 auto; padding:10px 12px; font-size:14px}
+  }
 </style>
 <link rel="stylesheet" href="/assets/ui.css">
 <link rel="stylesheet" href="/assets/editor.css">
+<link rel="stylesheet" href="/assets/editor-topo.css">
 <script src="/assets/ui.js"></script>
+<script src="/assets/editor-topo.js"></script>
 </head>
-<body>
+<body class="ed2">
 <header>
-  <h1>Calendário dos Ensaios Locais</h1>
+  <h1 data-trilha="Listas  ›  Calendários">Calendário dos Ensaios Locais</h1>
   <p>Cadastre a localidade e a regra semanal (ex: 3ª terça-feira). As datas de cada mês são calculadas automaticamente.</p>
 </header>
 
 <div class="wrap">
   <div class="panel" id="formPanel">
-    <div class="toolbar">
-      <button class="primary" onclick="gerarPDF()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-print"></use></svg>Imprimir / PDF</button>
-      <button onclick="exportJSON()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-download"></use></svg>Baixar backup</button>
-      <button onclick="document.getElementById('importInput').click()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-upload"></use></svg>Abrir backup</button>
-      <input type="file" id="importInput" accept=".json" style="display:none" onchange="importJSON(event)">
-      <button id="btnListaSalvar" onclick="salvarLista()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-cloud-up"></use></svg>Salvar na nuvem</button>
-      <button id="btnListaCarregar" onclick="carregarLista()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-cloud-down"></use></svg>Carregar da nuvem</button>
-      <button class="danger" onclick="if(confirm('Limpar tudo?')) resetAll()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-trash"></use></svg>Limpar tudo</button>
-    </div>
-
-    <div class="row-grid" style="grid-template-columns: 2fr 1fr 1fr;">
-      <div><label>Título</label><input type="text" id="meta_titulo" oninput="updateMeta('titulo', this.value)"></div>
-      <div><label>Região/Subtítulo</label><input type="text" id="meta_subtitulo" placeholder="CAMPO MOURÃO - PR" oninput="updateMeta('subtitulo', this.value)"></div>
-      <div><label>Ano</label><input type="number" id="meta_ano" placeholder="2026" oninput="updateMeta('ano', this.value)"></div>
-    </div>
-    <div class="row-grid" style="grid-template-columns: 1.4fr 1fr 2fr;">
-      <div><label>Mês inicial (para atualizações no meio do ano)</label>
-        <select id="meta_mesInicial" onchange="updateMeta('mesInicial', this.value)"></select>
+    <div class="topo-ed">
+      <div class="abas" role="tablist">
+        <button type="button" role="tab" data-aba="tab" class="on" onclick="aba('tab')"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-music"></use></svg>Ensaios</button>
+        <button type="button" role="tab" data-aba="conf" onclick="aba('conf')"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-file"></use></svg>Configurações</button>
       </div>
-      <div><label>Horário padrão</label><input type="text" id="meta_horarioPadrao" placeholder="19:30" oninput="updateMeta('horarioPadrao', this.value)"></div>
-      <div><label>Atualizado em (rodapé)</label><input type="text" id="meta_atualizado" placeholder="julho/2026" oninput="updateMeta('atualizado', this.value)"></div>
+      <div class="acoes-ed">
+        <span class="salvo" id="salvo" title="As alterações ficam salvas neste aparelho. Para guardar na nuvem use Arquivo › Salvar na nuvem."><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-check-circle"></use></svg><span>Salvo</span></span>
+        <div class="menu" id="menuArq">
+          <button type="button" onclick="togMenu(event,'menuArq')"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-file"></use></svg>Arquivo<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-chevron-down"></use></svg></button>
+          <div class="menu-box">
+            <button type="button" id="btnListaSalvar" onclick="salvarLista()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-cloud-up"></use></svg>Salvar na nuvem</button>
+            <button type="button" id="btnListaCarregar" onclick="carregarLista()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-cloud-down"></use></svg>Carregar da nuvem</button>
+            <hr>
+            <button type="button" onclick="exportJSON()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-download"></use></svg>Baixar backup (.json)</button>
+            <button type="button" onclick="document.getElementById('importInput').click()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-upload"></use></svg>Abrir backup</button>
+            <hr>
+            <button type="button" class="danger" onclick="limparTudo()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-trash"></use></svg>Limpar o calendário inteiro</button>
+          </div>
+        </div>
+        <button type="button" class="primary" onclick="gerarPDF()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-print"></use></svg>Imprimir / PDF</button>
+        <input type="file" id="importInput" accept=".json" style="display:none" onchange="importJSON(event)">
+      </div>
     </div>
 
-    <div id="regionalContainer"></div>
+    <section class="aba" data-aba-de="tab">
+      <div id="regionalContainer"></div>
 
-    <div style="margin-bottom: 10px; padding-top: 6px; border-top: 1px solid var(--line);">
-      <button onclick="addSecao()">+ Adicionar Seção (regra do dia)</button>
-    </div>
+      <div class="resumo-lista">
+        <button type="button" class="res-per" onclick="aba('conf')" title="Mudar o ano e o cabeçalho (em Configurações)"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-calendar"></use></svg><b id="resPer">Ensaios locais</b></button>
+        <span class="res-pag" id="resTab"></span>
+        <span class="res-lin" id="resLin"></span>
+        <span class="res-acoes">
+          <button type="button" class="primary" onclick="addSecao()" title="Uma seção para cada regra, por exemplo: 3ª terça-feira"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-plus"></use></svg>Nova seção</button>
+        </span>
+      </div>
+      <div class="sem-tabs" id="semTabs" role="tablist" aria-label="Dia da semana" hidden></div>
+      <div id="secoesContainer"></div>
+      <div class="vazio-ed"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-music"></use></svg><b>Nenhuma seção ainda</b><span>Cada seção é uma regra do mês, como <strong>3ª terça-feira</strong>.<br>Toque em <strong>Nova seção</strong> e depois acrescente as localidades.</span></div>
+    </section>
 
-    <div id="secoesContainer"></div>
+    <section class="aba" data-aba-de="conf" hidden>
+      <div class="cfg">
+        <h4><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-file"></use></svg>Cabeçalho</h4>
+        <div class="cfg-grid" style="grid-template-columns:2fr 1.3fr .7fr">
+          <div><label for="meta_titulo">Título</label><input type="text" id="meta_titulo" oninput="updateMeta('titulo', this.value)"></div>
+          <div><label for="meta_subtitulo">Região / subtítulo</label><input type="text" id="meta_subtitulo" placeholder="CAMPO MOURÃO - PR" oninput="updateMeta('subtitulo', this.value)"></div>
+          <div><label for="meta_ano">Ano</label><input type="number" id="meta_ano" placeholder="2026" oninput="updateMeta('ano', this.value)"></div>
+        </div>
+      </div>
+      <div class="cfg">
+        <h4><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-clock"></use></svg>Meses e horário</h4>
+        <div class="cfg-grid" style="grid-template-columns:1fr 1fr">
+          <div><label for="meta_mesInicial">Mês inicial</label>
+            <select id="meta_mesInicial" onchange="updateMeta('mesInicial', this.value)"></select>
+            <div class="muted">Para atualizações no meio do ano: o calendário começa neste mês.</div>
+          </div>
+          <div><label for="meta_horarioPadrao">Horário padrão</label><input type="text" id="meta_horarioPadrao" placeholder="19:30" oninput="updateMeta('horarioPadrao', this.value)">
+            <div class="muted">Vale para as localidades sem horário próprio.</div>
+          </div>
+        </div>
+      </div>
+      <div class="cfg">
+        <h4><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-alert"></use></svg>Rodapé</h4>
+        <div><label for="meta_atualizado">Atualizado em</label><input type="text" id="meta_atualizado" placeholder="julho/2026" oninput="updateMeta('atualizado', this.value)"></div>
+      </div>
+    </section>
   </div>
 
   <div class="panel" id="previewHost">
@@ -303,7 +396,7 @@ function updateMeta(key, val) {
 }
 
 function addSecao() {
-  STATE.secoes.push({ ordinal: 1, diaSemana: 1, isOpen: true, localidades: [] });
+  STATE.secoes.push({ ordinal: 1, diaSemana: DIA_FILTRO === 'todos' ? 1 : DIA_FILTRO, isOpen: true, localidades: [] });
   renderSecoes(); updatePreview(); saveData();
 }
 
@@ -320,9 +413,23 @@ function rotuloSecao(secao) {
 
 let dragSrcEl = null;
 
+// filtro por dia da semana (só na tela; não muda o calendário impresso)
+let DIA_FILTRO = (()=>{ try { const v = localStorage.getItem('ccb_ensaios_dia'); return v === null || v === 'todos' ? 'todos' : Number(v); } catch(e){ return 'todos'; } })();
+function filtrarDia(v){ DIA_FILTRO = v; try { localStorage.setItem('ccb_ensaios_dia', String(v)); } catch(e){} renderSecoes(); }
+function renderSemTabs(){
+  const host = document.getElementById('semTabs'); if (!host) return;
+  host.hidden = !STATE.secoes.length;
+  const ordem = [1,2,3,4,5,6,0], curto = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const n = d => STATE.secoes.filter(x => Number(x.diaSemana) === d).length;
+  if (DIA_FILTRO !== 'todos' && !n(DIA_FILTRO)) DIA_FILTRO = 'todos';
+  host.innerHTML = `<button type="button" class="${DIA_FILTRO==='todos'?'on':''}" onclick="filtrarDia('todos')">Todas<em>${STATE.secoes.length}</em></button>` +
+    ordem.map(d => `<button type="button" class="${DIA_FILTRO===d?'on':''}${n(d)?'':' z'}" ${n(d)?'':'disabled'} title="${DIAS_SEMANA[d].nome}" onclick="filtrarDia(${d})">${curto[d]}<em>${n(d)}</em></button>`).join('');
+}
+
 function renderSecoes() {
   const container = document.getElementById('secoesContainer');
   container.innerHTML = '';
+  renderSemTabs();
 
   STATE.secoes.forEach((secao, sIdx) => {
     if (typeof secao.isOpen === 'undefined') secao.isOpen = true;
@@ -330,6 +437,7 @@ function renderSecoes() {
 
     const secDiv = document.createElement('div');
     secDiv.className = secao.isOpen ? 'section open' : 'section';
+    if (DIA_FILTRO !== 'todos' && Number(secao.diaSemana) !== DIA_FILTRO) secDiv.style.display = 'none';
     secDiv.draggable = true;
     secDiv.dataset.index = sIdx;
 
@@ -367,8 +475,8 @@ function renderSecoes() {
     head.className = 'section-head';
 
     const titleWrap = document.createElement('div');
-    titleWrap.style.cssText = 'display:flex; gap:8px; align-items:center; flex:1;';
-    titleWrap.innerHTML = `<span class="drag-handle" title="Arraste para reordenar"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-grip"></use></svg></span><b id="rotulo-secao-${sIdx}">${sIdx + 1}. ${rotuloSecao(secao).toUpperCase()}</b>`;
+    titleWrap.style.cssText = 'display:flex; gap:8px; align-items:center; flex:1; min-width:0;';
+    titleWrap.innerHTML = `<span class="drag-handle" title="Arraste para reordenar"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-grip"></use></svg></span><span class="sec-n">${sIdx + 1}</span><b id="rotulo-secao-${sIdx}">${rotuloSecao(secao).toUpperCase()}</b><span class="sec-cnt">${secao.localidades.length} ${secao.localidades.length === 1 ? "localidade" : "localidades"}</span>`;
 
     const controls = document.createElement('div');
     controls.style.cssText = 'display:flex; gap:4px; align-items:center;';
@@ -377,11 +485,16 @@ function renderSecoes() {
     toggleBtn.className = 'toggle-chevron';
     toggleBtn.innerHTML = '<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-chevron-right"></use></svg>';
     toggleBtn.title = 'Mostrar/ocultar';
-    toggleBtn.onclick = () => { secao.isOpen = !secao.isOpen; renderSecoes(); saveData(); };
+    head.onclick = (e) => { if (e.target.closest('button') || e.target.closest('.drag-handle')) return; secao.isOpen = !secao.isOpen; renderSecoes(); saveData(); };
     controls.appendChild(toggleBtn);
 
-    const rmBtn = document.createElement('button'); rmBtn.className = 'danger'; rmBtn.textContent = 'Excluir Seção';
-    rmBtn.onclick = () => { if (confirm('Excluir esta seção e suas localidades?')) { STATE.secoes.splice(sIdx, 1); renderSecoes(); updatePreview(); saveData(); } };
+    const rmBtn = document.createElement('button'); rmBtn.type = 'button'; rmBtn.className = 'sec-rm'; rmBtn.title = 'Excluir esta seção'; rmBtn.setAttribute('aria-label', 'Excluir seção');
+    rmBtn.innerHTML = '<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-trash"></use></svg>';
+    rmBtn.onclick = async (e) => {
+      e.stopPropagation();
+      const ok = await UI.confirm('Excluir a seção "' + rotuloSecao(secao) + '"?', 'A seção e as localidades dela saem do calendário.', {danger:true, ok:'Excluir seção', okIcon:'trash'});
+      if (ok) { STATE.secoes.splice(sIdx, 1); renderSecoes(); updatePreview(); saveData(); }
+    };
     controls.appendChild(rmBtn);
 
     head.appendChild(titleWrap);
@@ -397,7 +510,7 @@ function renderSecoes() {
 
     const atualizarRotulo = () => {
       const el = document.getElementById(`rotulo-secao-${sIdx}`);
-      if (el) el.textContent = `${sIdx + 1}. ${rotuloSecao(secao).toUpperCase()}`;
+      if (el) el.textContent = rotuloSecao(secao).toUpperCase();
     };
 
     const fOrdinal = document.createElement('div');
@@ -424,12 +537,14 @@ function renderSecoes() {
       Array.from(sOrdinal.options).forEach(opt => { opt.textContent = ordinalTexto(opt.value, secao.diaSemana); });
       atualizarRotulo();
       updatePreview(); saveData();
+      if (DIA_FILTRO !== 'todos') filtrarDia(secao.diaSemana); else renderSemTabs();
     };
     fDia.appendChild(sDia); grid.appendChild(fDia);
 
     body.appendChild(grid);
 
     const listaLocalidades = document.createElement('div');
+    if (secao.localidades.length) listaLocalidades.innerHTML = '<div class="loc-cab"><span>Localidade</span><span>Horário</span><span>Meses</span><span></span></div>';
     secao.localidades.forEach((loc, lIdx) => {
       const item = document.createElement('div');
       item.className = 'localidade-item';
@@ -457,7 +572,7 @@ function renderSecoes() {
     });
     body.appendChild(listaLocalidades);
 
-    const addLocBtn = document.createElement('button'); addLocBtn.textContent = '+ Adicionar Localidade'; addLocBtn.style.marginTop = '4px';
+    const addLocBtn = document.createElement('button'); addLocBtn.type = 'button'; addLocBtn.className = 'add-loc'; addLocBtn.innerHTML = '<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-plus"></use></svg>Adicionar localidade';
     addLocBtn.onclick = () => { secao.localidades.push({ nome: '', horario: '', periodicidade: 'todos' }); renderSecoes(); updatePreview(); saveData(); };
     body.appendChild(addLocBtn);
 
@@ -920,6 +1035,30 @@ window.onload = () => {
   setTimeout(scalePreview, 300);
 };
 </script>
+<script>
+/* ---------- barra de cima: resumo, "Salvo" e limpar com desfazer ---------- */
+function atualizarResumo(){
+  const t = (STATE.secoes||[]).length;
+  const n = (STATE.secoes||[]).reduce((a,s)=>a+((s.localidades||[]).length),0);
+  const rp = document.getElementById('resPer'); if (rp) rp.textContent = 'Ensaios locais' + (STATE.meta && STATE.meta.ano ? ' · ' + STATE.meta.ano : '');
+  const rt = document.getElementById('resTab'); if (rt){ rt.textContent = t + (t===1?' seção':' seções'); rt.hidden = !t; }
+  const rl = document.getElementById('resLin'); if (rl){ rl.textContent = n + (n===1?' localidade':' localidades'); rl.hidden = !t; }
+}
+async function limparTudo(){
+  const ok = await UI.confirm('Limpar o calendário inteiro?', 'Todas as seções, localidades e datas saem da tela. Se quiser guardar antes, use Arquivo › Baixar backup.', {danger:true, ok:'Limpar tudo', okIcon:'trash'});
+  if (!ok) return;
+  const antes = JSON.stringify(STATE);
+  resetAll(); atualizarResumo();
+  UI.toast('Calendário limpo.', {action:{label:'Desfazer', icon:'undo', fn:()=>{ loadStateFromJSON(antes); saveData(); }}});
+}
+(function(){
+  const _salvar = saveData;
+  saveData = function(){ const r = _salvar.apply(this, arguments); marcarSalvo(); atualizarResumo(); return r; };
+  const _render = renderSecoes;
+  renderSecoes = function(){ const r = _render.apply(this, arguments); atualizarResumo(); return r; };
+  window.addEventListener('load', ()=> setTimeout(atualizarResumo, 0));
+})();
+</script>
 <script src="/assets/editor.js"></script>
 <script>
 /* Salvar / carregar na nuvem: lógica em /assets/editor.js */
@@ -930,6 +1069,16 @@ Nuvem.configurar({
   conteudo: function () { saveState(); return JSON.stringify(STATE, null, 2); },
   aplicar: function (texto) { return loadStateFromJSON(texto); }
 });
+</script>
+<script src="/assets/appbar.js"></script>
+<script>
+/* barra de aplicativo (só aparece no celular) */
+AppBar.montar([
+  { ic:'music', rot:'Ensaios', fn:()=>{ aba('tab'); window.scrollTo({ top:0, behavior:'smooth' }); }, ativo:()=>true },
+  { ic:'eye', rot:'Prévia', fn:()=>{ const h = document.getElementById('previewHost'); if (h) h.scrollIntoView({ block:'start', behavior:'smooth' }); } },
+  { ic:'file', rot:'Arquivo', menu:'#menuArq .menu-box' },
+  { ic:'print', rot:'Imprimir', fn:()=>gerarPDF(), destaque:true }
+]);
 </script>
 </body>
 </html>

@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="/assets/theme.css">
 <link rel="stylesheet" href="/assets/ui.css">
 <script src="/assets/ui.js"></script>
+<script src="/assets/continuar.js"></script>
 <style>body.theme{visibility:hidden;}</style>
 </head>
 <body class="theme">
@@ -47,7 +48,8 @@ const CATALOGO = {
   goioere:         { url: '/listagoioere.html',      label: 'Goioerê',                     tipo: 'local' },
   ivaipora:        { url: '/listaivaipora.html',     label: 'Ivaiporã',                    tipo: 'local' },
   calendario:      { url: '/calendario-ensaios.html',label: 'Calendário dos Ensaios',      tipo: 'cal', desc: 'Ensaios locais da regional' },
-  calendarioanual: { url: '/calendario-reunioes.html',label: 'Calendário Anual de Reuniões',tipo: 'cal', desc: 'Reuniões do ano, com capa, legenda e feriados' }
+  calendarioanual: { url: '/calendario-reunioes.html',label: 'Calendário Anual de Reuniões',tipo: 'cal', desc: 'Reuniões do ano, com capa, legenda e feriados' },
+  atas:            { url: '/atas.html',              label: 'Atas e Assembleias',          tipo: 'cad', desc: 'Edital, ata, relatório e balanço das assembleias' }
 };
 
 document.getElementById('btnSair').addEventListener('click', function (e) {
@@ -57,10 +59,12 @@ document.getElementById('btnSair').addEventListener('click', function (e) {
 
 function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
 
+const IGR = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3 4 8v13h16V8l-8-5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9.5 21v-6h5v6M12 7v4M10 9h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const ATA = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 19.5V5a2 2 0 0 1 2-2h13v16H6.5A2.5 2.5 0 0 0 4 21.5" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M19 19v2.5H6.5M8 7h7M8 11h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
 function cardHTML(c) {
   const cal = c.tipo === 'cal';
   return '<a class="lcard' + (cal ? ' cal' : '') + '" href="' + c.url + '">' +
-    '<div class="lic">' + (cal ? CAL : PIN) + '</div>' +
+    '<div class="lic">' + (c.ata ? ATA : c.igr ? IGR : cal ? CAL : PIN) + '</div>' +
     '<div class="ltx"><div class="lnm">' + esc(c.label) + '</div><div class="lds">' + esc(c.desc || 'Lista de serviços da localidade') + '</div></div>' +
     ARROW + '</a>';
 }
@@ -88,11 +92,15 @@ function renderListas(lists) {
   html += bloco('Calendários', cals, true);
   // Relatório de Igrejas: para quem tem a lista de alguma região
   const REG_IGREJAS = ['campomourao','cianorte','ubirata','pitanga','goioere','ivaipora'];
+  const cads = [];
   if ((lists || []).some(function (k) { return REG_IGREJAS.indexOf(k) !== -1; })) {
-    html += bloco('Cadastros', [{ url: '/relatorio-igrejas.html', label: 'Relatório de Igrejas', tipo: 'cal', desc: 'Casas de oração, cultos, ministério e parte musical da sua região' }], true);
+    cads.push({ url: '/relatorio-igrejas.html', label: 'Relatório de Igrejas', tipo: 'cal', igr: true, desc: 'Casas de oração, cultos, ministério e parte musical da sua região' });
   }
+  if ((lists || []).indexOf('atas') !== -1) cads.push({ url: '/atas.html', label: 'Atas e Assembleias', tipo: 'cal', ata: true, desc: 'Edital, ata, relatório e balanço das assembleias' });
+  html += bloco('Cadastros', cads, true);
   document.getElementById('conteudo').innerHTML = html;
   destacarUltima();
+  try { Continuar.montar(); } catch (e) {}
 }
 function destacarUltima() {
   /* Destaca a última lista aberta neste aparelho */

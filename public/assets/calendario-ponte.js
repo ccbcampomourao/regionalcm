@@ -56,9 +56,13 @@
   // período da lista: "NOVEMBRO/DEZEMBRO - 2026" -> { ini: 2026-11-01, fim: 2026-12-31 }
   function periodo() {
     var p = (document.getElementById('meta_periodo') || {}).value || (STATE.meta && STATE.meta.periodo) || '';
-    var m = p.toUpperCase().match(/([A-ZÇ]+)\s*\/\s*([A-ZÇ]+).*?(\d{4})/);
-    if (!m || !MESES[m[1]]) return null;
-    var ano = +m[3], m1 = MESES[m[1]], m2 = MESES[m[2]] || m1, ano2 = m2 < m1 ? ano + 1 : ano;
+    // aceita bimestre (JANEIRO/FEVEREIRO) e trimestre (JANEIRO/FEVEREIRO/MARÇO)
+    var m = p.toUpperCase().match(/([A-ZÇ]+(?:\s*\/\s*[A-ZÇ]+)+).*?(\d{4})/);
+    if (!m) return null;
+    var nomes = m[1].split('/').map(function (x) { return x.trim(); });
+    var m1 = MESES[nomes[0]], m2 = MESES[nomes[nomes.length - 1]] || m1;
+    if (!m1) return null;
+    var ano = +m[2], ano2 = m2 < m1 ? ano + 1 : ano;
     var ult = new Date(ano2, m2, 0).getDate();
     return { ini: ano + '-' + p2(m1) + '-01', fim: ano2 + '-' + p2(m2) + '-' + p2(ult) };
   }
@@ -81,8 +85,9 @@
     return out;
   }
 
-  // A RMA é bimestral e cai dentro de cada período (ex.: novembro e janeiro). A lista de
-  // NOV/DEZ vai do início do período até a RMA do período SEGUINTE (a de janeiro), passando
+  // A RMA/RLA cai dentro de cada período (ex.: novembro e janeiro). A lista vai do início
+  // do período (bimestre até 2026, trimestre a partir de 2027) até a RMA/RLA seguinte ao
+  // fim do período (ex.: NOV/DEZ ou OUT/NOV/DEZ -> a de janeiro), passando
   // pela RMA do próprio período. ate: limite usado quando essa RMA ainda não foi lançada.
   function planejar(cals, ate) {
     if (!Array.isArray(cals)) cals = [cals];
@@ -251,7 +256,7 @@
     var nLocal = local ? Object.keys(local.dias || {}).reduce(function (a, k) { return a + (local.dias[k] || []).length; }, 0) : 0;
     var r = await UI.dialog({
       title: 'Puxar do calendário anual', icon: 'calendar',
-      subtitle: 'Acrescenta Reuniões Diversas, Mocidade e Ensaio Regional do início do período até a RMA/RLA do período seguinte (ex.: lista de NOV/DEZ vai até a de janeiro).',
+      subtitle: 'Acrescenta Reuniões Diversas, Mocidade e Ensaio Regional do início do período até a RMA/RLA do período seguinte (ex.: lista do fim do ano vai até a de janeiro).',
       body: '<p class="ui-modal__p">De onde vem o calendário?</p>',
       actions: [
         { label: 'Cancelar', value: null },

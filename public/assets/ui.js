@@ -299,7 +299,8 @@
     goioere:         { url: '/listagoioere.html',       label: 'Goioerê',                      tipo: 'local',    desc: 'Lista de serviços da localidade' },
     ivaipora:        { url: '/listaivaipora.html',      label: 'Ivaiporã',                     tipo: 'local',    desc: 'Lista de serviços da localidade' },
     calendario:      { url: '/calendario-ensaios.html', label: 'Calendário dos Ensaios',       tipo: 'cal',      desc: 'Ensaios locais da regional' },
-    calendarioanual: { url: '/calendario-reunioes.html',label: 'Calendário Anual de Reuniões', tipo: 'cal',      desc: 'Reuniões do ano, com capa, legenda e feriados' }
+    calendarioanual: { url: '/calendario-reunioes.html',label: 'Calendário Anual de Reuniões', tipo: 'cal',      desc: 'Reuniões do ano, com capa, legenda e feriados' },
+    atas:            { url: '/atas.html',               label: 'Atas e Assembleias',           tipo: 'cad',      desc: 'Edital, ata, relatório e balanço das assembleias' }
   };
 
   // Para onde levar quem já está com a sessão aberta

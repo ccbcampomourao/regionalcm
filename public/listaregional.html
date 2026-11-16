@@ -300,69 +300,148 @@
   @media (min-width:981px){
     .mobile-preview-fab{ display:none !important; }
   }
+
+  /* ---------- acabamento da tela de edição (não vale na impressão) ---------- */
+  @media screen{
+    .wrap{gap:18px; padding:18px}
+    #formPanel{flex:1.15}
+    #previewHost{flex:1; min-width:400px}
+    .section-head > div:first-child{min-width:0; gap:2px}
+    .section-head h3{font-size:15px; overflow:hidden; text-overflow:ellipsis}
+    .sec-n{flex:none; min-width:22px; height:22px; margin-right:8px; border-radius:7px; background:var(--primary); color:#fdfbf6; font-size:12px; font-weight:800; display:inline-flex; align-items:center; justify-content:center}
+    .sec-cnt{flex:none; margin-left:10px; font-size:11.5px; font-weight:700; color:#7a6a45; background:#fff; border:1px solid #e6dcc3; border-radius:999px; padding:1px 9px; white-space:nowrap}
+    .sec-acoes{display:flex; align-items:center; gap:6px; flex:none; margin-left:10px}
+    #formPanel .sec-add{display:inline-flex; align-items:center; gap:5px; padding:6px 11px; font-size:13px; min-height:0; background:#fff}
+    #formPanel .sec-rm{display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; padding:0; min-height:0; border-color:transparent; background:transparent; color:#b3a98f; box-shadow:none}
+    #formPanel .sec-rm:hover{color:var(--accent); background:#fbeae4; border-color:#e3b3a9}
+    .sec-add svg.ic,.sec-rm svg.ic{width:16px; height:16px}
+    #formPanel .section-body > button:last-child{display:block; width:100%; padding:10px; border-style:dashed; border-color:#d9cba6; background:#fdfbf6; color:#6d5a2c}
+    #formPanel .section-body > button:last-child:hover{background:#f7f0df; border-style:solid}
+    #cargosList{padding:8px 10px; max-height:420px; overflow:auto}
+    #cargosList .listitem{margin-bottom:5px}
+    #previewHost > div:first-child > div:last-child{background:#f3eee0 !important; border-color:#e6dec9 !important; border-radius:9px !important}
+  }
+  @media screen and (max-width:980px){
+    .wrap{padding:10px; gap:10px}
+    #previewHost{min-width:0}
+    .sec-cnt{display:none}
+    #formPanel .sec-add{padding:0; width:40px; height:40px; justify-content:center; min-height:0}
+    #formPanel .sec-add span{display:none}
+    #formPanel .sec-rm{width:40px; height:40px}
+    .section-head{gap:6px}
+    .section-head h3{white-space:nowrap}
+  }
+  @media screen and (max-width:980px){
+    #formPanel input[type=text], #formPanel input[type=date], #formPanel input[type=time], #formPanel select{font-size:16px; padding:10px 11px; min-height:44px}
+    #formPanel label{font-size:13.5px; margin-bottom:4px}
+    #formPanel .entry-body .row-grid{grid-template-columns:1fr 1fr !important; gap:10px}
+    #formPanel .entry-body .row-grid > .field:nth-child(n+3){grid-column:1 / -1}
+    #formPanel .entry-body .row-grid > .field{min-width:0}
+    #cargosList .listitem input[data-f="code"]{max-width:84px !important}
+  }
+  @media screen and (max-width:480px){ .wrap{padding:6px} }
+  /* ---------- linhas fechadas em resumo; só a que está em edição fica aberta ---------- */
+  @media screen{
+    .entry:not(.open){border-radius:10px; margin-bottom:5px; box-shadow:none}
+    .entry:not(.open) .entry-head{background:#fff; padding:7px 10px}
+    .entry:not(.open) .entry-head:hover{background:#faf6ea}
+    .entry.open{border-color:var(--brass-lt); box-shadow:0 6px 18px -12px rgba(169,125,61,.7)}
+    .entry-summary-text{display:flex; align-items:baseline; gap:12px; flex:1}
+    .entry-summary-text .rs-h{font-weight:700; color:var(--primary); flex:none; font-variant-numeric:tabular-nums}
+    .entry-summary-text .rs-l{font-weight:600; color:var(--primary); flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis}
+    .entry-summary-text .rs-r{color:#7a7263; flex:1 1 0; min-width:0; overflow:hidden; text-overflow:ellipsis}
+    .entry.open .entry-summary-text .rs-h, .entry.open .entry-summary-text .rs-r{display:none}
+  }
 </style>
 <link rel="stylesheet" href="/assets/ui.css">
 <link rel="stylesheet" href="/assets/editor.css">
+<link rel="stylesheet" href="/assets/editor-topo.css">
 <script src="/assets/ui.js"></script>
+<script src="/assets/editor-topo.js"></script>
 </head>
-<body>
+<body class="ed2">
 <header>
-  <h1>Congregação Cristã no Brasil - Lista de Serviços Regional</h1>
-  <p>Monte a lista escolhendo os tipos de serviço. Pode arrastar as seções criadas pelo cabeçalho para reordená-las.</p>
+  <h1 data-trilha="Listas  ›  Regional">Lista de Serviços · Regional</h1>
+  <p>Congregação Cristã no Brasil — Regional Campo Mourão - PR. Tudo o que você digita fica salvo automaticamente neste aparelho.</p>
 </header>
 
 <div class="wrap">
   <div class="panel" id="formPanel">
-    <div class="toolbar">
-      <button class="primary-action" onclick="gerarPDF()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-print"></use></svg>Gerar / Imprimir PDF</button>
-      <button onclick="exportJSON()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-download"></use></svg>Baixar backup</button>
-      <button onclick="document.getElementById('importInput').click()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-upload"></use></svg>Abrir backup</button>
-      <input type="file" id="importInput" accept=".json" style="display:none" onchange="importJSON(event)">
-      <button id="btnListaSalvar" onclick="salvarLista()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-cloud-up"></use></svg>Salvar na nuvem</button>
-      <button id="btnListaCarregar" onclick="carregarLista()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-cloud-down"></use></svg>Carregar da nuvem</button>
-      <button class="danger" onclick="if(confirm('Limpar tudo?')) resetAll()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-trash"></use></svg>Limpar tudo</button>
-    </div>
-    <div class="note">Para o PDF sair <strong>idêntico</strong> ao que vê na pré-visualização: na janela de impressão que abrir, marque <strong>"Gráficos de fundo"</strong> (Background graphics), desmarque "Cabeçalhos e rodapés" e deixe a <strong>Escala em 100%</strong>.</div>
-
-    <div class="field row-grid">
-	  <div><label>Título</label><input type="text" id="meta_titulo" value="LISTA DE SERVIÇOS" readonly style="background:#eee"></div>
-      <div><label>Região</label><input type="text" id="meta_regiao" value="CAMPO MOURÃO" placeholder="opcional"></div>
-	  <div><label>Período</label><select id="meta_periodo"></select></div>
-    </div>
-
-    <div class="field row-grid" style="grid-template-columns: 1fr 1fr; margin-top: 10px; margin-bottom: 16px; align-items: start;">
-      <div>
-        <label>Rodapé Esquerdo (Fixo em todas as páginas)</label>
-        <input type="text" id="meta_rodape_esq" placeholder="Ex: *V1 - pode sofrer alterações">
+    <div class="topo-ed">
+      <div class="abas" role="tablist">
+        <button type="button" role="tab" data-aba="tab" class="on" onclick="aba('tab')"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-grid"></use></svg>Tabelas</button>
+        <button type="button" role="tab" data-aba="conf" onclick="aba('conf')"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-file"></use></svg>Configurações</button>
       </div>
-      <div>
-        <label>Rodapé Direito (Específico por página)</label>
-        <div id="rodape_dir_inputs" style="display:flex; flex-direction:column; gap:6px;">
+      <div class="acoes-ed">
+        <span class="salvo" id="salvo" title="As alterações ficam salvas neste aparelho. Para guardar na nuvem use Arquivo › Salvar na nuvem."><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-check-circle"></use></svg><span>Salvo</span></span>
+        <div class="menu" id="menuArq">
+          <button type="button" onclick="togMenu(event,'menuArq')"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-file"></use></svg>Arquivo<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-chevron-down"></use></svg></button>
+          <div class="menu-box">
+            <button type="button" id="btnListaSalvar" onclick="salvarLista()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-cloud-up"></use></svg>Salvar na nuvem</button>
+            <button type="button" id="btnListaCarregar" onclick="carregarLista()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-cloud-down"></use></svg>Carregar da nuvem</button>
+            <hr>
+            <button type="button" onclick="exportJSON()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-download"></use></svg>Baixar backup (.json)</button>
+            <button type="button" onclick="document.getElementById('importInput').click()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-upload"></use></svg>Abrir backup</button>
+            <hr>
+            <button type="button" class="danger" onclick="limparTudo()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-trash"></use></svg>Limpar a lista inteira</button>
           </div>
-        <div class="muted" style="margin-top:6px; font-size:11px;">As caixas aparecem automaticamente conforme as páginas forem criadas.</div>
+        </div>
+        <button type="button" class="primary-action" onclick="gerarPDF()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-print"></use></svg>Gerar PDF</button>
+        <input type="file" id="importInput" accept=".json" style="display:none" onchange="importJSON(event)">
       </div>
     </div>
 
-    <div class="section open" id="cargosSection">
-      <div class="section-head" onclick="document.getElementById('cargosSection').classList.toggle('open')">
-        <div style="display:flex; align-items:center;">
-          <span class="section-caret"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-chevron-right"></use></svg></span>
-          <h3>Legenda de Cargos (usados na "Legenda" do rodapé)</h3>
+    <section id="aba-tab" class="aba" data-aba-de="tab">
+      <div class="resumo-lista">
+        <button type="button" class="res-per" onclick="aba('conf')" title="Mudar o período (em Configurações)"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-calendar"></use></svg><b id="resPer">Sem período</b></button>
+        <span class="res-pag" id="resTab"></span>
+        <span class="res-lin" id="resLin"></span>
+        <span class="res-acoes">
+          <div class="menu" id="menuNova">
+            <button type="button" class="primary" onclick="togMenu(event,'menuNova')"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-plus"></use></svg>Nova tabela</button>
+            <div class="menu-box menu-tipos" id="addButtons"></div>
+          </div>
+        </span>
+      </div>
+      <div id="sectionsContainer"></div>
+      <div class="vazio-ed"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-grid"></use></svg><b>A lista ainda está vazia</b><span>Toque em <strong>Nova tabela</strong> para escolher o primeiro tipo de serviço.<br>Depois é só arrastar as tabelas pelo cabeçalho para mudar a ordem.</span></div>
+    </section>
+
+    <section id="aba-conf" class="aba" data-aba-de="conf" hidden>
+      <div class="cfg">
+        <h4><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-calendar"></use></svg>Período e cabeçalho</h4>
+        <div class="cfg-grid">
+          <div><label for="meta_periodo">Período</label><select id="meta_periodo"></select></div>
+          <div><label for="meta_titulo">Título</label><input type="text" id="meta_titulo" value="LISTA DE SERVIÇOS" readonly style="background:#eee"></div>
+          <div><label for="meta_regiao">Região</label><input type="text" id="meta_regiao" value="CAMPO MOURÃO" placeholder="opcional"></div>
         </div>
       </div>
-      <div class="section-body">
-        <div class="muted" style="margin-bottom:6px;">Marque a 1ª caixinha para mostrar na Legenda. Marque a 2ª caixinha para usar asterisco (*) automático nas reuniões.</div>
+      <div class="cfg">
+        <h4><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-alert"></use></svg>Rodapé <small>texto pequeno no pé de cada folha</small></h4>
+        <div class="cfg-grid cfg-grid--2">
+          <div>
+            <label for="meta_rodape_esq">Lado esquerdo (igual em todas as folhas)</label>
+            <input type="text" id="meta_rodape_esq" placeholder="Ex: *V1 - pode sofrer alterações">
+          </div>
+          <div>
+            <label>Lado direito (um texto para cada folha)</label>
+            <div id="rodape_dir_inputs" class="rod-dir"></div>
+            <div class="muted">Aparece uma caixa para cada folha da lista.</div>
+          </div>
+        </div>
+      </div>
+      <div class="cfg" id="cargosSection">
+        <h4><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-users"></use></svg>Legenda de cargos <small>siglas usadas nos convocados e na legenda do rodapé</small></h4>
+        <div class="muted" style="margin:0 0 8px;">Marque a 1ª caixinha para mostrar na legenda. Marque a 2ª para usar o asterisco (*) automático nas reuniões.</div>
         <div id="cargosList" class="listgroup"></div>
-        <div class="row-grid" style="margin-top:8px;grid-template-columns:1fr 2fr auto;">
+        <div class="cargo-novo">
           <input type="text" id="novoCargoCodigo" placeholder="Sigla (ex: COJ)">
           <input type="text" id="novoCargoLabel" placeholder="Significado (ex: COOP. DE JOVENS)">
-          <button onclick="addCargo()">+ adicionar cargo</button>
+          <button type="button" onclick="addCargo()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-plus"></use></svg>Adicionar cargo</button>
         </div>
       </div>
-    </div>
-
-    <div class="add-section-types" id="addButtons"></div>
-    <div id="sectionsContainer"></div>
+      <div class="note">Para o PDF sair <strong>idêntico</strong> ao que vê na pré-visualização: na janela de impressão que abrir, marque <strong>"Gráficos de fundo"</strong> (Background graphics), desmarque "Cabeçalhos e rodapés" e deixe a <strong>Escala em 100%</strong>.</div>
+    </section>
   </div>
 
   <div class="panel" id="previewHost">
@@ -725,7 +804,10 @@ function loadState(){
   if(!STATE.cargos || !STATE.cargos.length) STATE.cargos = JSON.parse(JSON.stringify(DEFAULT_CARGOS));
   sanitizeState(); 
   sortStateDates();
+  fecharLinhas();
 }
+// as linhas abrem fechadas (resumo de uma linha); só a que está sendo editada fica aberta
+function fecharLinhas(){ (STATE.sections||[]).forEach(s => (s.entries||[]).forEach(e => { e.isOpen = false; })); }
 
 function saveState(){
   STATE.meta.regiao = document.getElementById('meta_regiao').value;
@@ -737,15 +819,20 @@ function saveState(){
 
 function populatePeriodoOptions(selectedValue){
   const sel = document.getElementById('meta_periodo');
+  // até 2026 as listas eram bimestrais; a partir de 2027 são trimestrais
   const bimestres = [
     "JANEIRO/FEVEREIRO","MARÇO/ABRIL","MAIO/JUNHO",
     "JULHO/AGOSTO","SETEMBRO/OUTUBRO","NOVEMBRO/DEZEMBRO"
+  ];
+  const trimestres = [
+    "JANEIRO/FEVEREIRO/MARÇO","ABRIL/MAIO/JUNHO",
+    "JULHO/AGOSTO/SETEMBRO","OUTUBRO/NOVEMBRO/DEZEMBRO"
   ];
   const anoAtual = new Date().getFullYear();
   const anos = [anoAtual-1, anoAtual, anoAtual+1, anoAtual+2];
   sel.innerHTML = '';
   anos.forEach(ano=>{
-    bimestres.forEach(b=>{
+    (ano >= 2027 ? trimestres : bimestres).forEach(b=>{
       const opt = document.createElement('option');
       opt.value = `${b} - ${ano}`;
       opt.textContent = `${b} - ${ano}`;
@@ -850,8 +937,10 @@ function buildAddButtons(){
   host.innerHTML = '';
   Object.entries(SECTION_TYPES).forEach(([key,def])=>{
     const b = document.createElement('button');
-    b.textContent = '+ '+def.label;
-    b.onclick = ()=> addSection(key);
+    b.type = 'button';
+    b.innerHTML = '<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-plus"></use></svg>';
+    b.appendChild(document.createTextNode(def.label));
+    b.onclick = ()=> { addSection(key); const s = STATE.sections[STATE.sections.length-1]; const w = s && document.querySelector('[data-section-id="'+s.id+'"]'); if (w) w.scrollIntoView({block:'center', behavior:'smooth'}); };
     host.appendChild(b);
   });
 }
@@ -907,7 +996,8 @@ function addEntry(sectionId){
     else if(f.type==='tags') data[f.key] = { chips: [], texto: "" };
     else data[f.key] = "";
   });
-  section.entries.push({id:newId(), data});
+  section.entries.forEach(o => { o.isOpen = false; });
+  section.entries.push({id:newId(), data, isOpen:true});
   sortStateDates();
   renderSection(sectionId); saveState(); renderPreview();
 }
@@ -1009,7 +1099,19 @@ function getEntrySummary(def, entry){
     }
   }
 
-  return { dataLabel, textoVal };
+  // resumo da linha fechada: hora + primeiro texto (local) + o restante (quem atende etc.)
+  const partes = [];
+  for(const f of def.fields){
+    if(skipKeys.includes(f.key)) continue;
+    const val = entry.data ? entry.data[f.key] : undefined;
+    let t = '';
+    if(f.type==='list') t = (val||[]).filter(x=>x && x.trim()).join(' · ');
+    else if(f.type==='tags'){ const td = val || {}; t = (td.chips||[]).concat(td.texto ? [td.texto] : []).join(', '); }
+    else t = val ? String(val).trim().replace(/\s*\n\s*/g, ' · ') : '';
+    if(t) partes.push(t);
+  }
+  const hora = entry.data && entry.data.hora ? String(entry.data.hora) : '';
+  return { dataLabel, textoVal, hora, principal: partes[0] || '', resto: partes.slice(1).join(' · ') };
 }
 
 function renderSections(){
@@ -1089,18 +1191,27 @@ function buildSectionElement(section, sIdx){
       <div style="display:flex; align-items:center;">
         <span class="drag-handle" title="Arraste para reordenar"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-grip"></use></svg></span>
         <span class="section-caret"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-chevron-right"></use></svg></span>
-        <h3>${sIdx+1}. ${def.label}</h3>
+        <span class="sec-n">${sIdx+1}</span>
+        <h3>${def.label}</h3>
+        ${section.entries ? `<span class="sec-cnt">${section.entries.length} ${section.entries.length===1?'linha':'linhas'}</span>` : ''}
       </div>
     `;
     const headBtns = document.createElement('div');
+    headBtns.className = 'sec-acoes';
+    if (section.entries) {
+      const add = document.createElement('button');
+      add.type = 'button'; add.className = 'sec-add'; add.title = 'Acrescentar uma linha nesta tabela';
+      add.innerHTML = '<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-plus"></use></svg><span>Linha</span>';
+      add.onclick = (e) => { e.stopPropagation(); section.isOpen = true; addEntry(section.id); };
+      headBtns.appendChild(add);
+    }
     const rm = document.createElement('button');
-    rm.style.cssText = 'background: var(--accent); color: #fff; border: none; padding: 4px 10px; border-radius: 4px; font-weight: bold; cursor: pointer;'; 
-    rm.textContent = 'Excluir Tabela';
-    rm.onclick = (e) => {
-      e.stopPropagation(); 
-      if (confirm("Tem certeza que deseja remover esta tabela da lista?")) {
-        removeSection(section.id);
-      }
+    rm.type = 'button'; rm.className = 'sec-rm'; rm.title = 'Excluir esta tabela'; rm.setAttribute('aria-label', 'Excluir tabela');
+    rm.innerHTML = '<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-trash"></use></svg>';
+    rm.onclick = async (e) => {
+      e.stopPropagation();
+      const ok = await UI.confirm('Excluir a tabela "' + def.label + '"?', 'A tabela e todas as linhas dela saem da lista.', {danger:true, ok:'Excluir tabela', okIcon:'trash'});
+      if (ok) removeSection(section.id);
     };
     headBtns.appendChild(rm);
     head.appendChild(headBtns); 
@@ -1131,7 +1242,7 @@ function buildSectionElement(section, sIdx){
       let lastCidade = null;
 
       section.entries.forEach((entry, eIdx)=>{
-        if (typeof entry.isOpen === 'undefined') entry.isOpen = true;
+        if (typeof entry.isOpen === 'undefined') entry.isOpen = false;
 
         if (def.fields.some(f => f.key === 'cidade')) {
           const cidadeAtual = (entry.data.cidade || '').trim() || 'Sem cidade informada';
@@ -1158,17 +1269,22 @@ function buildSectionElement(section, sIdx){
         caret.innerHTML = '<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-chevron-right"></use></svg>';
         eHeadLeft.appendChild(caret);
 
-        const { dataLabel, textoVal } = getEntrySummary(def, entry);
-
         const dateBadge = document.createElement('span');
         dateBadge.className = 'entry-summary-date';
-        dateBadge.textContent = dataLabel;
         eHeadLeft.appendChild(dateBadge);
 
         const summaryText = document.createElement('span');
-        summaryText.className = 'entry-summary-text' + (textoVal ? '' : ' empty');
-        summaryText.textContent = textoVal || 'Linha ' + (eIdx+1) + ' — clique para preencher';
         eHeadLeft.appendChild(summaryText);
+        // o resumo é refeito sempre que a linha fecha, para mostrar o que acabou de ser digitado
+        eDiv._resumo = () => {
+          const r = getEntrySummary(def, entry);
+          dateBadge.textContent = r.dataLabel;
+          summaryText.className = 'entry-summary-text' + (r.principal ? '' : ' empty');
+          summaryText.innerHTML = r.principal
+            ? (r.hora ? '<b class="rs-h">' + escapeHTML(r.hora) + '</b>' : '') + '<span class="rs-l">' + escapeHTML(r.principal) + '</span>' + (r.resto ? '<span class="rs-r">' + escapeHTML(r.resto) + '</span>' : '')
+            : 'Linha ' + (eIdx+1) + ' — clique para preencher';
+        };
+        eDiv._resumo();
 
         eHead.appendChild(eHeadLeft);
 
@@ -1193,6 +1309,9 @@ function buildSectionElement(section, sIdx){
 
         eHead.onclick = () => {
           entry.isOpen = !entry.isOpen;
+          // só uma linha aberta por tabela: abrir uma fecha as outras
+          if (entry.isOpen) section.entries.forEach(o => { if (o !== entry) o.isOpen = false; });
+          body.querySelectorAll('.entry').forEach(el => { if (el !== eDiv) el.classList.remove('open'); if (el._resumo) el._resumo(); });
           eDiv.classList.toggle('open', entry.isOpen);
           saveState();
         };
@@ -2386,6 +2505,7 @@ function loadStateFromJSON(texto){
     STATE = JSON.parse(texto);
     if(!STATE.meta) STATE.meta = {regiao:"", periodo:"", titulo:"LISTA DE SERVIÇOS", rodape_esq:"", rodape_dir:[]};
     if(!STATE.cargos || !STATE.cargos.length) STATE.cargos = JSON.parse(JSON.stringify(DEFAULT_CARGOS));
+    fecharLinhas();
     document.getElementById('meta_regiao').value = 'CAMPO MOURÃO';
     populatePeriodoOptions(STATE.meta?.periodo);
     document.getElementById('meta_titulo').value = STATE.meta?.titulo||'LISTA DE SERVIÇOS';
@@ -2449,6 +2569,32 @@ window.onload = ()=>{
   document.getElementById('meta_rodape_esq').addEventListener('input', ()=>{ saveState(); renderPreview(); });
 };
 </script>
+<script>
+/* ---------- barra de cima: resumo, "Salvo" e limpar com desfazer ---------- */
+function atualizarResumo(){
+  const per = document.getElementById('meta_periodo');
+  const rp = document.getElementById('resPer'); if (rp) rp.textContent = (per && per.value) || 'Escolha o período';
+  const t = STATE.sections.length;
+  const n = STATE.sections.reduce((a,s)=>a+(s.entries?s.entries.length:0),0);
+  const rt = document.getElementById('resTab'); if (rt){ rt.textContent = t + (t===1?' tabela':' tabelas'); rt.hidden = !t; }
+  const rl = document.getElementById('resLin'); if (rl){ rl.textContent = n + (n===1?' linha':' linhas'); rl.hidden = !t; }
+}
+async function limparTudo(){
+  const ok = await UI.confirm('Limpar a lista inteira?', 'Todas as tabelas e linhas saem da tela. Se quiser guardar antes, use Arquivo › Baixar backup.', {danger:true, ok:'Limpar tudo', okIcon:'trash'});
+  if (!ok) return;
+  const antes = JSON.stringify(STATE);
+  resetAll(); atualizarResumo();
+  UI.toast('Lista limpa.', {action:{label:'Desfazer', icon:'undo', fn:()=>{ loadStateFromJSON(antes); atualizarResumo(); }}});
+}
+(function(){
+  const _salvar = saveState;
+  saveState = function(){ const r = _salvar.apply(this, arguments); marcarSalvo(); atualizarResumo(); return r; };
+  const _render = renderSections;
+  renderSections = function(){ const r = _render.apply(this, arguments); atualizarResumo(); return r; };
+  window.addEventListener('load', ()=> setTimeout(atualizarResumo, 0));
+  document.addEventListener('change', (e)=>{ if (e.target && e.target.id==='meta_periodo') atualizarResumo(); });
+})();
+</script>
 <script src="/assets/editor.js"></script>
 <script>
 /* Salvar / carregar na nuvem: lógica em /assets/editor.js */
@@ -2459,6 +2605,16 @@ Nuvem.configurar({
   conteudo: function () { saveState(); return JSON.stringify(STATE, null, 2); },
   aplicar: function (texto) { return loadStateFromJSON(texto); }
 });
+</script>
+<script src="/assets/appbar.js"></script>
+<script>
+/* barra de aplicativo (só aparece no celular) */
+AppBar.montar([
+  { ic:'grid', rot:'Tabelas', fn:()=>{ closeMobilePreview(); aba('tab'); window.scrollTo({ top:0, behavior:'smooth' }); }, ativo:()=>!document.body.classList.contains('mobile-preview-active') },
+  { ic:'eye', rot:'Prévia', fn:()=>openMobilePreview(), ativo:()=>document.body.classList.contains('mobile-preview-active') },
+  { ic:'file', rot:'Arquivo', menu:'#menuArq .menu-box' },
+  { ic:'print', rot:'Gerar PDF', fn:()=>gerarPDF(), destaque:true }
+]);
 </script>
 </body>
 </html>

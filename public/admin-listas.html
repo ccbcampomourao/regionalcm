@@ -30,6 +30,7 @@
 <link rel="stylesheet" href="/assets/theme.css">
 <link rel="stylesheet" href="/assets/ui.css">
 <script src="/assets/ui.js"></script>
+<script src="/assets/continuar.js"></script>
 </head>
 <body class="theme">
 <header class="topbar">
@@ -115,11 +116,16 @@
   </section>
 
   <section class="blk">
-    <div class="blk-head"><h3>Cadastros</h3><span class="qt">1</span></div>
+    <div class="blk-head"><h3>Cadastros</h3><span class="qt">2</span></div>
     <div class="lcards wide">
       <a class="lcard cal" href="/relatorio-igrejas.html">
         <div class="lic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3 4 8v13h16V8l-8-5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9.5 21v-6h5v6M12 7v4M10 9h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
         <div class="ltx"><div class="lnm">Relatório de Igrejas</div><div class="lds">Casas de oração, cultos, ministério e parte musical de cada região</div></div>
+        <svg class="lgo" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <a class="lcard cal" href="/atas.html">
+        <div class="lic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 19.5V5a2 2 0 0 1 2-2h13v16H6.5A2.5 2.5 0 0 0 4 21.5" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M19 19v2.5H6.5M8 7h7M8 11h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+        <div class="ltx"><div class="lnm">Atas e Assembleias</div><div class="lds">Edital, ata, relatório, balanço e lista de presença da AGO e da AGE</div></div>
         <svg class="lgo" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </a>
     </div>
@@ -140,6 +146,7 @@ document.getElementById('btnSair').addEventListener('click', function (e) {
   const alvo = a.querySelector('.lnm, h4');
   if (alvo) alvo.insertAdjacentHTML('beforeend', '<span class="last-tag">' + ic('clock') + 'Aberta por último</span>');
 })();
+try { Continuar.montar(); } catch (e) {}
 /* Mostra quem está conectado */
 (function () {
   const s = UI.sessao();

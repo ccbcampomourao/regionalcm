@@ -9,6 +9,7 @@ export const LISTAS = {
   ivaipora: '/listaivaipora.html',
   calendario: '/calendario-ensaios.html',
   calendarioanual: '/calendario-reunioes.html',
+  atas: '/atas.html',
 };
 
 // Rótulos amigáveis das listas, usados nas telas de admin e seleção de listas.
@@ -22,6 +23,7 @@ export const LISTA_LABELS = {
   ivaipora: 'Ivaiporã',
   calendario: 'Calendário dos Ensaios',
   calendarioanual: 'Calendário Anual de Reuniões',
+  atas: 'Atas e Assembleias',
 };
 
 export const DEFAULT_ADMIN_EMAIL = 'bruno07dacosta@gmail.com';
