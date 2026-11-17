@@ -35,8 +35,9 @@ export async function onRequestPost({ request, env }) {
   }
 
   try {
-    const nomeArquivo = await salvarListaJSON(env, regiao, nome, conteudo);
-    return jsonResponse(200, { ok: true, nomeArquivo });
+    const { nomeArquivo, modificado } = await salvarListaJSON(env, regiao, nome, conteudo);
+    // "modificado" deixa a tela saber exatamente qual versão ficou na nuvem
+    return jsonResponse(200, { ok: true, nomeArquivo, modificado });
   } catch (err) {
     return jsonResponse(500, { error: err.message });
   }

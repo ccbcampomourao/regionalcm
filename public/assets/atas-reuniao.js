@@ -9,7 +9,7 @@
    ===================================================================== */
 const TIPOS_REUNIAO = ['RLA', 'RLM'];
 const ehReuniao = a => !!a && TIPOS_REUNIAO.includes(a.tipo);
-const NOME_REUNIAO = { RLA: 'Reunião Local Administrativa', RLM: 'Reunião Local Ministerial' };
+const NOME_REUNIAO = { RLA: 'Reunião Local Administrativa Trimestral', RLM: 'Reunião Local Ministerial Trimestral' };
 const PRESENCA_PADRAO = {
   RLA: 'irmãos Anciães, Diáconos, Cooperadores do Ofício Ministerial, Cooperadores de Jovens e Menores, Administradores, Auxiliares da Administração e Colaboradores',
   RLM: 'irmãos Anciães, Diáconos, Cooperadores do Ofício Ministerial e Cooperadores de Jovens e Menores'
@@ -320,23 +320,32 @@ function mudarTipoReuniao(t) { const a = ATA(); a.tipo = t; a.numero = null; gua
 
 function blocoReuniao(a) {
   const e = DB.cad.ent;
-  const selCargo = (b, v, ks, extra) => `<select data-b="${b}" data-r="ed">${ks.map(k => `<option value="${k}"${v === k ? ' selected' : ''}>${CARGO_ROT[k]}${a.comp.cargos[k] ? ' · ' + esc(a.comp.cargos[k]) : ' · (vago)'}</option>`).join('')}${extra || ''}</select>`;
   const auto = numeroAuto(a);
-  return bloco('calendar', 'Reunião', 'Data, horários, presença e quem preside', `<div class="grid g4">
-    ${campo('Tipo', `<select onchange="mudarTipoReuniao(this.value)">${TIPOS_REUNIAO.map(t => `<option value="${t}"${a.tipo === t ? ' selected' : ''}>${t} · ${NOME_REUNIAO[t].replace('Reunião Local ', '')}</option>`).join('')}</select>`)}
+  const optCargo = (ks, v) => ks.map(k => `<option value="${k}"${v === k ? ' selected' : ''}>${CARGO_ROT[k]}${a.comp.cargos[k] ? ' · ' + esc(a.comp.cargos[k]) : ' · (vago)'}</option>`).join('');
+  return bloco('calendar', 'Reunião', 'Quando, onde, quem esteve e quem assina', `
+    <div class="sub-t">Quando</div>
+    <div class="grid g4">
+    ${campo('Tipo', `<select onchange="mudarTipoReuniao(this.value)">${TIPOS_REUNIAO.map(t => `<option value="${t}"${a.tipo === t ? ' selected' : ''}>${t} · ${NOME_REUNIAO[t].replace('Reunião Local ', '').replace(' Trimestral', '')} trimestral</option>`).join('')}</select>`)}
     ${campo('Data', `<input type="date" data-b="a:data" data-r="ed" value="${esc(a.data)}">`)}
     ${campo('Início', `<input type="time" data-b="a:hora" value="${esc(a.hora)}">`)}
     ${campo('Encerramento', `<input type="time" data-b="a:horaFim" value="${esc(a.horaFim)}">`)}
-    ${campo(`Reunião do ano <small>(${a.numero ? 'definido' : 'automático'})</small>`, `<input inputmode="numeric" data-b="a:numero" data-t="int" data-r="ed" value="${a.numero || ''}" placeholder="${auto ? auto + 'ª' : 'ex.: 3'}">`)}
-    ${campo('Irmãos presentes', `<input inputmode="numeric" data-b="a:presentes" data-t="int" value="${a.presentes == null ? '' : a.presentes}" placeholder="ex.: 91">`)}
-    ${campo('Ancião que preside', inp('a:anciao', a.anciao, 'list="dlAnciaes" placeholder="Nome do ancião"'), 's2')}
+    ${campo(`Reunião do ano <small>(${a.numero ? 'definido' : 'automático'})</small>`, `<input inputmode="numeric" data-b="a:numero" data-t="int" data-r="ed" value="${a.numero || ''}" placeholder="${auto ? auto + 'ª' : 'ex.: 1'}">`)}
+    <div class="s2 cal-l"><button type="button" class="mais" onclick="puxarCalendario()">${ICO('calendar')}Puxar data, horário e número do calendário anual</button></div>
+    </div>
+    <div class="sub-t">Onde e quem esteve</div>
+    <div class="grid g4">
     ${campo('Local', inp('a:sala', a.sala, `placeholder="${esc(SALA_PADRAO)}"`), 's2')}
     ${campo('Endereço <small>(se não for a sede)</small>', inp('a:endereco', a.endereco, `placeholder="${esc(`${e.rua}, número ${e.num}, ${e.bairro}`)}"`), 's2')}
-    ${campo('Com a presença de', `<textarea data-b="a:presencaDesc" rows="2" placeholder="${esc(PRESENCA_PADRAO[a.tipo])}">${esc(a.presencaDesc)}</textarea>`, 's2')}
-    ${campo('Redige a ata', `<select data-b="a:lavra" data-r="ed">${['secretario', 'vs1', 'vs2'].map(k => `<option value="${k}"${a.lavra === k ? ' selected' : ''}>${CARGO_ROT[k]}${a.comp.cargos[k] ? ' · ' + esc(a.comp.cargos[k]) : ' · (vago)'}</option>`).join('')}<option value="outro"${a.lavra === 'outro' ? ' selected' : ''}>Outro irmão…</option></select>`)}
-    ${campo('Assina pela Administração', `<select data-b="a:conduz" data-r="ed"><option value=""${!a.conduz ? ' selected' : ''}>Ninguém (só ancião e quem redige)</option>${['presidente', 'vp1', 'vp2'].map(k => `<option value="${k}"${a.conduz === k ? ' selected' : ''}>${CARGO_ROT[k]}${a.comp.cargos[k] ? ' · ' + esc(a.comp.cargos[k]) : ' · (vago)'}</option>`).join('')}</select>`)}
-    ${a.lavra === 'outro' ? campo('Nome de quem redige', inp('a:lavraNome', a.lavraNome, 'list="dlPessoas" placeholder="Nome"')) + campo('Ministério ou cargo', inp('a:lavraCargo', a.lavraCargo, 'placeholder="ex.: Cooperador do Ofício Ministerial"')) : ''}
-  </div><div class="linha-b"><button type="button" class="mais" onclick="puxarCalendario()">${ICO('calendar')}Puxar data e número do calendário anual</button></div>`);
+    ${campo('Com a presença de', `<textarea data-b="a:presencaDesc" rows="2" placeholder="${esc(PRESENCA_PADRAO[a.tipo])}">${esc(a.presencaDesc)}</textarea>`, 's3')}
+    ${campo('Irmãos presentes', `<input inputmode="numeric" data-b="a:presentes" data-t="int" value="${a.presentes == null ? '' : a.presentes}" placeholder="ex.: 91">`)}
+    </div>
+    <div class="sub-t">Quem preside e assina</div>
+    <div class="grid g3">
+    ${campo('Ancião que preside', inp('a:anciao', a.anciao, `list="dlAnciaes" placeholder="${DB.cad.anciaes.length ? 'Escolha ou digite' : 'Nome do ancião'}"`))}
+    ${campo('Redige a ata', `<select data-b="a:lavra" data-r="ed">${optCargo(['secretario', 'vs1', 'vs2'], a.lavra)}<option value="outro"${a.lavra === 'outro' ? ' selected' : ''}>Outro irmão…</option></select>`)}
+    ${campo('Assina pela Administração', `<select data-b="a:conduz" data-r="ed"><option value=""${!a.conduz ? ' selected' : ''}>Ninguém (só ancião e quem redige)</option>${optCargo(['presidente', 'vp1', 'vp2'], a.conduz)}</select>`)}
+    ${a.lavra === 'outro' ? campo('Nome de quem redige', inp('a:lavraNome', a.lavraNome, 'list="dlPessoas" placeholder="Nome"')) + campo('Ministério ou cargo', inp('a:lavraCargo', a.lavraCargo, 'placeholder="ex.: Cooperador do Ofício Ministerial"'), 's2') : ''}
+    </div>`);
 }
 function blocoAbertura(a) {
   return bloco('book', 'Abertura', 'Hino e a Palavra que o Senhor revelou', `<div class="grid g4">
@@ -412,21 +421,26 @@ function subHeroiReuniao(a) {
 }
 
 /* ---------- documento para impressão ---------- */
+function tituloReuniao(a) {
+  const e = DB.cad.ent, n = numeroReuniao(a);
+  return `ATA DA ${n ? n + 'ª' : '____'} ${NOME_REUNIAO[a.tipo].toUpperCase()} – ${a.tipo}, REALIZADA NO DIA ${a.data ? dataExt2(a.data).toUpperCase() : '____ DE __________ DE ____'}, EM ${esc(e.regiao.toUpperCase())} – ${esc(e.uf.toUpperCase())}.`;
+}
 function documentoReuniaoHTML(a) {
   const e = DB.cad.ent, n = numeroReuniao(a), nome = NOME_REUNIAO[a.tipo];
-  const tit = `ATA DA ${n ? n + 'ª' : '____'} ${nome.toUpperCase()} – ${a.tipo}, REALIZADA NO DIA ${a.data ? dataExt2(a.data).toUpperCase() : '____ DE __________ DE ____'}, EM ${esc(e.regiao.toUpperCase())} – ${esc(e.uf.toUpperCase())}.`;
+  const tit = tituloReuniao(a);
   const INUT = '<span class="inut" aria-hidden="true"></span>';
   const lv = lavraReuniao(a), adm = assinaAdm(a);
   const as = (nomeP, cargoP) => `<div class="as"><div class="ln"></div><div class="an">${esc(nomeP || '')}</div><div class="ac">${esc(cargoP)}</div></div>`;
   const assin = `<div class="assin-r"><div class="ar1">${as(a.anciao, 'Ancião')}</div><div class="ar2">${adm ? as(adm.nome, adm.cargoExt) : '<div></div>'}${as(lv.nome, lv.cargoExt)}</div></div>`;
   const cab = `<div class="cab-r"><img src="${location.origin}/assets/ccb-logo.png" alt=""><div class="cr-t"><div>${esc(e.nome)}</div><div>CNPJ: ${esc(e.cnpj)}</div><div>Administração ${esc(e.regiao)} - ${esc(e.uf)}</div></div></div>`;
   const rod = `<div class="rod-r">Sede Administrativa: ${esc(e.rua)}, ${esc(e.num)} – ${esc(e.bairro)}, CEP: ${esc(e.cep)} – ${esc(e.regiao)} – ${esc(e.uf)}.</div>`;
-  let corpo = `<section class="folha"><table class="pg"><thead><tr><td>${cab}</td></tr></thead><tfoot><tr><td><div class="rod-esp"></div></td></tr></tfoot><tbody><tr><td>
+  const rodT = `<div class="rod-tela rod-r2">Sede Administrativa: ${esc(e.rua)}, ${esc(e.num)} – ${esc(e.bairro)}, CEP: ${esc(e.cep)} – ${esc(e.regiao)} – ${esc(e.uf)}.</div>`;
+  let corpo = `<section class="folha rl">${rodT}<table class="pg"><thead><tr><td>${cab}</td></tr></thead><tfoot><tr><td><div class="rod-esp"></div></td></tr></tfoot><tbody><tr><td>
     <h1 class="t-rl">${tit}</h1><div class="ata"><p>${textoAtaHTML(a)}${INUT}</p></div>${assin}</td></tr></tbody></table></section>`;
   const fl = Math.max(0, Math.min(20, +a.opc.presenca || 0));
   for (let f = 0; f < fl; f++) {
     const lin = Array.from({ length: 34 }, (_, k) => `<tr><td class="nm"><span>${f * 34 + k + 1}</span></td><td></td><td></td></tr>`).join('');
-    corpo += `<section class="folha lista-r"><table class="lr"><thead><tr><th colspan="3" class="lr-t">${nome.toUpperCase()} - ${a.tipo} - ${dataBR(a.data)}</th></tr><tr class="lr-v"><td colspan="3"></td></tr><tr><th>NOME</th><th>LOCALIDADE</th><th>CARGO</th></tr></thead><tbody>${lin}</tbody></table></section>`;
+    corpo += `<section class="folha rl lista-r">${rodT}<table class="lr"><thead><tr><th colspan="3" class="lr-t">${nome.toUpperCase()} - ${a.tipo} - ${dataBR(a.data)}</th></tr><tr class="lr-v"><td colspan="3"></td></tr><tr><th>NOME</th><th>LOCALIDADE</th><th>CARGO</th></tr></thead><tbody>${lin}</tbody></table></section>`;
   }
   return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>${a.tipo} ${a.data ? dataHif(a.data) : ''} - ${esc(e.regiao)}</title><style>
 ${fontesCSS()}
@@ -443,6 +457,8 @@ table.pg > thead > tr > td,table.pg > tbody > tr > td,table.pg > tfoot > tr > td
 .cab-r img{width:42mm;height:auto;display:block;opacity:.82}
 .cr-t{flex:1;text-align:center;font-family:'Times New Roman','Liberation Serif',Tinos,serif;font-style:italic;font-weight:700;font-size:13.5pt;line-height:1.2;color:#222;padding-right:22mm}
 .rod-esp{height:9mm}
+.rod-tela{display:none}
+.rod-r2{text-align:center;font-family:'Times New Roman','Liberation Serif',Tinos,serif;font-weight:700;font-size:9.5pt;color:#222}
 .rod-r{position:fixed;left:0;right:0;bottom:0;text-align:center;font-family:'Times New Roman','Liberation Serif',Tinos,serif;font-weight:700;font-size:9.5pt;color:#222}
 .t-rl{font-size:12pt;font-weight:700;text-align:justify;line-height:1.15;margin:0 0 4mm}
 .ata{font-size:12pt;line-height:1.15}

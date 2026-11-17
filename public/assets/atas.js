@@ -27,7 +27,7 @@ const clone = o => JSON.parse(JSON.stringify(o));
 const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
 const limpos = v => (Array.isArray(v) ? v : []).map(x => String(x || '').trim()).filter(Boolean);
 const LETRAS = 'abcdefghijklmnopqrstuvwxyz';
-const NOME_TIPO = { AGO: 'Assembleia Geral Ordinária', AGE: 'Assembleia Geral Extraordinária', RLA: 'Reunião Local Administrativa', RLM: 'Reunião Local Ministerial' };
+const NOME_TIPO = { AGO: 'Assembleia Geral Ordinária', AGE: 'Assembleia Geral Extraordinária', RLA: 'Reunião Local Administrativa Trimestral', RLM: 'Reunião Local Ministerial Trimestral' };
 
 /* ---------- números e datas ---------- */
 function parseBR(t) {
@@ -188,7 +188,7 @@ function cadastroPadrao() {
     pessoas: [],
     adm: { inicio: '', fim: '', cargos: Object.fromEntries(CARGOS.map(([k]) => [k, ''])), crc: '' },
     cf: { membros: ['', '', ''], suplente: '' },
-    anciaes: [], auxiliares: [],
+    anciaes: [], anciaesFonte: 'relatorio', auxiliares: [],
     setores: SETORES_PADRAO.map(n => ({ nome: n, sub: n === 'Depósito da Piedade', nomes: [] })),
     textos: { parecer: TEXTO_PARECER, conclusao: TEXTO_CONCLUSAO }
   };
@@ -258,21 +258,56 @@ function normalizarAta(a) {
 }
 
 function ler() { try { const t = localStorage.getItem(KEY); if (t) return normalizarDB(JSON.parse(t)); } catch (e) {} return normalizarDB({}); }
-let _tSalvar = null;
-function guardar() {
-  DB.atualizado = Date.now(); PENDENTE = true;
-  clearTimeout(_tSalvar);
-  _tSalvar = setTimeout(() => { try { localStorage.setItem(KEY, JSON.stringify(DB)); localStorage.setItem(KEY + '_pend', '1'); } catch (e) {} mostrarEstado(); }, 250);
+/* ---------- salvar: neste aparelho na hora e na nuvem sozinho, poucos segundos depois ----------
+   REV conta as alterações; uma alteração feita enquanto a nuvem salva não se perde (salva de novo).
+   ccb_atas_base guarda a versão da nuvem que este aparelho conhece: se outra pessoa salvou depois,
+   pergunta qual manter em vez de passar por cima. */
+let ATUALIZADO_AO_ABRIR = 0;
+let _tSalvar = null, _tNuvem = null, REV = 0, SALVANDO = false, DE_NOVO = false, ERRO_NUVEM = '', CONFLITO = false, AVISOU_ESPACO = false;
+const BASE_KEY = KEY + '_base';
+const AUTO_MS = 2500;
+const lerBase = () => { try { return +(localStorage.getItem(BASE_KEY) || 0) || 0; } catch (e) { return 0; } };
+const gravarBase = v => { try { localStorage.setItem(BASE_KEY, String(v || 0)); } catch (e) {} };
+const temSessao = () => { try { return !!localStorage.getItem('session_token'); } catch (e) { return false; } };
+function gravarLocal() {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(DB));
+    if (PENDENTE) localStorage.setItem(KEY + '_pend', '1'); else localStorage.removeItem(KEY + '_pend');
+    return true;
+  } catch (e) {
+    if (!AVISOU_ESPACO) { AVISOU_ESPACO = true; UI.toast('O navegador não deixou guardar neste aparelho (falta espaço). As atas continuam indo para a nuvem.', 'error'); }
+    return false;
+  }
 }
-function guardarJa() { clearTimeout(_tSalvar); try { localStorage.setItem(KEY, JSON.stringify(DB)); localStorage.setItem(KEY + '_pend', '1'); } catch (e) {} PENDENTE = true; mostrarEstado(); }
+function guardar() {
+  DB.atualizado = Date.now(); PENDENTE = true; REV++;
+  clearTimeout(_tSalvar);
+  _tSalvar = setTimeout(() => { _tSalvar = null; gravarLocal(); mostrarEstado(); }, 250);
+  agendarNuvem();
+}
+function guardarJa() { clearTimeout(_tSalvar); _tSalvar = null; DB.atualizado = Date.now(); PENDENTE = true; REV++; gravarLocal(); agendarNuvem(); }
+function agendarNuvem(ms) {
+  clearTimeout(_tNuvem); _tNuvem = null;
+  if (temSessao() && !CONFLITO) _tNuvem = setTimeout(() => salvarNuvem(true), ms == null ? AUTO_MS : ms);
+  mostrarEstado();
+}
+function quandoTxt(ms) { if (!ms) return ''; const d = new Date(ms), h = new Date(); const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); return d.toDateString() === h.toDateString() ? 'hoje às ' + hora : d.toLocaleDateString('pt-BR') + ' às ' + hora; }
 function mostrarEstado() {
   const el = document.getElementById('estado'); if (!el) return;
-  const q = ms => { if (!ms) return ''; const d = new Date(ms); return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); };
-  el.className = 'estado' + (PENDENTE ? ' pend' : '');
-  el.innerHTML = PENDENTE
-    ? `${ICO('alert')}<span><b>Alterações só neste aparelho</b> — salve na nuvem</span>`
-    : `${ICO('check-circle')}<span><b>Em dia com a nuvem</b>${NUVEM_EM ? ' · ' + q(NUVEM_EM) : ''}</span>`;
+  let cls = '', ic = 'check-circle', txt;
+  if (CONFLITO) { cls = 'pend'; ic = 'alert'; txt = '<b>Há outra versão na nuvem</b> — toque para resolver'; }
+  else if (SALVANDO) { cls = 'salv'; ic = 'spinner'; txt = '<b>Salvando na nuvem…</b>'; }
+  else if (PENDENTE && ERRO_NUVEM) { cls = 'pend'; ic = 'alert'; txt = '<b>Não salvou na nuvem</b> — toque para tentar de novo'; }
+  else if (PENDENTE && !temSessao()) { cls = 'pend'; ic = 'alert'; txt = '<b>Só neste aparelho</b> — entre de novo para salvar na nuvem'; }
+  else if (PENDENTE) { cls = 'salv'; ic = 'clock'; txt = '<b>Salvo neste aparelho</b> · vai para a nuvem em instantes'; }
+  else txt = `<b>Salvo na nuvem</b>${NUVEM_EM ? ' · ' + quandoTxt(NUVEM_EM) : ''}`;
+  el.className = 'estado' + (cls ? ' ' + cls : '');
+  el.innerHTML = `${ICO(ic)}<span>${txt}</span>`;
+  const acao = CONFLITO || (PENDENTE && (ERRO_NUVEM || !SALVANDO));
+  el.setAttribute('role', acao ? 'button' : 'status'); el.tabIndex = acao ? 0 : -1;
+  el.title = acao ? 'Salvar na nuvem agora' : '';
 }
+function cliqueEstado() { if (!temSessao()) { location.href = '/login.html'; return; } if (CONFLITO || PENDENTE) salvarNuvem(false); }
 const ATA = () => DB.atas.find(a => a.id === SEL) || null;
 
 /* ---------- nuvem e backup ---------- */
@@ -280,43 +315,116 @@ async function api(rota, corpo) {
   const res = await fetch('/api/' + rota, { method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(Object.assign({ token: localStorage.getItem('session_token'), regiao: REGIAO }, corpo || {})) });
   let d = {}; try { d = await res.json(); } catch (e) {}
-  if (!res.ok) throw new Error(d.error || 'Erro de comunicação com o servidor');
+  if (!res.ok) { const er = new Error(d.error || (res.status === 413 ? 'arquivo grande demais' : 'erro de comunicação com o servidor (' + res.status + ')')); er.status = res.status; throw er; }
   return d;
 }
-async function salvarNuvem() {
-  const btn = document.getElementById('btnNuvemSalvar');
-  const fim = UI.busy ? UI.busy(btn, 'Salvando...') : () => {};
+async function arquivoNuvem() { const lst = (await api('lista-list')).arquivos || []; return lst.find(a => a.nome === ARQ_NUVEM + '.json') || null; }
+// troca o que está na tela pela versão da nuvem (com "Desfazer")
+async function trazerDaNuvem(arq, avisar) {
+  const d = await api('lista-load', { nome: ARQ_NUVEM + '.json' });
+  const antes = JSON.stringify(DB);
+  DB = normalizarDB(typeof d.conteudo === 'string' ? JSON.parse(d.conteudo) : d.conteudo);
+  PENDENTE = false; ERRO_NUVEM = ''; CONFLITO = false; REV++;
+  clearTimeout(_tNuvem); _tNuvem = null;
+  gravarBase(arq && arq.modificado); NUVEM_EM = arq ? arq.modificado : NUVEM_EM; gravarLocal();
+  if (!ATA()) SEL = maisRecente();
+  desenharTudo();
+  if (avisar) UI.toast('Atas recarregadas da nuvem.', { type: 'ok', action: { label: 'Desfazer', icon: 'undo', fn: () => { DB = normalizarDB(JSON.parse(antes)); guardar(); desenharTudo(); } } });
+}
+async function resolverConflito(arq) {
+  CONFLITO = true; mostrarEstado();
+  const v = await UI.dialog({
+    title: 'Há outra versão das atas na nuvem', icon: 'alert',
+    body: `<p class="ui-modal__p">Alguém salvou as atas na nuvem <b>${esc(quandoTxt(arq.modificado))}</b>, depois da última vez que este aparelho buscou. Este aparelho também tem alterações que ainda não foram para a nuvem.</p><p class="ui-modal__p">Qual versão deve ficar?</p>`,
+    actions: [{ label: 'Decidir depois', value: null }, { label: 'Usar a da nuvem', value: 'nuvem', icon: 'cloud-down' }, { label: 'Manter a deste aparelho', value: 'aqui', primary: true, icon: 'cloud-up' }]
+  });
+  if (v === 'aqui') { CONFLITO = false; return true; }
+  if (v === 'nuvem') { await trazerDaNuvem(arq, true); return false; }
+  mostrarEstado(); return false;
+}
+let AVISOU_ERRO = false;
+async function salvarNuvem(auto) {
+  clearTimeout(_tNuvem); _tNuvem = null;
+  if (SALVANDO) { DE_NOVO = true; return; }
+  if (auto && (!PENDENTE || CONFLITO || !temSessao())) { mostrarEstado(); return; }
+  if (!temSessao()) { UI.toast('Sua sessão terminou. Entre de novo para salvar na nuvem (o que está na tela continua guardado neste aparelho).', { type: 'error', action: { label: 'Entrar', icon: 'arrow-right', fn: () => { location.href = '/login.html'; } } }); return; }
+  const btn = auto ? null : document.getElementById('btnNuvemSalvar');
+  const fim = !auto && UI.busy ? UI.busy(btn, 'Salvando...') : () => {};
+  SALVANDO = true; DE_NOVO = false; mostrarEstado();
+  const rev = REV;
   try {
-    await api('lista-save', { nome: ARQ_NUVEM, conteudo: JSON.stringify(DB) });
-    PENDENTE = false; NUVEM_EM = Date.now();
-    try { localStorage.setItem(KEY, JSON.stringify(DB)); localStorage.removeItem(KEY + '_pend'); } catch (e) {}
-    mostrarEstado(); UI.toast('Atas e cadastro salvos na nuvem.', 'ok');
-  } catch (e) { UI.toast('Não foi possível salvar na nuvem: ' + e.message, 'error'); }
-  finally { fim(); }
+    const arq = await arquivoNuvem();
+    const base = lerBase();
+    // aparelho que nunca anotou a versão (de antes desta mudança): se editou depois do último salvamento, não pergunta
+    const legado = !base && arq && ATUALIZADO_AO_ABRIR > arq.modificado;
+    if (arq && arq.modificado && arq.modificado > base && !legado) {
+      SALVANDO = false;
+      if (!(await resolverConflito(arq))) return;
+      SALVANDO = true; mostrarEstado();
+    }
+    const r = await api('lista-save', { nome: ARQ_NUVEM, conteudo: JSON.stringify(DB) });
+    // a versão que ficou na nuvem: o servidor devolve; se for um servidor antigo, pergunta à lista
+    let mod = r && r.modificado;
+    if (!mod) { try { const novo = await arquivoNuvem(); mod = novo && novo.modificado; } catch (e) {} }
+    mod = Math.max(mod || 0, arq && arq.modificado || 0, lerBase());
+    NUVEM_EM = mod || Date.now(); gravarBase(mod);
+    ERRO_NUVEM = ''; AVISOU_ERRO = false;
+    if (REV === rev) PENDENTE = false;
+    gravarLocal();
+    if (!auto) UI.toast('Atas e cadastro salvos na nuvem.', 'ok');
+  } catch (e) {
+    ERRO_NUVEM = e.message || 'erro';
+    const sessao = e.status === 401;
+    if (!auto || !AVISOU_ERRO) {
+      AVISOU_ERRO = true;
+      UI.toast((sessao ? 'Sua sessão terminou: ' : 'Não foi possível salvar na nuvem: ') + ERRO_NUVEM + (sessao ? '' : ' O que está na tela continua guardado neste aparelho.'), { type: 'error', action: sessao ? { label: 'Entrar', icon: 'arrow-right', fn: () => { location.href = '/login.html'; } } : { label: 'Tentar de novo', icon: 'refresh', fn: () => salvarNuvem(false) } });
+    }
+    if (!sessao && e.status !== 403) _tNuvem = setTimeout(() => salvarNuvem(true), 30000);
+  } finally {
+    SALVANDO = false; fim(); mostrarEstado();
+    if (!ERRO_NUVEM && !CONFLITO && PENDENTE && (REV !== rev || DE_NOVO)) agendarNuvem(800);
+  }
 }
 async function carregarNuvem(manual) {
+  const rev0 = REV;
   try {
-    const lst = (await api('lista-list')).arquivos || [];
-    const arq = lst.find(a => a.nome === ARQ_NUVEM + '.json');
-    if (!arq) { if (manual) UI.toast('Ainda não há atas salvas na nuvem.', 'info'); NUVEM_EM = null; mostrarEstado(); return; }
+    if (!temSessao()) { mostrarEstado(); return; }
+    const arq = await arquivoNuvem();
+    if (!arq) {
+      if (manual) UI.toast('Ainda não há atas salvas na nuvem.', 'info');
+      NUVEM_EM = null; if (PENDENTE) agendarNuvem(); mostrarEstado(); return;
+    }
     NUVEM_EM = arq.modificado || null;
-    const pend = (() => { try { return localStorage.getItem(KEY + '_pend') === '1'; } catch (e) { return false; } })();
-    if (pend && !manual) { PENDENTE = true; mostrarEstado(); return; }
-    if (manual && pend) {
+    if (!manual) {
+      // alterações deste aparelho que ainda não subiram: manda agora (se a nuvem mudou, pergunta)
+      if (PENDENTE) { agendarNuvem(400); return; }
+      if (arq.modificado && arq.modificado <= lerBase()) { mostrarEstado(); return; } // já tem esta versão (ou mais nova)
+    } else if (PENDENTE) {
       const ok = await UI.confirm('Trocar pelo que está na nuvem?', 'Este aparelho tem alterações que ainda não foram salvas na nuvem. Elas serão substituídas.', { ok: 'Trocar', danger: true });
       if (!ok) return;
     }
+    if (!manual && REV !== rev0) { agendarNuvem(); return; } // começou a editar enquanto buscava: não passa por cima
+    const antes = REV;
     const d = await api('lista-load', { nome: ARQ_NUVEM + '.json' });
-    const antes = JSON.stringify(DB);
+    if (!manual && REV !== antes) { agendarNuvem(); return; }
+    const ant = JSON.stringify(DB);
     DB = normalizarDB(typeof d.conteudo === 'string' ? JSON.parse(d.conteudo) : d.conteudo);
-    try { localStorage.setItem(KEY, JSON.stringify(DB)); localStorage.removeItem(KEY + '_pend'); } catch (e) {}
-    PENDENTE = false;
+    PENDENTE = false; ERRO_NUVEM = ''; CONFLITO = false;
+    gravarBase(arq.modificado); gravarLocal();
     if (!ATA()) SEL = maisRecente();
     desenharTudo();
-    if (manual) UI.toast('Atas recarregadas da nuvem.', { type: 'ok', action: { label: 'Desfazer', icon: 'undo', fn: () => { DB = normalizarDB(JSON.parse(antes)); guardar(); desenharTudo(); } } });
+    if (manual) UI.toast('Atas recarregadas da nuvem.', { type: 'ok', action: { label: 'Desfazer', icon: 'undo', fn: () => { DB = normalizarDB(JSON.parse(ant)); guardar(); desenharTudo(); } } });
   } catch (e) { if (manual) UI.toast('Não foi possível acessar a nuvem: ' + e.message, 'error'); }
   mostrarEstado();
 }
+// ao sair ou trocar de aplicativo: grava neste aparelho na hora e tenta subir para a nuvem
+function aoSair() { if (_tSalvar) { clearTimeout(_tSalvar); _tSalvar = null; gravarLocal(); } }
+window.addEventListener('pagehide', aoSair);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') { aoSair(); if (PENDENTE && !SALVANDO && !CONFLITO && temSessao()) salvarNuvem(true); }
+  else if (!PENDENTE && !SALVANDO && window.__atasIniciado) carregarNuvem(false); // voltou: busca o que outros salvaram
+});
+window.addEventListener('beforeunload', e => { if (PENDENTE && temSessao() && (SALVANDO || _tNuvem)) { aoSair(); e.preventDefault(); e.returnValue = ''; } });
 function baixarBackup() {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(DB, null, 2)], { type: 'application/json' }));
@@ -329,7 +437,7 @@ function abrirBackup(ev) {
     try {
       const antes = JSON.stringify(DB);
       DB = normalizarDB(JSON.parse(r.result)); guardarJa(); SEL = maisRecente(); desenharTudo();
-      UI.toast('Arquivo aberto. Salve na nuvem para os outros verem.', { type: 'ok', action: { label: 'Desfazer', icon: 'undo', fn: () => { DB = normalizarDB(JSON.parse(antes)); guardarJa(); SEL = maisRecente(); desenharTudo(); } } });
+      UI.toast('Arquivo aberto. Ele vai para a nuvem em instantes.', { type: 'ok', action: { label: 'Desfazer', icon: 'undo', fn: () => { DB = normalizarDB(JSON.parse(antes)); guardarJa(); SEL = maisRecente(); desenharTudo(); } } });
     } catch (e) { UI.toast('Arquivo inválido.', 'error'); }
   };
   r.readAsText(f); ev.target.value = '';
@@ -367,7 +475,8 @@ function onCampo(e) {
   setP(o, cam, lerCampo(el));
   if (el.dataset.t === 'pnome' && e.type === 'change') el.dataset.old = el.value;
   guardar();
-  if (e.type === 'change' && el.dataset.r) { redesenhar(el.dataset.r); return; }
+  // redesenha depois que o foco já passou para o próximo campo (Tab continua funcionando)
+  if (e.type === 'change' && el.dataset.r) { const o = el.dataset.r; setTimeout(() => redesenhar(o), 0); return; }
   agendarDerivados();
 }
 document.addEventListener('input', onCampo);
@@ -667,7 +776,8 @@ function desenharLista() {
    ===================================================================== */
 const inp = (b, v, extra) => `<input data-b="${b}" value="${esc(v == null ? '' : v)}" ${extra || ''}>`;
 const campo = (rot, html, cls) => `<div class="${cls || ''}"><label>${rot}</label>${html}</div>`;
-const bloco = (ic, tit, sub, conteudo, em, id) => `<section class="bloco"${id ? ` id="${id}"` : ''}><h3><span class="bi">${ICO(ic)}</span><span>${tit}${sub ? `<br><small>${sub}</small>` : ''}</span>${em || ''}</h3>${conteudo}</section>`;
+const idBloco = t => 'b-' + norm(t).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const bloco = (ic, tit, sub, conteudo, em, id) => `<section class="bloco" id="${id || idBloco(tit)}" data-ic="${ic}"><h3><span class="bi">${ICO(ic)}</span><span>${tit}${sub ? `<br><small>${sub}</small>` : ''}</span>${em || ''}</h3>${conteudo}</section>`;
 const autoNome = (rot, nome, falta) => `<div class="auto${nome ? '' : ' falta'}">${ICO(nome ? 'user' : 'alert')}<span>${rot}: <b>${esc(nome || falta || 'não definido no cadastro')}</b></span></div>`;
 
 function heroiHTML(a) {
@@ -687,8 +797,8 @@ function selMovel() {
     <div class="menu" id="menuNova2"><button type="button" class="primary" onclick="togMenu(event,'menuNova2')">${ICO('plus')}Nova</button><div class="menu-box">
     <button type="button" onclick="novaAta('AGO')">${ICO('book')}<span>Assembleia Geral Ordinária<small>Relatório, balanço e Conselho Fiscal</small></span></button>
     <button type="button" onclick="novaAta('AGE')">${ICO('gavel')}<span>Assembleia Geral Extraordinária<small>Cargo vago e outros assuntos</small></span></button>
-    <button type="button" onclick="novaAta('RLA')">${ICO('users')}<span>Reunião Local Administrativa<small>RLA: secretaria, tesouraria, obras</small></span></button>
-    <button type="button" onclick="novaAta('RLM')">${ICO('user')}<span>Reunião Local Ministerial<small>RLM: assuntos do ministério</small></span></button></div></div></div>`;
+    <button type="button" onclick="novaAta('RLA')">${ICO('users')}<span>Reunião Local Administrativa<small>RLA trimestral: secretaria, tesouraria, obras</small></span></button>
+    <button type="button" onclick="novaAta('RLM')">${ICO('user')}<span>Reunião Local Ministerial<small>RLM trimestral: assuntos do ministério</small></span></button></div></div></div>`;
 }
 
 function blocoDados(a) {
@@ -860,12 +970,28 @@ function blocoDoc(a) {
     <div class="ck" style="gap:10px">Lista de presença: <input inputmode="numeric" data-b="a:opc.presenca" data-t="int" value="${O.presenca ?? 0}" style="width:70px"> folhas</div>
   </div>${temAcao(a, 'relatorio') ? '<div class="dica" style="margin:12px 0 0">Com “Relatório e balanço” na ordem do dia, vão também a capa, o relatório, a demonstração do resultado, o balanço e o parecer do Conselho Fiscal.</div>' : ''}`);
 }
+let TEXTO_ABERTO = false;
 function blocoTexto(a) {
   const man = a.textoManual != null;
+  const tit = `<div class="ft-tit" data-d="titulo">${tituloAta(a)}</div>`;
+  const botoes = `<button type="button" class="mais" onclick="copiarTexto()">${ICO('copy')}Copiar o texto</button><button type="button" class="mais" onclick="abrirPrevia()">${ICO('eye')}Ver como fica no PDF</button>`;
   const corpo = man
-    ? `<div class="manual"><div class="aviso-man">Você está editando o texto à mão: mudanças nos outros campos <b>não</b> entram mais no texto da ata.</div><textarea data-b="a:textoManual">${esc(a.textoManual)}</textarea><div class="linha-b"><button type="button" class="mais" onclick="textoAuto()">${ICO('undo')}Voltar ao texto automático</button></div></div>`
-    : `<div class="texto-ata" data-d="texto">${textoAtaHTML(a)}</div><div class="linha-b"><button type="button" class="mais" onclick="textoMao()">${ICO('edit')}Editar o texto à mão</button></div>`;
-  return bloco('edit', 'Texto da ata', man ? 'Editado à mão' : 'Montado sozinho com os dados acima', corpo);
+    ? `<div class="aviso-man">${ICO('alert')}<span>Texto editado à mão: o que você mudar nos campos acima <b>não</b> entra mais na ata.</span></div>
+      <div class="folha-tela manual">${tit}<textarea data-b="a:textoManual" aria-label="Texto da ata">${esc(a.textoManual)}</textarea></div>
+      <div class="linha-b">${botoes}<button type="button" class="mais" onclick="textoAuto()">${ICO('undo')}Voltar ao texto automático</button></div>`
+    : `<div class="folha-tela${TEXTO_ABERTO ? '' : ' fechada'}" id="folhaTexto">${tit}<div class="ft-p" data-d="texto">${textoAtaHTML(a)}</div>
+        <button type="button" class="ft-mais" onclick="abrirTexto()">${ICO('chevron-down')}Ler o texto inteiro</button></div>
+      <div class="linha-b">${botoes}<button type="button" class="mais" onclick="textoMao()">${ICO('edit')}Editar o texto à mão</button></div>`;
+  return bloco('edit', 'Texto da ata', man ? 'Editado à mão' : 'Montado sozinho com os dados acima · em negrito o que sai em negrito', corpo, `<em data-d="palavras">${contarPalavras(a)}</em>`);
+}
+function contarPalavras(a) { const n = textoAtaPlano(a).split(/\s+/).filter(Boolean).length; return `${n} palavras`; }
+function abrirTexto() { TEXTO_ABERTO = true; const f = document.getElementById('folhaTexto'); if (f) f.classList.remove('fechada'); }
+async function copiarTexto() {
+  const a = ATA(); if (!a) return;
+  const d = document.createElement('div'); d.innerHTML = tituloAta(a);
+  const txt = d.textContent + '\n\n' + (a.textoManual != null ? String(a.textoManual).replace(/\s*\n+\s*/g, ' ').trim() : textoAtaPlano(a));
+  try { await navigator.clipboard.writeText(txt); UI.toast('Texto da ata copiado.', 'ok'); }
+  catch (e) { const t = document.createElement('textarea'); t.value = txt; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); UI.toast('Texto da ata copiado.', 'ok'); } catch (x) { UI.toast('Não foi possível copiar.', 'error'); } t.remove(); }
 }
 function textoMao() { const a = ATA(); a.textoManual = textoAtaPlano(a); guardar(); desenharEditor(); }
 async function textoAuto() {
@@ -881,7 +1007,7 @@ function desenharEditor() {
   if (!a) {
     el.innerHTML = `${DB.atas.length ? selMovel() : ''}<div class="vazia"><b>${DB.atas.length ? 'Escolha uma ata' : 'Nenhuma ata ainda'}</b>${DB.cad.pessoas.length || DB.cad.adm.cargos.presidente ? 'Crie a primeira com “Nova ata”. Ela puxa do cadastro quem está em cada cargo.' : 'Comece pelo <b>Cadastro</b>: administração, Conselho Fiscal e dados dos irmãos. Depois crie a ata. Se você tem o arquivo com os dados iniciais, abra em Arquivo › Abrir backup.'}
       <div class="linha-b"><button type="button" onclick="mudarAba('cad')">${ICO('users')}Abrir o cadastro</button><button type="button" class="primary" onclick="novaAta('AGO')">${ICO('plus')}Nova AGO</button><button type="button" onclick="novaAta('AGE')">${ICO('plus')}Nova AGE</button><button type="button" onclick="novaAta('RLA')">${ICO('plus')}Nova RLA</button><button type="button" onclick="novaAta('RLM')">${ICO('plus')}Nova RLM</button></div></div>`;
-    return;
+    montarIndice(); return;
   }
   const y = window.scrollY;
   let h = selMovel() + `<div class="heroi" id="heroi">${heroiHTML(a)}</div>`;
@@ -892,18 +1018,62 @@ function desenharEditor() {
     if (temAcao(a, 'parecer') || temAcao(a, 'conselho')) h += blocoCF(a);
     h += blocoPessoas(a) + blocoDoc(a) + blocoTexto(a);
   }
-  const foco = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.b : null;
+  const foco = lerFoco(el);
   el.innerHTML = h;
   document.querySelectorAll('#ed .od textarea').forEach(crescer);
   window.scrollTo(0, y);
-  if (foco) { const f = el.querySelector(`[data-b="${foco}"]`); if (f && f.tagName !== 'SELECT' && f.type !== 'checkbox') f.focus({ preventScroll: true }); }
+  voltarFoco(el, foco);
+  montarIndice();
 }
+// mantém o cursor no mesmo campo (ou botão) depois de redesenhar
+const FOCAVEIS = 'input,select,textarea,button';
+function lerFoco(host) {
+  const ae = document.activeElement; if (!ae || !host.contains(ae)) return null;
+  return { b: ae.dataset ? ae.dataset.b : null, i: [...host.querySelectorAll(FOCAVEIS)].indexOf(ae) };
+}
+function voltarFoco(host, f) {
+  if (!f) return;
+  let alvo = f.b ? host.querySelector(`[data-b="${f.b}"]`) : null;
+  if (!alvo && f.i >= 0) alvo = host.querySelectorAll(FOCAVEIS)[f.i];
+  if (alvo && alvo.type !== 'checkbox') alvo.focus({ preventScroll: true });
+}
+/* ---------- índice das seções (lateral no computador, "Seções" na barra do celular) ---------- */
+function montarIndice() {
+  const host = document.getElementById(ABA === 'atas' ? 'ed' : 'cad');
+  const nav = document.getElementById(ABA === 'atas' ? 'indAtas' : 'indCad'), mob = document.getElementById('menuIndice');
+  const secs = host ? [...host.querySelectorAll('.bloco[id]')].filter(b => !b.parentElement.closest('.bloco')) : [];
+  const its = secs.map(b => {
+    const t = b.querySelector('h3 > span:nth-child(2)'), em = b.querySelector(':scope > h3 > em');
+    return { id: b.id, ic: b.dataset.ic || 'file', tit: t ? t.firstChild.textContent.trim() : '', em: em ? em.textContent.trim() : '' };
+  });
+  const bt = it => `<button type="button" data-ir="${it.id}" onclick="irBloco('${it.id}')">${ICO(it.ic)}<span>${esc(it.tit)}</span>${it.em ? `<em>${esc(it.em)}</em>` : ''}</button>`;
+  if (nav) nav.innerHTML = its.length ? `<div class="ind-t">${ABA === 'atas' ? 'Nesta ata' : 'No cadastro'}</div>${its.map(bt).join('')}` : '';
+  if (mob) mob.innerHTML = its.map(it => bt(Object.assign({}, it, { em: '' }))).join('');
+  marcarIndice();
+}
+function irBloco(id) {
+  const el = document.getElementById(id); if (!el) return;
+  const topo = (document.querySelector('.topo') || {}).offsetHeight || 0;
+  window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - topo - 12, behavior: 'smooth' });
+  el.classList.remove('pisca'); void el.offsetWidth; el.classList.add('pisca');
+}
+function marcarIndice() {
+  const nav = document.getElementById(ABA === 'atas' ? 'indAtas' : 'indCad'); if (!nav) return;
+  const lim = ((document.querySelector('.topo') || {}).offsetHeight || 0) + 40;
+  let atual = null;
+  nav.querySelectorAll('[data-ir]').forEach(b => { const s = document.getElementById(b.dataset.ir); if (s && s.getBoundingClientRect().top <= lim) atual = b.dataset.ir; });
+  if (!atual) { const p = nav.querySelector('[data-ir]'); atual = p && p.dataset.ir; }
+  if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) { const l = nav.querySelectorAll('[data-ir]'); if (l.length) atual = l[l.length - 1].dataset.ir; }
+  nav.querySelectorAll('[data-ir]').forEach(b => b.classList.toggle('on', b.dataset.ir === atual));
+}
+let _tInd = null;
+window.addEventListener('scroll', () => { if (_tInd) return; _tInd = requestAnimationFrame(() => { _tInd = null; marcarIndice(); }); }, { passive: true });
 function derivados() {
   const a = ATA();
   if (a && ABA === 'atas') {
     document.querySelectorAll('#ed [data-d]').forEach(el => {
       const k = el.dataset.d; let v = null;
-      if (ehReuniao(a) && k !== 'texto') v = derivadosReuniao(a, el, k);
+      if (ehReuniao(a) && !['texto', 'titulo', 'palavras'].includes(k)) v = derivadosReuniao(a, el, k);
       else if (k === 'ceia') v = fmtI((a.rel.ceiaIrmaos || 0) + (a.rel.ceiaIrmas || 0)) || '';
       else if (k.startsWith('gt:')) { const [cam, g] = [k.slice(3, k.lastIndexOf('.')), +k.slice(k.lastIndexOf('.') + 1)]; v = fmtR(totalGrupo(a, getP(a.cont, cam)[g])); }
       else if (k.startsWith('st:')) v = fmtR(totalSecao(a, getP(a.cont, k.slice(3))));
@@ -913,6 +1083,8 @@ function derivados() {
       else if (k === 'rotres') v = rotResultado(a);
       else if (k === 'contchip') { const c = balChip(a); el.className = c[0]; v = c[1]; }
       else if (k === 'texto') v = textoAtaHTML(a);
+      else if (k === 'titulo') v = tituloAta(a);
+      else if (k === 'palavras') v = contarPalavras(a);
       if (v == null) return;
       if (el.tagName === 'INPUT') { if (el.value !== v) el.value = v; } else if (el.innerHTML !== v) el.innerHTML = v;
     });
@@ -926,7 +1098,8 @@ function atualizarDatalists() {
   const nomes = new Set(DB.cad.pessoas.map(p => p.nome).filter(Boolean));
   Object.values(DB.cad.adm.cargos).concat(DB.cad.cf.membros, DB.cad.cf.suplente).forEach(n => { if (n) nomes.add(n); });
   dl.innerHTML = [...nomes].sort((x, y) => x.localeCompare(y, 'pt-BR')).map(n => `<option value="${esc(n)}">`).join('');
-  document.getElementById('dlAnciaes').innerHTML = limpos(DB.cad.anciaes).map(n => `<option value="${esc(n)}">`).join('');
+  const igrA = new Map(((REL_ANC && REL_ANC.lst) || []).map(x => [norm(x.nome), x.igreja]));
+  document.getElementById('dlAnciaes').innerHTML = limpos(DB.cad.anciaes).map(n => `<option value="${esc(n)}"${igrA.get(norm(n)) ? ` label="${esc(igrA.get(norm(n)))}"` : ''}>`).join('');
   let dc = document.getElementById('dlCargos');
   if (!dc) { dc = document.createElement('datalist'); dc.id = 'dlCargos'; document.body.appendChild(dc); }
   dc.innerHTML = CARGOS_ESTATUTO.concat(CARGOS_CF).map(([, r]) => `<option value="${r}">`).join('');
@@ -1002,6 +1175,65 @@ function blocoNomes(k, ic, tit, sub, ph) {
   const v = DB.cad[k];
   return bloco(ic, tit, sub, `<textarea data-b="c:${k}" data-t="linhas" rows="${Math.min(16, Math.max(5, limpos(v).length + 2))}" placeholder="${ph}">${esc(v.join('\n'))}</textarea>`, `<em data-d="n:${k}">${limpos(v).length}</em>`);
 }
+/* ---------- anciães: vêm do cadastro do Relatório de Igrejas ---------- */
+const REG_IGREJAS = { 'campo mourao': 'campomourao', cianorte: 'cianorte', ubirata: 'ubirata', pitanga: 'pitanga', goioere: 'goioere', ivaipora: 'ivaipora' };
+const regIgrejas = () => REG_IGREJAS[norm(DB.cad.ent.regiao)] || 'campomourao';
+let REL_ANC = null;   // { lst:[{nome, igreja}], igrejas, onde } depois de ler o relatório
+function ancDoRelatorio(d) {
+  const vistos = new Set(), out = [];
+  (d.igrejas || []).forEach(i => (i.anciaes || []).forEach(n => {
+    n = String(n || '').trim().replace(/\s+/g, ' '); if (!n || vistos.has(norm(n))) return;
+    vistos.add(norm(n)); out.push({ nome: n, igreja: [i.nome, i.cidade && i.cidade !== i.nome ? i.cidade : ''].filter(Boolean).join(' · ') });
+  }));
+  return out;
+}
+async function lerRelatorioIgrejas() {
+  const r = regIgrejas(); let loc = null, nuv = null, pend = false;
+  try { loc = JSON.parse(localStorage.getItem('ccb_igrejas_' + r) || 'null'); pend = localStorage.getItem('ccb_igrejas_' + r + '_pend') === '1'; } catch (e) {}
+  if (localStorage.getItem('session_token')) {
+    try { const d = await api('lista-load', { regiao: r, nome: '_igrejas.json' }); nuv = typeof d.conteudo === 'string' ? JSON.parse(d.conteudo) : d.conteudo; } catch (e) {}
+  }
+  const ok = d => d && Array.isArray(d.igrejas) && d.igrejas.length;
+  if (ok(loc) && (pend || !ok(nuv) || (loc.atualizado || 0) >= (nuv.atualizado || 0))) return Object.assign(loc, { _onde: pend ? 'neste aparelho (ainda não salvo na nuvem)' : 'neste aparelho' });
+  if (ok(nuv)) return Object.assign(nuv, { _onde: 'na nuvem' });
+  return null;
+}
+async function sincronizarAnciaes(manual) {
+  if (DB.cad.anciaesFonte === 'manual' && !manual) return;
+  const d = await lerRelatorioIgrejas();
+  const lst = d ? ancDoRelatorio(d) : [];
+  REL_ANC = { lst, igrejas: d ? d.igrejas.length : 0, onde: d ? d._onde : '', achou: !!d };
+  const redesenhar = () => { atualizarDatalists(); if (ABA === 'cad') desenharCad(); };
+  if (!lst.length) {
+    if (manual) UI.toast(d ? 'O Relatório de Igrejas ainda não tem anciães cadastrados.' : `Não achei o Relatório de Igrejas de ${DB.cad.ent.regiao} (nem neste aparelho, nem na nuvem).`, 'info');
+    redesenhar(); return;
+  }
+  const novos = lst.map(x => x.nome), atual = limpos(DB.cad.anciaes);
+  const igual = DB.cad.anciaesFonte !== 'manual' && novos.length === atual.length && novos.every((n, i) => norm(n) === norm(atual[i]));
+  if (igual) { if (manual) UI.toast(`Os anciães já estão iguais ao Relatório de Igrejas (${novos.length}).`, 'ok'); redesenhar(); return; }
+  const ant = DB.cad.anciaes.slice(), fonteAnt = DB.cad.anciaesFonte;
+  const ent = novos.filter(n => !atual.some(x => norm(x) === norm(n))).length, sai = atual.filter(n => !novos.some(x => norm(x) === norm(n))).length;
+  DB.cad.anciaes = novos; DB.cad.anciaesFonte = 'relatorio'; guardar(); redesenhar();
+  const det = [ent ? `${ent} ${ent === 1 ? 'novo' : 'novos'}` : '', sai ? `${sai} ${sai === 1 ? 'saiu' : 'saíram'}` : ''].filter(Boolean).join(', ');
+  UI.toast(`Anciães puxados do Relatório de Igrejas: ${novos.length}${det ? ' (' + det + ')' : ''}.`, { type: 'ok', action: { label: 'Desfazer', icon: 'undo', fn: () => { DB.cad.anciaes = ant; DB.cad.anciaesFonte = fonteAnt; guardar(); desenharTudo(); } } });
+}
+function anciaesMao() { DB.cad.anciaesFonte = 'manual'; guardar(); desenharCad(); focarUltimo('#cad textarea[data-b="c:anciaes"]'); }
+const iniciais = n => String(n || '').trim().split(/\s+/).filter(p => p.length > 2 || /^[A-ZÁ-Ú]/.test(p)).map(p => p[0]).filter((c, i, l) => i === 0 || i === l.length - 1).join('').toUpperCase();
+function blocoAnciaes() {
+  const v = limpos(DB.cad.anciaes), man = DB.cad.anciaesFonte === 'manual';
+  const em = `<em data-d="n:anciaes">${v.length}</em>`;
+  const reg = regIgrejas();
+  const abrir = `<button type="button" class="mais" onclick="location.href='/relatorio-igrejas.html?regiao=${reg}'">${ICO('arrow-right')}Abrir o Relatório de Igrejas</button>`;
+  if (man) return bloco('users', 'Anciães', 'Digitados à mão · assinam a ata e a conclusão', `<textarea data-b="c:anciaes" data-t="linhas" rows="${Math.min(16, Math.max(5, v.length + 2))}" placeholder="Um nome por linha">${esc(DB.cad.anciaes.join('\n'))}</textarea>
+    <div class="linha-b"><button type="button" class="mais" onclick="sincronizarAnciaes(true)">${ICO('refresh')}Puxar do Relatório de Igrejas</button>${abrir}</div>`, em);
+  const igr = new Map(((REL_ANC && REL_ANC.lst) || []).map(x => [norm(x.nome), x.igreja]));
+  const fonte = !REL_ANC ? `${ICO('spinner')}<span>Procurando o Relatório de Igrejas…</span>`
+    : REL_ANC.lst.length ? `${ICO('check-circle')}<span>Puxados do <b>Relatório de Igrejas</b> (${REL_ANC.onde}) · ${REL_ANC.igrejas} ${REL_ANC.igrejas === 1 ? 'casa de oração' : 'casas de oração'}. Para mudar, mude lá.</span>`
+    : `${ICO('alert')}<span>${REL_ANC.achou ? 'O Relatório de Igrejas ainda não tem anciães.' : 'Não achei o Relatório de Igrejas.'} Ficam os nomes que já estavam aqui.</span>`;
+  return bloco('users', 'Anciães', 'Assinam a ata e a conclusão · ficam à mão para “Ancião que preside”', `<div class="anc-fonte${REL_ANC && !REL_ANC.lst.length ? ' al' : ''}">${fonte}</div>
+    ${v.length ? `<div class="anc-l">${v.map(n => `<div class="anc"><span class="av">${esc(iniciais(n))}</span><span><b>${esc(n)}</b>${igr.get(norm(n)) ? `<small>${esc(igr.get(norm(n)))}</small>` : ''}</span></div>`).join('')}</div>` : '<div class="vazio">Nenhum ancião.</div>'}
+    <div class="linha-b"><button type="button" class="mais" onclick="sincronizarAnciaes(true)">${ICO('refresh')}Atualizar agora</button>${abrir}<button type="button" class="mais" onclick="anciaesMao()">${ICO('edit')}Digitar à mão</button></div>`, em);
+}
 function blocoSetores() {
   const S = DB.cad.setores;
   let letra = -1, sub = 0;
@@ -1026,12 +1258,15 @@ function desenharCad() {
   let ec = document.getElementById('dlEC'); if (!ec) { ec = document.createElement('datalist'); ec.id = 'dlEC'; ec.innerHTML = ESTADO_CIVIL.map(x => `<option value="${x}">`).join(''); document.body.appendChild(ec); }
   const y = window.scrollY;
   const abertos = [...el.querySelectorAll('details[open]')].map(d => d.dataset.pid);
+  const foco = lerFoco(el);
   el.innerHTML = blocoAdm() + blocoCFCad() + blocoPessoasCad()
-    + blocoNomes('anciaes', 'users', 'Anciães', 'Assinam a ata e a conclusão', 'Um nome por linha')
+    + blocoAnciaes()
     + blocoNomes('auxiliares', 'users', 'Auxiliares da administração', 'Apresentados na AGO e listados na composição', 'Um nome por linha')
     + blocoSetores() + blocoEnt() + blocoTextos();
   abertos.forEach(id => { const d = el.querySelector(`details[data-pid="${id}"]`); if (d) d.open = true; });
   window.scrollTo(0, y);
+  voltarFoco(el, foco);
+  montarIndice();
 }
 function desenharTudo() { desenharLista(); if (ABA === 'atas') desenharEditor(); else desenharCad(); mostrarEstado(); }
 
@@ -1283,9 +1518,13 @@ function docRoteiro(a) {
     <p class="rt-ob"><b>CULTO</b> – Andamento normal. A Assembleia será realizada antes da exortação da Palavra, suprimidos os testemunhos, não devendo se estender além de trinta minutos. Sobe ao púlpito toda a Administração (titulares, vices, auxiliares e Conselho Fiscal); não devem subir os colaboradores ou quaisquer outros.</p>
     <table class="rt">${h}</table><p class="rt-pl"><b>Ordem de subida ao púlpito</b></p>${pulp}</section>`;
 }
+function tituloAta(a) {
+  if (ehReuniao(a)) return tituloReuniao(a);
+  return `ATA DA ${NOME_TIPO[a.tipo].toUpperCase()} REALIZADA EM ${a.data ? dataExt2(a.data).toUpperCase() : '____'}`;
+}
 function docAta(a) {
   const e = DB.cad.ent;
-  const tit = `ATA DA ${NOME_TIPO[a.tipo].toUpperCase()} REALIZADA EM ${a.data ? dataExt2(a.data).toUpperCase() : '____'}`;
+  const tit = tituloAta(a);
   // texto corrido, sem parágrafos; a última linha é completada com traços
   const INUT = '<span class="inut" aria-hidden="true"></span>';
   const pr = conduz(a), sc = lavra(a), ts = cargo(a, 'tesoureiro');
@@ -1569,7 +1808,7 @@ function abrirDoc(imprimir) {
   const seguir = () => {
     const w = window.open('', imprimir ? '_blank' : 'previaAta');
     if (!w) { UI.toast('O navegador bloqueou a janela nova. Permita pop-ups para este site.', 'error'); return; }
-    w.document.open(); w.document.write(documentoHTML(a)); w.document.close();
+    w.document.open(); w.document.write(imprimir ? documentoHTML(a) : comBarraPrevia(documentoHTML(a), a)); w.document.close();
     if (imprimir) esperarFontes(w.document, 5000).then(() => setTimeout(() => { w.focus(); w.print(); }, 150));
     else w.focus();
   };
@@ -1580,16 +1819,54 @@ function abrirDoc(imprimir) {
   seguir();
 }
 function abrirPrevia() { abrirDoc(false); }
+// pré-visualização no mesmo padrão do calendário: barra com Atualizar e Imprimir, folhas sobre fundo cinza
+function comBarraPrevia(html, a) {
+  const p2 = n => String(n).padStart(2, '0'), d = new Date();
+  const css = `<style>
+@media screen{
+  html,body{background:#525659}
+  body{padding:0 0 28px}
+  .folha{width:210mm;min-height:297mm;margin:0 auto 18px;background:#fff;box-shadow:0 8px 28px rgba(0,0,0,.35);padding:16mm 18mm 16mm 24mm;zoom:var(--z,1);position:relative}
+  .folha.cont{padding:11mm 14mm 10mm 18mm}
+  .folha.rl{padding:10mm 16mm 18mm 20mm}
+  .rod-r{display:none}
+  .rod-tela{display:block!important;position:absolute;left:0;right:0;bottom:7mm}
+  .pv-bar{position:sticky;top:0;z-index:5;display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px;padding:10px 16px;margin-bottom:18px;background:linear-gradient(180deg,#2c3f5c,#1b2a41);color:#fdfbf6;font:600 14px Inter,Arial,sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+  .pv-bar b{flex:1 1 auto;font-family:Fraunces,Georgia,serif;font-size:17px;min-width:0}
+  .pv-bar small{opacity:.75;font-weight:500;font-size:12.5px}
+  .pv-bar button{cursor:pointer;font:600 14px Inter,Arial,sans-serif;padding:8px 14px;border-radius:9px;border:1.5px solid rgba(255,255,255,.35);background:transparent;color:#fdfbf6}
+  .pv-bar button.pri{background:#fdfbf6;color:#1b2a41;border-color:#fdfbf6}
+  @media (max-width:560px){.pv-bar{padding:8px 10px;gap:8px}.pv-bar small{display:none}.pv-bar b{font-size:15px;flex-basis:100%}.pv-bar button{flex:1;padding:8px 10px}}
+}
+@media print{.pv-bar{display:none!important}}
+</style><link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600&family=Inter:wght@500;600&display=swap" rel="stylesheet">`;
+  const bar = `<div class="pv-bar"><b>Pré-visualização · ${esc(a.tipo)} ${a.data ? dataBR(a.data) : ''}</b><small>Montada às ${p2(d.getHours())}:${p2(d.getMinutes())} · a quebra exata das páginas aparece no PDF</small>
+<button type="button" onclick="if(window.opener&&!window.opener.closed){window.opener.abrirPrevia()}else{alert('Abra a página de Atas para atualizar.')}">Atualizar</button>
+<button type="button" class="pri" onclick="window.print()">Imprimir / PDF</button></div>`;
+  const z = `<script>function z(){document.documentElement.style.setProperty('--z',Math.min(1,(innerWidth-20)/794))}z();addEventListener('resize',z)<\/script>`;
+  return html.replace('</style></head><body>', '</style>' + css + '</head><body>' + bar).replace(/<\/body><\/html>\s*$/, z + '</body></html>');
+}
 function gerarPDF() { abrirDoc(true); }
 window.__documentoHTML = documentoHTML;
 
+/* ---------- atalhos: Ctrl+S salva na nuvem, Ctrl+P gera o PDF (como nas listas) ---------- */
+document.addEventListener('keydown', e => {
+  if (!(e.ctrlKey || e.metaKey) || e.altKey || document.querySelector('.ui-modal')) return;
+  const k = e.key.toLowerCase();
+  if (k === 's') { e.preventDefault(); salvarNuvem(); }
+  else if (k === 'p') { e.preventDefault(); gerarPDF(); }
+});
+
 /* ---------- início ---------- */
 DB = ler();
+ATUALIZADO_AO_ABRIR = DB.atualizado || 0;
 PENDENTE = (() => { try { return localStorage.getItem(KEY + '_pend') === '1'; } catch (e) { return false; } })();
 SEL = (() => { try { const s = localStorage.getItem('ccb_atas_sel'); return DB.atas.some(a => a.id === s) ? s : maisRecente(); } catch (e) { return maisRecente(); } })();
 window.__aoEntrar = function () {
   if (window.__atasIniciado) return; window.__atasIniciado = true;
   let ab = 'atas'; try { ab = localStorage.getItem('ccb_atas_aba') === 'cad' ? 'cad' : 'atas'; } catch (e) {}
-  mudarAba(ab); mostrarEstado(); carregarNuvem(false);
+  const est = document.getElementById('estado');
+  if (est) { est.addEventListener('click', cliqueEstado); est.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); cliqueEstado(); } }); }
+  mudarAba(ab); mostrarEstado(); carregarNuvem(false).then(() => sincronizarAnciaes(false));
 };
 if (window.__SESSAO) window.__aoEntrar(window.__SESSAO);

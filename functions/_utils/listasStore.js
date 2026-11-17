@@ -30,10 +30,11 @@ function normalizarNomeArquivo(nome) {
 
 export async function salvarListaJSON(env, regiao, nome, conteudo) {
   const nomeArquivo = normalizarNomeArquivo(nome);
+  const modificado = Date.now();
   await env.LISTAS_KV.put(chave(regiao, nomeArquivo), conteudo, {
-    metadata: { modificado: Date.now() },
+    metadata: { modificado },
   });
-  return nomeArquivo;
+  return { nomeArquivo, modificado };
 }
 
 export async function listarListasJSON(env, regiao) {
