@@ -35,9 +35,9 @@ export async function onRequestPost({ request, env }) {
   }
 
   try {
-    const { nomeArquivo, modificado } = await salvarListaJSON(env, regiao, nome, conteudo);
+    const { nomeArquivo, modificado } = await salvarListaJSON(env, regiao, nome, conteudo, payload.email || null);
     // "modificado" deixa a tela saber exatamente qual versão ficou na nuvem
-    return jsonResponse(200, { ok: true, nomeArquivo, modificado });
+    return jsonResponse(200, { ok: true, nomeArquivo, modificado, por: payload.email || null });
   } catch (err) {
     return jsonResponse(500, { error: err.message });
   }

@@ -19,7 +19,7 @@ export function nomeValido(nome) {
   return typeof nome === 'string' && /^[a-zA-Z0-9À-ÿ _\-.]{1,120}$/.test(nome.trim());
 }
 
-function normalizarNomeArquivo(nome) {
+export function normalizarNomeArquivo(nome) {
   // Remove espaços nas pontas, colapsa espaços internos duplicados e deixa
   // tudo minúsculo — assim "Lista Julho", "lista  julho" e "LISTA JULHO"
   // sempre caem na MESMA chave e um salvamento novo sobrescreve o antigo,
@@ -28,13 +28,21 @@ function normalizarNomeArquivo(nome) {
   return limpo.endsWith('.json') ? limpo : `${limpo}.json`;
 }
 
-export async function salvarListaJSON(env, regiao, nome, conteudo) {
+export async function salvarListaJSON(env, regiao, nome, conteudo, por) {
   const nomeArquivo = normalizarNomeArquivo(nome);
   const modificado = Date.now();
   await env.LISTAS_KV.put(chave(regiao, nomeArquivo), conteudo, {
-    metadata: { modificado },
+    metadata: { modificado, por: por || null },
   });
+  // ficha pequena com "quando e quem salvou": a tela consulta isto sem baixar o arquivo inteiro
+  await env.LISTAS_KV.put(chaveMeta(regiao, nomeArquivo), JSON.stringify({ modificado, por: por || null }));
   return { nomeArquivo, modificado };
+}
+
+export function chaveMeta(regiao, nomeArquivo) { return `meta:${regiao}:${nomeArquivo}`; }
+export function chavePresenca(regiao, nomeArquivo) { return `presenca:${regiao}:${nomeArquivo}`; }
+export async function lerMeta(env, regiao, nomeArquivo) {
+  try { return JSON.parse((await env.LISTAS_KV.get(chaveMeta(regiao, nomeArquivo))) || 'null'); } catch { return null; }
 }
 
 export async function listarListasJSON(env, regiao) {
@@ -47,6 +55,7 @@ export async function listarListasJSON(env, regiao) {
       arquivos.push({
         nome: key.name.slice(prefixo.length),
         modificado: (key.metadata && key.metadata.modificado) || 0,
+        por: (key.metadata && key.metadata.por) || null,
       });
     }
     if (page.list_complete) break;

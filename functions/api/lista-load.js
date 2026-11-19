@@ -34,6 +34,7 @@ export async function onRequestPost({ request, env }) {
     const conteudo = await carregarListaJSON(env, regiao, nome);
     return jsonResponse(200, { ok: true, conteudo });
   } catch (err) {
-    return jsonResponse(500, { error: err.message });
+    // arquivo que ainda não existe é "não encontrado" (404), não erro do servidor
+    return jsonResponse(/não encontrado/i.test(err.message) ? 404 : 500, { error: err.message });
   }
 }
