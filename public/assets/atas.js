@@ -194,13 +194,69 @@ function cadastroPadrao() {
   };
 }
 function pessoaPadrao(nome) {
-  return { id: novoId(), nome: nome || '', nacionalidade: 'brasileiro', estadoCivil: '', profissao: '', docTipo: 'rg', doc: '', cpf: '', endereco: '' };
+  return { id: novoId(), nome: nome || '', nacionalidade: 'brasileiro', estadoCivil: '', profissao: '', docTipo: 'rg', doc: '', cpf: '',
+    rua: '', numero: '', complemento: '', bairro: '', cidade: '', uf: 'PR', cep: '' };
 }
+
+/* ---------- endereço das pessoas: cada parte no seu campo ---------- */
+const ESTADOS = [['AC', 'Acre', 'do'], ['AL', 'Alagoas', 'de'], ['AP', 'Amapá', 'do'], ['AM', 'Amazonas', 'do'], ['BA', 'Bahia', 'da'], ['CE', 'Ceará', 'do'], ['DF', 'Distrito Federal', 'do'],
+  ['ES', 'Espírito Santo', 'do'], ['GO', 'Goiás', 'de'], ['MA', 'Maranhão', 'do'], ['MT', 'Mato Grosso', 'de'], ['MS', 'Mato Grosso do Sul', 'de'], ['MG', 'Minas Gerais', 'de'], ['PA', 'Pará', 'do'],
+  ['PB', 'Paraíba', 'da'], ['PR', 'Paraná', 'do'], ['PE', 'Pernambuco', 'de'], ['PI', 'Piauí', 'do'], ['RJ', 'Rio de Janeiro', 'do'], ['RN', 'Rio Grande do Norte', 'do'], ['RS', 'Rio Grande do Sul', 'do'],
+  ['RO', 'Rondônia', 'de'], ['RR', 'Roraima', 'de'], ['SC', 'Santa Catarina', 'de'], ['SP', 'São Paulo', 'de'], ['SE', 'Sergipe', 'de'], ['TO', 'Tocantins', 'de']];
+const estadoDe = v => { const n = norm(v); return ESTADOS.find(([s, nm]) => norm(s) === n || norm(nm) === n || norm('estado do ' + nm) === n || norm('estado de ' + nm) === n || norm('estado da ' + nm) === n) || null; };
+const RE_COMPL = /^(apartamento|apto\.?|ap\.?|bloco|bl\.?|casa|sala|lote|lt\.?|quadra|qd\.?|fundos|sobrado|chácara|chacara|edifício|edificio|condomínio|condominio|km)\b/i;
+// separa um endereço antigo, escrito numa linha só ("Rua X, número 10, Centro, Campo Mourão – Paraná")
+function separarEndereco(t) {
+  const r = { rua: '', numero: '', complemento: '', bairro: '', cidade: '', uf: '', cep: '' };
+  let txt = String(t || '').replace(/\s+/g, ' ').trim(); if (!txt) return r;
+  const cep = txt.match(/\b(?:CEP:?\s*)?(\d{5})-?(\d{3})\b/i);
+  if (cep) { r.cep = cep[1] + '-' + cep[2]; txt = txt.replace(cep[0], ' '); }
+  txt = txt.replace(/,?\s*na cidade de\s*/i, ', ').replace(/,?\s*Estado (do|da|de)\s*/i, ', ');
+  let ps = txt.split(/\s*,\s*|\s+[–—-]\s+|\s*\/\s*(?=[A-Z]{2}\b)/).map(x => x.trim()).filter(Boolean);
+  // estado no fim
+  if (ps.length > 1 && estadoDe(ps[ps.length - 1])) r.uf = estadoDe(ps.pop())[0];
+  // número: parte "número 123", "nº 123", "n. 123", "123", "s/n"; ou grudado no fim da rua
+  const RE_NUM = /^(?:n(?:úmero|umero|º|°|o\.?|\.º|\.)?\s*:?\s*)?(\d+[A-Za-z]?|s\/?n)$/i;
+  const iNum = ps.findIndex((x, i) => i > 0 && RE_NUM.test(x));
+  if (iNum > 0) { r.numero = ps[iNum].match(RE_NUM)[1]; ps.splice(iNum, 1); }
+  r.rua = ps.shift() || '';
+  if (!r.numero) { const m = r.rua.match(/^(.*?)(?:,|\s)\s*(?:n(?:úmero|umero|º|°|o\.?|\.º|\.)\s*)(\d+[A-Za-z]?)$/i); if (m) { r.rua = m[1].trim(); r.numero = m[2]; } }
+  if (!r.numero) { const m = r.rua.match(/^(.*\D)\s+(\d+[A-Za-z]?)$/); if (m) { r.rua = m[1].trim(); r.numero = m[2]; } }
+  const compl = ps.filter(x => RE_COMPL.test(x)); ps = ps.filter(x => !RE_COMPL.test(x));
+  r.complemento = compl.join(', ');
+  if (ps.length) r.cidade = ps.pop();
+  r.bairro = ps.join(', ');
+  if (r.cidade && /^(bairro|jardim|vila|conjunto|parque|centro|residencial|loteamento|jd\.?)\b/i.test(r.cidade) && !r.bairro) { r.bairro = r.cidade; r.cidade = ''; }
+  r.bairro = r.bairro.replace(/^bairro\s+/i, '');
+  r.rua = semAbrevEnd(r.rua); r.bairro = semAbrevEnd(r.bairro); r.complemento = semAbrevEnd(r.complemento);
+  return r;
+}
+// sem abreviações no texto da ata: "Av." vira "Avenida", "Jd." vira "Jardim"…
+const ABREV_END = [[/^R\.?\s+/i, 'Rua '], [/^Av\.?\s+/i, 'Avenida '], [/^Al\.?\s+/i, 'Alameda '], [/^Trav\.?\s+/i, 'Travessa '], [/^Rod\.?\s+/i, 'Rodovia '], [/^Est\.?\s+/i, 'Estrada '], [/^Pç\.?\s+|^Pça\.?\s+/i, 'Praça '],
+  [/^Jd\.?\s+/i, 'Jardim '], [/^Vl\.?\s+/i, 'Vila '], [/^Res\.?\s+/i, 'Residencial '], [/^Conj\.?\s+/i, 'Conjunto '], [/^Pq\.?\s+/i, 'Parque '],
+  [/^Apto\.?\s*|^Ap\.?\s+/i, 'Apartamento '], [/^Bl\.?\s*/i, 'Bloco '], [/^Qd\.?\s*/i, 'Quadra '], [/^Lt\.?\s*/i, 'Lote ']];
+const semAbrevEnd = t => String(t || '').split(/\s*,\s*/).map(x => ABREV_END.reduce((v, [re, por]) => v.replace(re, por), x)).join(', ');
+// como o endereço entra na qualificação da ata, por extenso e sem abreviações
+function enderecoTexto(p) {
+  const L = '______', est = estadoDe(p.uf);
+  const num = String(p.numero || '').trim();
+  const partes = [semAbrevEnd(String(p.rua || '').trim()) || L, /^s\/?n$/i.test(num) ? 'sem número' : `número ${num || L}`];
+  if (String(p.complemento || '').trim()) partes.push(semAbrevEnd(String(p.complemento).trim()));
+  if (String(p.bairro || '').trim()) partes.push(`Bairro ${semAbrevEnd(String(p.bairro).trim().replace(/^bairro\s+/i, ''))}`);
+  return `${partes.join(', ')}, na cidade de ${String(p.cidade || '').trim() || L}, Estado ${est ? est[2] + ' ' + est[1] : 'do ' + L}`;
+}
+const faltaEndereco = p => [['rua', 'rua'], ['numero', 'número'], ['bairro', 'bairro'], ['cidade', 'cidade'], ['uf', 'estado']].filter(([k]) => !String(p[k] || '').trim()).map(([, r]) => r);
 
 /* ---------- estado ---------- */
 let DB = null;
 let SEL = null;           // id da ata aberta
 let ABA = 'atas';
+// Assembleias (AGO/AGE) e Reuniões (RLA/RLM) ficam em abas separadas; cada aba lembra a ata aberta
+let GRUPO = 'ass';
+const GRUPOS = { ass: { tipos: ['AGO', 'AGE'], nome: 'Assembleias', um: 'assembleia' }, reu: { tipos: ['RLA', 'RLM'], nome: 'Reuniões', um: 'reunião' } };
+const grupoDe = a => a && TIPOS_REUNIAO.includes(a.tipo || a) ? 'reu' : 'ass';
+const doGrupo = (g = GRUPO) => DB.atas.filter(a => grupoDe(a) === g);
+let SELS = { ass: null, reu: null };
 let CONT_ABA = 'dre';
 let PENDENTE = false;
 let NUVEM_EM = null;
@@ -216,7 +272,16 @@ function normalizarDB(d) {
   cad.cf = Object.assign({ membros: ['', '', ''], suplente: '' }, c.cf || {});
   while (cad.cf.membros.length < 3) cad.cf.membros.push('');
   cad.textos = Object.assign({ parecer: TEXTO_PARECER, conclusao: TEXTO_CONCLUSAO }, c.textos || {});
-  cad.pessoas = (Array.isArray(c.pessoas) ? c.pessoas : []).map(p => Object.assign(pessoaPadrao(), p));
+  cad.pessoas = (Array.isArray(c.pessoas) ? c.pessoas : []).map(p => {
+    const n = Object.assign(pessoaPadrao(), p);
+    if (n.endereco && !n.rua && !n.cidade) {   // endereço antigo numa linha só: separa e guarda o original para conferir
+      const e = separarEndereco(n.endereco);
+      Object.keys(e).forEach(k => { if (e[k]) n[k] = e[k]; });
+      n.endOrig = n.endereco;
+    }
+    delete n.endereco;
+    return n;
+  });
   ['anciaes', 'auxiliares'].forEach(k => { if (!Array.isArray(cad[k])) cad[k] = []; });
   if (!Array.isArray(cad.setores)) cad.setores = cadastroPadrao().setores;
   const atas = (Array.isArray(d.atas) ? d.atas : []).map(x => { const n = normalizarAta(x); if (!x.comp) n.comp = compDoCadastro(cad); return n; });
@@ -258,14 +323,14 @@ function normalizarAta(a) {
 }
 
 function ler() { try { const t = localStorage.getItem(KEY); if (t) return normalizarDB(JSON.parse(t)); } catch (e) {} return normalizarDB({}); }
-/* ---------- salvar: neste aparelho na hora e na nuvem sozinho, poucos segundos depois ----------
-   REV conta as alterações; uma alteração feita enquanto a nuvem salva não se perde (salva de novo).
-   ccb_atas_base guarda a versão da nuvem que este aparelho conhece: se outra pessoa salvou depois,
-   pergunta qual manter em vez de passar por cima. */
+/* ---------- salvar ----------
+   Neste aparelho: na hora, sozinho. Na nuvem: só quando você manda (Salvar na nuvem / Ctrl+S).
+   Ao salvar, confere se outra pessoa salvou depois da versão que está aqui (e quem foi); se salvou,
+   pergunta qual manter em vez de passar por cima. Ao abrir, confere uma vez se há versão mais nova
+   na nuvem e só avisa (não troca sozinho). Presenca.js avisa quem mais está com as atas abertas. */
 let ATUALIZADO_AO_ABRIR = 0;
-let _tSalvar = null, _tNuvem = null, REV = 0, SALVANDO = false, DE_NOVO = false, ERRO_NUVEM = '', CONFLITO = false, AVISOU_ESPACO = false;
+let _tSalvar = null, REV = 0, SALVANDO = false, ERRO_NUVEM = '', CONFLITO = false, AVISOU_ESPACO = false, NOVA = null;
 const BASE_KEY = KEY + '_base';
-const AUTO_MS = 2500;
 const lerBase = () => { try { return +(localStorage.getItem(BASE_KEY) || 0) || 0; } catch (e) { return 0; } };
 const gravarBase = v => { try { localStorage.setItem(BASE_KEY, String(v || 0)); } catch (e) {} };
 const temSessao = () => { try { return !!localStorage.getItem('session_token'); } catch (e) { return false; } };
@@ -275,7 +340,7 @@ function gravarLocal() {
     if (PENDENTE) localStorage.setItem(KEY + '_pend', '1'); else localStorage.removeItem(KEY + '_pend');
     return true;
   } catch (e) {
-    if (!AVISOU_ESPACO) { AVISOU_ESPACO = true; UI.toast('O navegador não deixou guardar neste aparelho (falta espaço). As atas continuam indo para a nuvem.', 'error'); }
+    if (!AVISOU_ESPACO) { AVISOU_ESPACO = true; UI.toast('O navegador não deixou guardar neste aparelho (falta espaço). Salve na nuvem para não perder.', 'error'); }
     return false;
   }
 }
@@ -283,31 +348,30 @@ function guardar() {
   DB.atualizado = Date.now(); PENDENTE = true; REV++;
   clearTimeout(_tSalvar);
   _tSalvar = setTimeout(() => { _tSalvar = null; gravarLocal(); mostrarEstado(); }, 250);
-  agendarNuvem();
-}
-function guardarJa() { clearTimeout(_tSalvar); _tSalvar = null; DB.atualizado = Date.now(); PENDENTE = true; REV++; gravarLocal(); agendarNuvem(); }
-function agendarNuvem(ms) {
-  clearTimeout(_tNuvem); _tNuvem = null;
-  if (temSessao() && !CONFLITO) _tNuvem = setTimeout(() => salvarNuvem(true), ms == null ? AUTO_MS : ms);
   mostrarEstado();
 }
+function guardarJa() { clearTimeout(_tSalvar); _tSalvar = null; DB.atualizado = Date.now(); PENDENTE = true; REV++; gravarLocal(); mostrarEstado(); }
 function quandoTxt(ms) { if (!ms) return ''; const d = new Date(ms), h = new Date(); const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); return d.toDateString() === h.toDateString() ? 'hoje às ' + hora : d.toLocaleDateString('pt-BR') + ' às ' + hora; }
+const porTxt = e => e ? String(e).split('@')[0] : '';
 function mostrarEstado() {
   const el = document.getElementById('estado'); if (!el) return;
   let cls = '', ic = 'check-circle', txt;
   if (CONFLITO) { cls = 'pend'; ic = 'alert'; txt = '<b>Há outra versão na nuvem</b> — toque para resolver'; }
   else if (SALVANDO) { cls = 'salv'; ic = 'spinner'; txt = '<b>Salvando na nuvem…</b>'; }
+  else if (NOVA && !PENDENTE) { cls = 'pend'; ic = 'cloud-down'; txt = `<b>Há versão mais nova na nuvem</b> — toque para carregar`; }
   else if (PENDENTE && ERRO_NUVEM) { cls = 'pend'; ic = 'alert'; txt = '<b>Não salvou na nuvem</b> — toque para tentar de novo'; }
-  else if (PENDENTE && !temSessao()) { cls = 'pend'; ic = 'alert'; txt = '<b>Só neste aparelho</b> — entre de novo para salvar na nuvem'; }
-  else if (PENDENTE) { cls = 'salv'; ic = 'clock'; txt = '<b>Salvo neste aparelho</b> · vai para a nuvem em instantes'; }
+  else if (PENDENTE) { cls = 'pend'; ic = 'alert'; txt = '<b>Alterações só neste aparelho</b> — salve na nuvem'; }
   else txt = `<b>Salvo na nuvem</b>${NUVEM_EM ? ' · ' + quandoTxt(NUVEM_EM) : ''}`;
   el.className = 'estado' + (cls ? ' ' + cls : '');
   el.innerHTML = `${ICO(ic)}<span>${txt}</span>`;
-  const acao = CONFLITO || (PENDENTE && (ERRO_NUVEM || !SALVANDO));
+  const acao = CONFLITO || PENDENTE || (NOVA && !PENDENTE);
   el.setAttribute('role', acao ? 'button' : 'status'); el.tabIndex = acao ? 0 : -1;
-  el.title = acao ? 'Salvar na nuvem agora' : '';
+  el.title = CONFLITO || PENDENTE ? 'Salvar na nuvem agora' : NOVA ? 'Carregar a versão da nuvem' : '';
 }
-function cliqueEstado() { if (!temSessao()) { location.href = '/login.html'; return; } if (CONFLITO || PENDENTE) salvarNuvem(false); }
+function cliqueEstado() {
+  if (!temSessao()) { location.href = '/login.html'; return; }
+  if (CONFLITO || PENDENTE) salvarNuvem(); else if (NOVA) carregarNuvem(true);
+}
 const ATA = () => DB.atas.find(a => a.id === SEL) || null;
 
 /* ---------- nuvem e backup ---------- */
@@ -318,113 +382,101 @@ async function api(rota, corpo) {
   if (!res.ok) { const er = new Error(d.error || (res.status === 413 ? 'arquivo grande demais' : 'erro de comunicação com o servidor (' + res.status + ')')); er.status = res.status; throw er; }
   return d;
 }
-async function arquivoNuvem() { const lst = (await api('lista-list')).arquivos || []; return lst.find(a => a.nome === ARQ_NUVEM + '.json') || null; }
+// quando e quem salvou por último (e quem mais está com as atas abertas): uma consulta pequena
+async function infoNuvem(entrar) {
+  let i = null;
+  if (window.Presenca) i = entrar ? await Presenca.entrar(REGIAO, ARQ_NUVEM) : await Presenca.info();
+  if (i && i.modificado) return { existe: true, modificado: i.modificado, por: i.por };
+  // arquivo salvo antes desta versão (sem a ficha pequena): pergunta à lista
+  const lst = (await api('lista-list')).arquivos || [];
+  const a = lst.find(x => x.nome === ARQ_NUVEM + '.json');
+  return a ? { existe: true, modificado: a.modificado, por: a.por || null } : { existe: false };
+}
 // troca o que está na tela pela versão da nuvem (com "Desfazer")
-async function trazerDaNuvem(arq, avisar) {
+async function trazerDaNuvem(info, avisar) {
   const d = await api('lista-load', { nome: ARQ_NUVEM + '.json' });
   const antes = JSON.stringify(DB);
   DB = normalizarDB(typeof d.conteudo === 'string' ? JSON.parse(d.conteudo) : d.conteudo);
-  PENDENTE = false; ERRO_NUVEM = ''; CONFLITO = false; REV++;
-  clearTimeout(_tNuvem); _tNuvem = null;
-  gravarBase(arq && arq.modificado); NUVEM_EM = arq ? arq.modificado : NUVEM_EM; gravarLocal();
+  PENDENTE = false; ERRO_NUVEM = ''; CONFLITO = false; NOVA = null; REV++;
+  gravarBase(info && info.modificado); NUVEM_EM = info ? info.modificado : NUVEM_EM; gravarLocal();
   if (!ATA()) SEL = maisRecente();
   desenharTudo();
-  if (avisar) UI.toast('Atas recarregadas da nuvem.', { type: 'ok', action: { label: 'Desfazer', icon: 'undo', fn: () => { DB = normalizarDB(JSON.parse(antes)); guardar(); desenharTudo(); } } });
+  if (avisar) UI.toast('Atas carregadas da nuvem.', { type: 'ok', action: { label: 'Desfazer', icon: 'undo', fn: () => { DB = normalizarDB(JSON.parse(antes)); guardar(); desenharTudo(); } } });
 }
-async function resolverConflito(arq) {
+async function resolverConflito(info) {
   CONFLITO = true; mostrarEstado();
+  const quem = info.por ? `<b>${esc(info.por)}</b> salvou` : 'Alguém salvou';
   const v = await UI.dialog({
-    title: 'Há outra versão das atas na nuvem', icon: 'alert',
-    body: `<p class="ui-modal__p">Alguém salvou as atas na nuvem <b>${esc(quandoTxt(arq.modificado))}</b>, depois da última vez que este aparelho buscou. Este aparelho também tem alterações que ainda não foram para a nuvem.</p><p class="ui-modal__p">Qual versão deve ficar?</p>`,
-    actions: [{ label: 'Decidir depois', value: null }, { label: 'Usar a da nuvem', value: 'nuvem', icon: 'cloud-down' }, { label: 'Manter a deste aparelho', value: 'aqui', primary: true, icon: 'cloud-up' }]
+    title: 'Outra pessoa salvou as atas', icon: 'alert',
+    body: `<p class="ui-modal__p">${quem} as atas na nuvem <b>${esc(quandoTxt(info.modificado))}</b>, depois da versão que está neste aparelho.</p><p class="ui-modal__p">Se você salvar agora, o que essa pessoa salvou será substituído pelo que está aqui. Qual versão deve ficar?</p>`,
+    actions: [{ label: 'Cancelar', value: null }, { label: 'Carregar a da nuvem', value: 'nuvem', icon: 'cloud-down' }, { label: 'Substituir pela minha', value: 'aqui', primary: true, icon: 'cloud-up' }]
   });
   if (v === 'aqui') { CONFLITO = false; return true; }
-  if (v === 'nuvem') { await trazerDaNuvem(arq, true); return false; }
-  mostrarEstado(); return false;
+  if (v === 'nuvem') { await trazerDaNuvem(info, true); return false; }
+  CONFLITO = false; mostrarEstado(); return false;
 }
-let AVISOU_ERRO = false;
-async function salvarNuvem(auto) {
-  clearTimeout(_tNuvem); _tNuvem = null;
-  if (SALVANDO) { DE_NOVO = true; return; }
-  if (auto && (!PENDENTE || CONFLITO || !temSessao())) { mostrarEstado(); return; }
+async function salvarNuvem() {
+  if (SALVANDO) return;
   if (!temSessao()) { UI.toast('Sua sessão terminou. Entre de novo para salvar na nuvem (o que está na tela continua guardado neste aparelho).', { type: 'error', action: { label: 'Entrar', icon: 'arrow-right', fn: () => { location.href = '/login.html'; } } }); return; }
-  const btn = auto ? null : document.getElementById('btnNuvemSalvar');
-  const fim = !auto && UI.busy ? UI.busy(btn, 'Salvando...') : () => {};
-  SALVANDO = true; DE_NOVO = false; mostrarEstado();
+  const btn = document.getElementById('btnNuvemSalvar');
+  const fim = UI.busy ? UI.busy(btn, 'Salvando...') : () => {};
+  SALVANDO = true; mostrarEstado();
   const rev = REV;
   try {
-    const arq = await arquivoNuvem();
+    const info = await infoNuvem(false);
     const base = lerBase();
     // aparelho que nunca anotou a versão (de antes desta mudança): se editou depois do último salvamento, não pergunta
-    const legado = !base && arq && ATUALIZADO_AO_ABRIR > arq.modificado;
-    if (arq && arq.modificado && arq.modificado > base && !legado) {
+    const legado = !base && info.existe && ATUALIZADO_AO_ABRIR > info.modificado;
+    if (info.existe && info.modificado > base && !legado) {
       SALVANDO = false;
-      if (!(await resolverConflito(arq))) return;
+      if (!(await resolverConflito(info))) return;
       SALVANDO = true; mostrarEstado();
     }
     const r = await api('lista-save', { nome: ARQ_NUVEM, conteudo: JSON.stringify(DB) });
-    // a versão que ficou na nuvem: o servidor devolve; se for um servidor antigo, pergunta à lista
-    let mod = r && r.modificado;
-    if (!mod) { try { const novo = await arquivoNuvem(); mod = novo && novo.modificado; } catch (e) {} }
-    mod = Math.max(mod || 0, arq && arq.modificado || 0, lerBase());
-    NUVEM_EM = mod || Date.now(); gravarBase(mod);
-    ERRO_NUVEM = ''; AVISOU_ERRO = false;
+    const mod = Math.max((r && r.modificado) || Date.now(), lerBase());
+    NUVEM_EM = mod; gravarBase(mod);
+    ERRO_NUVEM = ''; NOVA = null;
     if (REV === rev) PENDENTE = false;
     gravarLocal();
-    if (!auto) UI.toast('Atas e cadastro salvos na nuvem.', 'ok');
+    const outros = window.Presenca ? Presenca.outros() : [];
+    UI.toast('Atas e cadastro salvos na nuvem.' + (outros.length ? ` Atenção: ${outros.map(o => porTxt(o.email)).join(', ')} também está com as atas abertas.` : ''), outros.length ? { type: 'info', duration: 9000 } : 'ok');
   } catch (e) {
     ERRO_NUVEM = e.message || 'erro';
     const sessao = e.status === 401;
-    if (!auto || !AVISOU_ERRO) {
-      AVISOU_ERRO = true;
-      UI.toast((sessao ? 'Sua sessão terminou: ' : 'Não foi possível salvar na nuvem: ') + ERRO_NUVEM + (sessao ? '' : ' O que está na tela continua guardado neste aparelho.'), { type: 'error', action: sessao ? { label: 'Entrar', icon: 'arrow-right', fn: () => { location.href = '/login.html'; } } : { label: 'Tentar de novo', icon: 'refresh', fn: () => salvarNuvem(false) } });
-    }
-    if (!sessao && e.status !== 403) _tNuvem = setTimeout(() => salvarNuvem(true), 30000);
+    UI.toast((sessao ? 'Sua sessão terminou: ' : 'Não foi possível salvar na nuvem: ') + ERRO_NUVEM + (sessao ? '' : ' O que está na tela continua guardado neste aparelho.'), { type: 'error', action: sessao ? { label: 'Entrar', icon: 'arrow-right', fn: () => { location.href = '/login.html'; } } : { label: 'Tentar de novo', icon: 'refresh', fn: () => salvarNuvem() } });
   } finally {
     SALVANDO = false; fim(); mostrarEstado();
-    if (!ERRO_NUVEM && !CONFLITO && PENDENTE && (REV !== rev || DE_NOVO)) agendarNuvem(800);
   }
 }
+// manual: busca a versão da nuvem (pergunta se há alterações não salvas).
+// ao abrir: só confere e avisa; carrega sozinho apenas se este aparelho ainda não tem nada.
 async function carregarNuvem(manual) {
-  const rev0 = REV;
   try {
     if (!temSessao()) { mostrarEstado(); return; }
-    const arq = await arquivoNuvem();
-    if (!arq) {
-      if (manual) UI.toast('Ainda não há atas salvas na nuvem.', 'info');
-      NUVEM_EM = null; if (PENDENTE) agendarNuvem(); mostrarEstado(); return;
-    }
-    NUVEM_EM = arq.modificado || null;
+    const info = await infoNuvem(!manual);
+    if (!info.existe) { if (manual) UI.toast('Ainda não há atas salvas na nuvem.', 'info'); NUVEM_EM = null; NOVA = null; mostrarEstado(); return; }
+    NUVEM_EM = info.modificado || null;
+    const vazio = !DB.atas.length && !DB.cad.pessoas.length && !DB.cad.adm.cargos.presidente;
     if (!manual) {
-      // alterações deste aparelho que ainda não subiram: manda agora (se a nuvem mudou, pergunta)
-      if (PENDENTE) { agendarNuvem(400); return; }
-      if (arq.modificado && arq.modificado <= lerBase()) { mostrarEstado(); return; } // já tem esta versão (ou mais nova)
-    } else if (PENDENTE) {
+      if (info.modificado <= lerBase()) { NOVA = null; mostrarEstado(); return; } // já tem esta versão
+      if (vazio && !PENDENTE) { await trazerDaNuvem(info, false); return; }    // aparelho novo: traz o que está na nuvem
+      NOVA = info; mostrarEstado();
+      UI.toast(`Há uma versão mais nova das atas na nuvem${info.por ? ', salva por ' + porTxt(info.por) : ''} ${quandoTxt(info.modificado)}.` + (PENDENTE ? ' Este aparelho também tem alterações não salvas.' : ''), { type: 'info', duration: 15000, action: { label: 'Carregar', icon: 'cloud-down', fn: () => carregarNuvem(true) } });
+      return;
+    }
+    if (PENDENTE) {
       const ok = await UI.confirm('Trocar pelo que está na nuvem?', 'Este aparelho tem alterações que ainda não foram salvas na nuvem. Elas serão substituídas.', { ok: 'Trocar', danger: true });
       if (!ok) return;
     }
-    if (!manual && REV !== rev0) { agendarNuvem(); return; } // começou a editar enquanto buscava: não passa por cima
-    const antes = REV;
-    const d = await api('lista-load', { nome: ARQ_NUVEM + '.json' });
-    if (!manual && REV !== antes) { agendarNuvem(); return; }
-    const ant = JSON.stringify(DB);
-    DB = normalizarDB(typeof d.conteudo === 'string' ? JSON.parse(d.conteudo) : d.conteudo);
-    PENDENTE = false; ERRO_NUVEM = ''; CONFLITO = false;
-    gravarBase(arq.modificado); gravarLocal();
-    if (!ATA()) SEL = maisRecente();
-    desenharTudo();
-    if (manual) UI.toast('Atas recarregadas da nuvem.', { type: 'ok', action: { label: 'Desfazer', icon: 'undo', fn: () => { DB = normalizarDB(JSON.parse(ant)); guardar(); desenharTudo(); } } });
+    await trazerDaNuvem(info, true);
   } catch (e) { if (manual) UI.toast('Não foi possível acessar a nuvem: ' + e.message, 'error'); }
   mostrarEstado();
 }
-// ao sair ou trocar de aplicativo: grava neste aparelho na hora e tenta subir para a nuvem
+// ao sair: grava neste aparelho na hora; se há alterações que não foram para a nuvem, o navegador pergunta
 function aoSair() { if (_tSalvar) { clearTimeout(_tSalvar); _tSalvar = null; gravarLocal(); } }
 window.addEventListener('pagehide', aoSair);
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden') { aoSair(); if (PENDENTE && !SALVANDO && !CONFLITO && temSessao()) salvarNuvem(true); }
-  else if (!PENDENTE && !SALVANDO && window.__atasIniciado) carregarNuvem(false); // voltou: busca o que outros salvaram
-});
-window.addEventListener('beforeunload', e => { if (PENDENTE && temSessao() && (SALVANDO || _tNuvem)) { aoSair(); e.preventDefault(); e.returnValue = ''; } });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') aoSair(); });
+window.addEventListener('beforeunload', e => { aoSair(); if (PENDENTE && temSessao()) { e.preventDefault(); e.returnValue = ''; } });
 function baixarBackup() {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(DB, null, 2)], { type: 'application/json' }));
@@ -447,11 +499,20 @@ function abrirBackup(ev) {
 function togMenu(ev, id) { ev.stopPropagation(); const m = document.getElementById(id); const ab = m.classList.contains('open'); document.querySelectorAll('.menu.open').forEach(x => x.classList.remove('open')); if (!ab) m.classList.add('open'); }
 document.addEventListener('click', e => { document.querySelectorAll('.menu.open').forEach(m => { if (!m.contains(e.target) || e.target.closest('.menu-box button')) m.classList.remove('open'); }); });
 function mudarAba(a) {
+  if (a === 'ass' || a === 'reu') {
+    if (ABA === 'atas' && GRUPO !== a) SELS[GRUPO] = SEL;
+    GRUPO = a; a = 'atas';
+    const s = SELS[GRUPO];
+    SEL = DB.atas.some(x => x.id === s && grupoDe(x) === GRUPO) ? s : (ATA() && grupoDe(ATA()) === GRUPO ? SEL : maisRecente());
+    SELS[GRUPO] = SEL;
+  }
   ABA = a;
-  document.querySelectorAll('.abas [data-aba]').forEach(b => b.classList.toggle('on', b.dataset.aba === a));
+  const vis = a === 'atas' ? GRUPO : 'cad';
+  document.querySelectorAll('.abas [data-aba]').forEach(b => b.classList.toggle('on', b.dataset.aba === vis));
+  document.querySelectorAll('[data-grupo]').forEach(b => { b.hidden = b.dataset.grupo !== GRUPO; });
   document.getElementById('abaAtas').hidden = a !== 'atas';
   document.getElementById('abaCad').hidden = a !== 'cad';
-  try { localStorage.setItem('ccb_atas_aba', a); } catch (e) {}
+  try { localStorage.setItem('ccb_atas_aba', vis); localStorage.setItem('ccb_atas_sels', JSON.stringify(SELS)); } catch (e) {}
   if (a === 'atas') { desenharLista(); desenharEditor(); } else desenharCad();
   if (window.AppBar) AppBar.atualizar();
 }
@@ -509,7 +570,7 @@ function faltasPessoa(nome) {
   if (!p.estadoCivil) f.push('estado civil'); if (!p.profissao) f.push('profissão');
   if (!p.doc) f.push(p.docTipo === 'cin' ? 'CIN' : 'RG');
   if (p.docTipo !== 'cin' && !p.cpf) f.push('CPF');
-  if (!p.endereco) f.push('endereço');
+  const fe = faltaEndereco(p); if (fe.length) f.push(fe.length >= 4 ? 'endereço' : fe.join(', '));
   return f;
 }
 function qualificacao(nome) {
@@ -519,7 +580,7 @@ function qualificacao(nome) {
   const partes = [`<b>${esc(nome || L)}</b>`, esc(p.nacionalidade || 'brasileiro'), esc(p.estadoCivil || L), esc(p.profissao || L)];
   if (p.docTipo === 'cin') partes.push(`portador da Carteira de Identidade Nacional número ${esc(p.doc || L)}`);
   else partes.push(`portador da Cédula de Identidade Civil (Registro Geral) número ${esc(p.doc || L)}`, `inscrito no Cadastro de Pessoas Físicas sob o número ${esc(p.cpf || L)}`);
-  partes.push(`residente e domiciliado na ${esc(p.endereco || L)}`);
+  partes.push(`residente e domiciliado na ${esc(enderecoTexto(p))}`);
   return partes.join(', ');
 }
 function usosPessoa(nome) {
@@ -556,7 +617,7 @@ function atualizarComp() {
 const cargo = (a, k) => String((a.comp.cargos || {})[k] || '').trim();
 
 /* ---------- atas: criar, duplicar, excluir ---------- */
-function maisRecente() { const l = DB.atas.slice().sort((x, y) => String(y.data).localeCompare(String(x.data))); return l[0] ? l[0].id : null; }
+function maisRecente(g) { const l = doGrupo(g || GRUPO).sort((x, y) => String(y.data).localeCompare(String(x.data))); return l[0] ? l[0].id : null; }
 function txtAcao(k, ano) { return (ACOES[k].txt || '').replace('{ano3}', ano ? ano + 3 : '____').replace('{ano}', ano || '____').replace('{exercicio}', ano ? ano - 1 : '____'); }
 // os 4 tipos de AGO do manual (anexos 7.5, 7.9, 7.11 e 7.13) e a AGE (7.15)
 const TIPOS_AGO = {
@@ -614,8 +675,8 @@ function novaAta(tipo) {
     if (ult) { a.hora = ult.hora; a.anciao = ult.anciao; }
   }
   a.comp = compDoCadastro();
-  DB.atas.push(a); SEL = a.id; guardar();
-  if (ABA !== 'atas') mudarAba('atas'); else desenharTudo();
+  DB.atas.push(a); SEL = a.id; SELS.ass = a.id; guardar();
+  if (ABA !== 'atas' || GRUPO !== 'ass') mudarAba('ass'); else desenharTudo();
   window.scrollTo({ top: 0, behavior: 'smooth' });
   UI.toast(tipo === 'AGO' && ult ? `Nova AGO criada a partir da de ${anoDe(ult.data)}: datas um ano depois e valores em branco.` : `Nova ${tipo} criada. Preencha a data e os dados.`, 'ok');
 }
@@ -634,7 +695,10 @@ function excluirAta() {
   const i = DB.atas.indexOf(a); DB.atas.splice(i, 1); SEL = maisRecente(); guardar(); desenharTudo();
   UI.toast(`${a.tipo} de ${dataBR(a.data)} excluída.`, { action: { label: 'Desfazer', icon: 'undo', fn: () => { DB.atas.splice(i, 0, a); SEL = a.id; guardar(); desenharTudo(); } } });
 }
-function abrirAta(id) { SEL = id; try { localStorage.setItem('ccb_atas_sel', id); } catch (e) {} desenharLista(); desenharEditor(); }
+function abrirAta(id) {
+  const a = DB.atas.find(x => x.id === id);
+  if (a && grupoDe(a) !== GRUPO) { SELS[grupoDe(a)] = id; mudarAba(grupoDe(a)); return; }
+  SEL = id; SELS[GRUPO] = id; try { localStorage.setItem('ccb_atas_sels', JSON.stringify(SELS)); } catch (e) {} try { localStorage.setItem('ccb_atas_sel', id); } catch (e) {} desenharLista(); desenharEditor(); }
 function assembleiasDoExercicio(ano) {
   return DB.atas.filter(a => !ehReuniao(a) && anoDe(a.data) === ano).sort((x, y) => String(x.data).localeCompare(String(y.data))).map(a => {
     if (a.tipo === 'AGO') return `Realizamos a Assembleia Geral Ordinária no dia ${dataExt(a.data)}, onde foram tratados assuntos de competência do exercício ${a.exercicio || ano - 1}`;
@@ -760,8 +824,8 @@ function abreviacoes(a) {
 function rotAta(a) { return `${a.data ? dataExt(a.data) : 'Sem data'}`; }
 function desenharLista() {
   const el = document.getElementById('lista'); if (!el) return;
-  const l = DB.atas.slice().sort((x, y) => String(y.data || '9').localeCompare(String(x.data || '9')));
-  if (!l.length) { el.innerHTML = '<div class="vazio">Nenhuma ata ainda.<br>Use “Nova ata”.</div>'; return; }
+  const l = doGrupo().sort((x, y) => String(y.data || '9').localeCompare(String(x.data || '9')));
+  if (!l.length) { el.innerHTML = `<div class="vazio">Nenhuma ata de ${GRUPO === 'reu' ? 'reunião' : 'assembleia'} ainda.<br>Use “${GRUPO === 'reu' ? 'Nova reunião' : 'Nova assembleia'}”.</div>`; return; }
   let h = '', ano = null;
   l.forEach(a => {
     const y = anoDe(a.data) || 'SEM DATA';
@@ -792,13 +856,13 @@ function heroiHTML(a) {
     <div class="h-conf">${chips}</div>`;
 }
 function selMovel() {
-  const l = DB.atas.slice().sort((x, y) => String(y.data || '9').localeCompare(String(x.data || '9')));
+  const l = doGrupo().sort((x, y) => String(y.data || '9').localeCompare(String(x.data || '9')));
   return `<div class="sel-movel"><select aria-label="Ata aberta" onchange="abrirAta(this.value)">${l.map(a => `<option value="${a.id}"${a.id === SEL ? ' selected' : ''}>${a.tipo} · ${esc(rotAta(a))}</option>`).join('')}</select>
-    <div class="menu" id="menuNova2"><button type="button" class="primary" onclick="togMenu(event,'menuNova2')">${ICO('plus')}Nova</button><div class="menu-box">
-    <button type="button" onclick="novaAta('AGO')">${ICO('book')}<span>Assembleia Geral Ordinária<small>Relatório, balanço e Conselho Fiscal</small></span></button>
-    <button type="button" onclick="novaAta('AGE')">${ICO('gavel')}<span>Assembleia Geral Extraordinária<small>Cargo vago e outros assuntos</small></span></button>
+    <div class="menu" id="menuNova2"><button type="button" class="primary" onclick="togMenu(event,'menuNova2')">${ICO('plus')}Nova</button><div class="menu-box">${GRUPO === 'reu' ? `
     <button type="button" onclick="novaAta('RLA')">${ICO('users')}<span>Reunião Local Administrativa<small>RLA trimestral: secretaria, tesouraria, obras</small></span></button>
-    <button type="button" onclick="novaAta('RLM')">${ICO('user')}<span>Reunião Local Ministerial<small>RLM trimestral: assuntos do ministério</small></span></button></div></div></div>`;
+    <button type="button" onclick="novaAta('RLM')">${ICO('user')}<span>Reunião Local Ministerial<small>RLM trimestral: assuntos do ministério</small></span></button>` : `
+    <button type="button" onclick="novaAta('AGO')">${ICO('book')}<span>Assembleia Geral Ordinária<small>Relatório, balanço e Conselho Fiscal</small></span></button>
+    <button type="button" onclick="novaAta('AGE')">${ICO('gavel')}<span>Assembleia Geral Extraordinária<small>Cargo vago e outros assuntos</small></span></button>`}</div></div></div>`;
 }
 
 function blocoDados(a) {
@@ -1005,8 +1069,13 @@ function desenharEditor() {
   atualizarDatalists();
   const a = ATA();
   if (!a) {
-    el.innerHTML = `${DB.atas.length ? selMovel() : ''}<div class="vazia"><b>${DB.atas.length ? 'Escolha uma ata' : 'Nenhuma ata ainda'}</b>${DB.cad.pessoas.length || DB.cad.adm.cargos.presidente ? 'Crie a primeira com “Nova ata”. Ela puxa do cadastro quem está em cada cargo.' : 'Comece pelo <b>Cadastro</b>: administração, Conselho Fiscal e dados dos irmãos. Depois crie a ata. Se você tem o arquivo com os dados iniciais, abra em Arquivo › Abrir backup.'}
-      <div class="linha-b"><button type="button" onclick="mudarAba('cad')">${ICO('users')}Abrir o cadastro</button><button type="button" class="primary" onclick="novaAta('AGO')">${ICO('plus')}Nova AGO</button><button type="button" onclick="novaAta('AGE')">${ICO('plus')}Nova AGE</button><button type="button" onclick="novaAta('RLA')">${ICO('plus')}Nova RLA</button><button type="button" onclick="novaAta('RLM')">${ICO('plus')}Nova RLM</button></div></div>`;
+    const reu = GRUPO === 'reu', n = doGrupo().length;
+    const cadOk = DB.cad.pessoas.length || DB.cad.adm.cargos.presidente;
+    el.innerHTML = `${n ? selMovel() : ''}<div class="vazia"><b>${n ? 'Escolha uma ata' : reu ? 'Nenhuma ata de reunião ainda' : 'Nenhuma ata de assembleia ainda'}</b>${!cadOk ? 'Comece pelo <b>Cadastro</b>: administração, Conselho Fiscal e dados dos irmãos. Depois crie a ata. Se você tem o arquivo com os dados iniciais, abra em Arquivo › Abrir backup.'
+      : reu ? 'Atas da RLA (Reunião Local Administrativa) e da RLM (Reunião Local Ministerial), trimestrais. A data e o número vêm do calendário anual.' : 'Atas da AGO e da AGE. Elas puxam do cadastro quem está em cada cargo.'}
+      <div class="linha-b"><button type="button" onclick="mudarAba('cad')">${ICO('users')}Abrir o cadastro</button>${reu
+        ? `<button type="button" class="primary" onclick="novaAta('RLA')">${ICO('plus')}Nova RLA</button><button type="button" onclick="novaAta('RLM')">${ICO('plus')}Nova RLM</button>`
+        : `<button type="button" class="primary" onclick="novaAta('AGO')">${ICO('plus')}Nova AGO</button><button type="button" onclick="novaAta('AGE')">${ICO('plus')}Nova AGE</button>`}</div></div>`;
     montarIndice(); return;
   }
   const y = window.scrollY;
@@ -1091,7 +1160,10 @@ function derivados() {
     const hr = document.getElementById('heroi'); if (hr) hr.innerHTML = heroiHTML(a);
     desenharLista();
   }
-  if (ABA === 'cad') atualizarResumoCad();
+  if (ABA === 'cad') {
+    atualizarResumoCad();
+    document.querySelectorAll('#cad [data-d^="end:"]').forEach(el => { const p = DB.cad.pessoas.find(x => x.id === el.dataset.d.slice(4)); if (p) { const v = 'residente e domiciliado na ' + esc(enderecoTexto(p)); if (el.innerHTML !== v) el.innerHTML = v; } });
+  }
 }
 function atualizarDatalists() {
   const dl = document.getElementById('dlPessoas'); if (!dl) return;
@@ -1162,14 +1234,26 @@ function blocoPessoasCad() {
         ${campo('Documento', `<select data-b="${b('docTipo')}" data-r="cad"><option value="rg"${p.docTipo !== 'cin' ? ' selected' : ''}>RG</option><option value="cin"${p.docTipo === 'cin' ? ' selected' : ''}>CIN (nova identidade)</option></select>`)}
         ${campo(p.docTipo === 'cin' ? 'Número da CIN' : 'Número do RG <small>(com órgão)</small>', inp(b('doc'), p.doc, `placeholder="${p.docTipo === 'cin' ? '000.000.000-00' : 'ex.: 10.210.514-1-SESP/PR'}"`))}
         ${p.docTipo === 'cin' ? '<div class="dica" style="margin:22px 0 0">Na CIN o número é o CPF.</div>' : campo('CPF', inp(b('cpf'), p.cpf, 'placeholder="000.000.000-00"'))}
-        ${campo('Endereço completo', inp(b('endereco'), p.endereco, 'placeholder="Rua, nº – Bairro – Cidade – PR"'), 'full')}
-      </div><div class="linha-b"><button type="button" class="danger" style="margin-left:auto" onclick="excluirPessoa('${p.id}')">${ICO('trash')}Remover do cadastro</button></div></div></details>`;
+      </div>
+      <div class="sub-t">Endereço</div>
+      ${p.endOrig ? `<div class="end-orig">${ICO('info')}<span>Separado do endereço antigo: <b>${esc(p.endOrig)}</b>. Confira se cada parte ficou no lugar certo.</span><button type="button" onclick="conferiEndereco('${p.id}')">${ICO('check')}Conferi</button></div>` : ''}
+      <div class="grid g4 end-g">
+        ${campo('Rua, avenida…', inp(b('rua'), p.rua, 'placeholder="ex.: Rua Santa Catarina" autocomplete="off"'), 's2')}
+        ${campo('Número', inp(b('numero'), p.numero, 'inputmode="numeric" placeholder="ex.: 1234 ou s/n"'))}
+        ${campo('Complemento <small>(se tiver)</small>', inp(b('complemento'), p.complemento, 'placeholder="ex.: Apartamento 12"'))}
+        ${campo('Bairro', inp(b('bairro'), p.bairro, 'placeholder="ex.: Centro"'), 's2')}
+        ${campo('Cidade', inp(b('cidade'), p.cidade, `list="dlCidades" placeholder="ex.: ${esc(DB.cad.ent.regiao)}"`))}
+        ${campo('Estado', `<select data-b="${b('uf')}">${ESTADOS.map(([sg, nm]) => `<option value="${sg}"${(estadoDe(p.uf) || [])[0] === sg ? ' selected' : ''}>${nm}</option>`).join('')}</select>`)}
+        ${campo('CEP <small>(se tiver · não vai na ata)</small>', inp(b('cep'), p.cep, 'inputmode="numeric" placeholder="00000-000"'))}
+      </div>
+      <div class="end-prev"><small>Na ata fica:</small> <span data-d="end:${p.id}">residente e domiciliado na ${esc(enderecoTexto(p))}</span></div><div class="linha-b"><button type="button" class="danger" style="margin-left:auto" onclick="excluirPessoa('${p.id}')">${ICO('trash')}Remover do cadastro</button></div></div></details>`;
   }).join('');
   return bloco('user', 'Irmãos: dados pessoais', 'Usados na qualificação da ata (posse) e nas assinaturas do balanço', `
     <div class="pes-busca">${ICO('search')}<input type="search" placeholder="Buscar irmão" value="${esc(FILTRO_PES)}" oninput="FILTRO_PES=this.value;filtrarPessoas()"></div>
     <div id="listaPes">${lista || '<div class="vazio">Ninguém cadastrado ainda.</div>'}</div>
     <div class="linha-b"><button type="button" class="mais" onclick="novaPessoa('')">${ICO('plus')}Cadastrar irmão</button></div>`, `<em>${P.length}</em>`, 'cartaoPessoas');
 }
+function conferiEndereco(id) { const p = DB.cad.pessoas.find(x => x.id === id); if (!p) return; delete p.endOrig; guardar(); desenharCad(); }
 function filtrarPessoas() { const f = norm(FILTRO_PES); document.querySelectorAll('#listaPes details.pes').forEach(d => { const p = DB.cad.pessoas.find(x => x.id === d.dataset.pid); d.hidden = !!f && !norm(p ? p.nome : '').includes(f); }); }
 function blocoNomes(k, ic, tit, sub, ph) {
   const v = DB.cad[k];
@@ -1255,6 +1339,8 @@ function atualizarResumoCad() { document.querySelectorAll('#cad [data-d^="n:"]')
 function desenharCad() {
   const el = document.getElementById('cad'); if (!el) return;
   atualizarDatalists();
+  let dc2 = document.getElementById('dlCidades'); if (!dc2) { dc2 = document.createElement('datalist'); dc2.id = 'dlCidades'; document.body.appendChild(dc2); }
+  dc2.innerHTML = [...new Set([DB.cad.ent.regiao].concat(DB.cad.pessoas.map(p => String(p.cidade || '').trim())).filter(Boolean))].sort((x, y) => x.localeCompare(y, 'pt-BR')).map(n => `<option value="${esc(n)}">`).join('');
   let ec = document.getElementById('dlEC'); if (!ec) { ec = document.createElement('datalist'); ec.id = 'dlEC'; ec.innerHTML = ESTADO_CIVIL.map(x => `<option value="${x}">`).join(''); document.body.appendChild(ec); }
   const y = window.scrollY;
   const abertos = [...el.querySelectorAll('details[open]')].map(d => d.dataset.pid);
@@ -1861,12 +1947,20 @@ document.addEventListener('keydown', e => {
 DB = ler();
 ATUALIZADO_AO_ABRIR = DB.atualizado || 0;
 PENDENTE = (() => { try { return localStorage.getItem(KEY + '_pend') === '1'; } catch (e) { return false; } })();
-SEL = (() => { try { const s = localStorage.getItem('ccb_atas_sel'); return DB.atas.some(a => a.id === s) ? s : maisRecente(); } catch (e) { return maisRecente(); } })();
+(() => {
+  try { Object.assign(SELS, JSON.parse(localStorage.getItem('ccb_atas_sels') || '{}')); } catch (e) {}
+  let s = null; try { s = localStorage.getItem('ccb_atas_sel'); } catch (e) {}
+  const a = DB.atas.find(x => x.id === s);
+  if (a && !SELS[grupoDe(a)]) SELS[grupoDe(a)] = a.id;
+  ['ass', 'reu'].forEach(g => { if (!DB.atas.some(x => x.id === SELS[g] && grupoDe(x) === g)) SELS[g] = maisRecente(g); });
+})();
+SEL = SELS.ass;
 window.__aoEntrar = function () {
   if (window.__atasIniciado) return; window.__atasIniciado = true;
-  let ab = 'atas'; try { ab = localStorage.getItem('ccb_atas_aba') === 'cad' ? 'cad' : 'atas'; } catch (e) {}
+  let ab = 'ass'; try { const v = localStorage.getItem('ccb_atas_aba'); ab = ['ass', 'reu', 'cad'].includes(v) ? v : 'ass'; } catch (e) {}
+  if (ab === 'reu') { GRUPO = 'reu'; SEL = SELS.reu; }
   const est = document.getElementById('estado');
   if (est) { est.addEventListener('click', cliqueEstado); est.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); cliqueEstado(); } }); }
   mudarAba(ab); mostrarEstado(); carregarNuvem(false).then(() => sincronizarAnciaes(false));
 };
-if (window.__SESSAO) window.__aoEntrar(window.__SESSAO);
+if (window.__SESSAO || window.__SESSAO_PREVIA) window.__aoEntrar(window.__SESSAO || window.__SESSAO_PREVIA); // com login válido no aparelho, abre sem esperar o servidor

@@ -21,6 +21,7 @@ import * as requestPasswordReset from '../functions/api/request-password-reset.j
 import * as resetPassword from '../functions/api/reset-password.js';
 import * as signup from '../functions/api/signup.js';
 import * as verifySession from '../functions/api/verify-session.js';
+import * as presenca from '../functions/api/presenca.js';
 import * as oauth from '../functions/api/oauth.js';
 
 // Mapa "MÉTODO caminho" -> handler original.
@@ -44,6 +45,7 @@ const routes = {
   'POST /api/reset-password': resetPassword.onRequestPost,
   'POST /api/signup': signup.onRequestPost,
   'POST /api/verify-session': verifySession.onRequestPost,
+  'POST /api/presenca': presenca.onRequestPost,
   // Login com Google / Microsoft
   'GET /api/oauth-providers': oauth.onRequestProviders,
   'GET /api/oauth-start': oauth.onRequestStart,

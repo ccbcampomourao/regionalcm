@@ -291,8 +291,8 @@ function novaReuniao(tipo) {
   a.comp = compDoCadastro();
   const pauta = a.assuntos.find(s => /pauta/i.test(s.titulo));
   if (pauta) { const lv = lavraReuniao(a); if (lv.nome) pauta.texto = `Apresentado pelo irmão ${lv.nome}, ${lv.rotTexto}, a pauta dos assuntos desta reunião`; }
-  DB.atas.push(a); SEL = a.id; guardar();
-  if (ABA !== 'atas') mudarAba('atas'); else desenharTudo();
+  DB.atas.push(a); SEL = a.id; SELS.reu = a.id; guardar();
+  if (ABA !== 'atas' || GRUPO !== 'reu') mudarAba('reu'); else desenharTudo();
   window.scrollTo({ top: 0, behavior: 'smooth' });
   UI.toast(`Nova ${tipo} criada${ult ? ' com os mesmos assuntos da anterior' : ''}. Procurando a data no calendário…`, 'ok');
   puxarCalendario(true);

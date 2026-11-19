@@ -36,6 +36,12 @@
 
   function txt(lista, cal) { return cfg.tipo === 'calendario' ? cal : lista; }
 
+  // Qual versão da nuvem está na tela deste aparelho (para avisar quando alguém salvar uma mais nova)
+  function chaveSinc() { return 'nuvem_sinc_' + cfg.regiao; }
+  function lerSinc() { try { return JSON.parse(localStorage.getItem(chaveSinc()) || 'null'); } catch (e) { return null; } }
+  function gravarSinc(nome, mod) { try { localStorage.setItem(chaveSinc(), JSON.stringify({ nome: normalizar(nome), mod: mod || 0 })); } catch (e) {} }
+
+
   async function api(rota, corpo) {
     var res = await fetch('/api/' + rota, {
       method: 'POST',
@@ -146,12 +152,17 @@
     });
     if (!nome) return;
 
+    if (!(await conferirAntesDeSalvar(nome))) return;
     var fim = UI.busy(btn, 'Salvando...');
     try {
       var conteudo = cfg.conteudo();
       var data = await api('lista-save', { nome: nome, conteudo: conteudo });
       guardarUltimo(data.nomeArquivo || nome);
-      UI.toast(txt('Lista salva como “', 'Calendário salvo como “') + semExt(data.nomeArquivo || nome) + '”.', 'ok');
+      gravarSinc(data.nomeArquivo || nome, data.modificado || Date.now());
+      var outros = presenca() ? presenca().outros() : [];
+      if (presenca()) presenca().entrar(cfg.regiao, normalizar(data.nomeArquivo || nome)).then(function () {}, function () {});
+      UI.toast(txt('Lista salva como “', 'Calendário salvo como “') + semExt(data.nomeArquivo || nome) + '”.' +
+        (outros.length ? ' Atenção: ' + outros.map(function (o) { return String(o.email).split('@')[0]; }).join(', ') + ' também está com este arquivo aberto.' : ''), outros.length ? { type: 'info', duration: 9000 } : 'ok');
     } catch (e) {
       if (!e.silencioso) UI.toast('Não foi possível salvar: ' + e.message, 'error');
     } finally {
@@ -233,8 +244,12 @@
       }
     });
     if (!ok || !escolhido) return;
+    var arq = arquivos.filter(function (a) { return a.nome === escolhido; })[0];
+    await carregarArquivo(escolhido, arq && arq.modificado, btn);
+  }
 
-    fim = UI.busy(btn, 'Carregando...');
+  async function carregarArquivo(escolhido, modificado, btn) {
+    var fim = UI.busy(btn || null, 'Carregando...');
     try {
       var data = await api('lista-load', { nome: escolhido });
       var anterior = null;
@@ -242,6 +257,8 @@
       var r = cfg.aplicar(data.conteudo);
       if (r === false) return;
       guardarUltimo(escolhido);
+      gravarSinc(escolhido, modificado);
+      if (presenca()) presenca().entrar(cfg.regiao, escolhido).then(function () {}, function () {});
       UI.toast('“' + semExt(escolhido) + '” carregado.', {
         type: 'ok',
         action: anterior ? { label: 'Desfazer', icon: 'undo', fn: function () {
@@ -256,9 +273,54 @@
     }
   }
 
+  /* ---------------- Versão mais nova e quem mais está no arquivo ----------------
+     Nada é salvo nem carregado sozinho. Ao abrir a página, uma única consulta pequena
+     (presenca.js) diz quem mais está com o arquivo em uso aberto e quando/quem salvou
+     por último; se alguém salvou depois da versão que está aqui, só avisa. */
+  function presenca() { return window.Presenca || null; }
+  async function verificarNovidade() {
+    if (!cfg || !token() || !presenca()) return;
+    var ult = ultimoNome(); if (!ult) return;
+    try {
+      var i = await presenca().entrar(cfg.regiao, normalizar(ult));
+      if (!i || !i.modificado) return;
+      var s = lerSinc();
+      if (!s || s.nome !== normalizar(ult)) { gravarSinc(ult, i.modificado); return; }  // primeira vez: só anota a versão
+      if (i.modificado <= s.mod + 1000) return;  // a tela já tem esta versão
+      UI.toast('“' + semExt(ult) + '” foi salva de novo na nuvem' + (i.por ? ' por ' + String(i.por).split('@')[0] : '') + ' ' + quando(i.modificado) + '. O que está aqui é uma versão anterior.', {
+        type: 'info', duration: 20000,
+        action: { label: 'Carregar', icon: 'cloud-down', fn: function () { carregarArquivo(normalizar(ult), i.modificado); } }
+      });
+    } catch (e) { /* sem internet ou sessão vencida: segue com o que está no aparelho */ }
+  }
+  // antes de salvar por cima: alguém salvou este mesmo arquivo depois da versão que está aqui?
+  async function conferirAntesDeSalvar(nome) {
+    var s = lerSinc(), n = normalizar(nome);
+    if (!s || s.nome !== n || !presenca()) return true;
+    var i = null;
+    try { i = await presenca().consultar(cfg.regiao, n); } catch (e) { return true; }
+    if (!i || !i.modificado || i.modificado <= s.mod + 1000) return true;
+    var quem = i.por ? '<b>' + esc(i.por) + '</b> salvou' : 'Alguém salvou';
+    var v = await UI.dialog({
+      title: 'Outra pessoa salvou este arquivo', icon: 'alert',
+      body: '<p class="ui-modal__p">' + quem + ' “' + esc(semExt(n)) + '” na nuvem <b>' + esc(quando(i.modificado)) + '</b>, depois da versão que está aqui.</p>' +
+        '<p class="ui-modal__p">Se você salvar agora, o que essa pessoa salvou será substituído pelo que está na sua tela.</p>',
+      actions: [{ label: 'Cancelar', value: null }, { label: 'Carregar a da nuvem', value: 'nuvem', icon: 'cloud-down' }, { label: 'Substituir pela minha', value: 'aqui', primary: true, icon: 'cloud-up' }]
+    });
+    if (v === 'nuvem') { carregarArquivo(n, i.modificado); return false; }
+    return v === 'aqui';
+  }
+
   window.Nuvem = {
+    verificar: verificarNovidade,
     configurar: function (c) {
       cfg = c;
+      // presenca.js: quem mais está no arquivo (carrega sozinho se a página não incluiu)
+      if (!window.Presenca && !document.getElementById('scriptPresenca')) {
+        var sc = document.createElement('script'); sc.id = 'scriptPresenca'; sc.src = '/assets/presenca.js';
+        sc.onload = function () { setTimeout(verificarNovidade, 300); };
+        document.head.appendChild(sc);
+      } else setTimeout(verificarNovidade, 800);
       window.salvarLista = salvar;
       window.carregarLista = carregar;
     }

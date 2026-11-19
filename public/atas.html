@@ -4,14 +4,17 @@
 <script>
 /* Acesso: admin ou quem tem a permissão "Atas e Assembleias". */
 (function () {
-  document.documentElement.style.visibility = 'hidden';
+  /* Se o login guardado neste aparelho ainda vale, mostra a página na hora e confere no servidor em paralelo
+     (antes a tela ficava em branco esperando o servidor, e sem internet mandava para o login). */
+  var __ok = (function () { try { var p = JSON.parse(atob((localStorage.getItem('session_token') || '').split('.')[0].replace(/-/g, '+').replace(/_/g, '/'))); if (p && p.exp > Date.now() + 60000 && (p.role === 'admin' || (p.lists || []).indexOf('atas') >= 0)) { window.__SESSAO_PREVIA = { ok: true, role: p.role === 'admin' ? 'admin' : 'padrao', lists: p.lists || [] }; return true; } } catch (e) {} return false; })();
+  document.documentElement.style.visibility = __ok ? 'visible' : 'hidden';
   var token = localStorage.getItem('session_token');
   if (!token) { window.location.replace('/login.html'); return; }
   fetch('/api/verify-session', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ token: token, list: 'atas' })
-  }).then(function (r) { return r.json(); }).then(function (data) {
+  }).then(function (r) { if (__ok && !r.ok && r.status !== 401 && r.status !== 403) throw new Error('servidor'); return r.json(); }).then(function (data) {
     if (data && data.ok) {
       window.__SESSAO = data;
       document.documentElement.style.visibility = 'visible';
@@ -39,7 +42,7 @@
       localStorage.removeItem('session_token');
       window.location.replace('/login.html');
     }
-  }).catch(function () { window.location.replace('/login.html'); });
+  }).catch(function () { if (!__ok) window.location.replace('/login.html'); });
 })();
 </script>
 <meta charset="UTF-8">
@@ -102,6 +105,14 @@ label small{font-weight:500;text-transform:none;letter-spacing:0;color:#a39a85}
 
 .miolo{max-width:1500px;margin:0 auto;padding:16px 18px 60px}
 .aba[hidden]{display:none!important}
+[data-grupo][hidden]{display:none!important}
+.pes .sub-t{margin-top:16px}
+.end-orig{display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px;font-size:12.5px;color:#46628a;background:#eef3f9;border:1px solid #d5e1ef;border-radius:10px;padding:9px 12px;margin-bottom:10px;line-height:1.45}
+.end-orig > span{flex:1 1 260px}
+.end-orig svg.ic{width:16px;height:16px;flex:none}
+.end-orig button{display:inline-flex;align-items:center;gap:6px;font:600 12.5px Inter,sans-serif;padding:6px 12px;border-radius:999px;border:1px solid #c7d6ea;background:#fff;color:#2f4a70;cursor:pointer}
+.end-prev{margin-top:10px;font-size:13px;line-height:1.5;color:#3a4256;background:#fbf8f1;border:1px dashed #e4d8bb;border-radius:10px;padding:9px 12px}
+.end-prev small{font-weight:700;color:var(--brass);text-transform:uppercase;letter-spacing:.06em;font-size:10.5px;margin-right:4px}
 
 /* ---------- ATAS: lista à esquerda, editor à direita ---------- */
 .corpo{display:grid;grid-template-columns:300px minmax(0,1fr);gap:16px;align-items:start}
@@ -367,12 +378,13 @@ label small{font-weight:500;text-transform:none;letter-spacing:0;color:#a39a85}
 <body>
 <header>
   <h1 data-trilha="Listas  ›  Cadastros">Atas e Assembleias</h1>
-  <p>Edital, ata, relatório, balanço e lista de presença das assembleias da Administração.</p>
+  <p>Assembleias (AGO e AGE) e reuniões trimestrais (RLA e RLM) da Administração: edital, ata, relatório, balanço e listas de presença.</p>
 </header>
 
 <div class="topo">
   <div class="abas" role="tablist">
-    <button type="button" data-aba="atas" class="on" onclick="mudarAba('atas')"><svg class="ic"><use href="/assets/icons.svg#i-book"></use></svg>Atas</button>
+    <button type="button" data-aba="ass" class="on" onclick="mudarAba('ass')"><svg class="ic"><use href="/assets/icons.svg#i-gavel"></use></svg>Assembleias</button>
+    <button type="button" data-aba="reu" onclick="mudarAba('reu')"><svg class="ic"><use href="/assets/icons.svg#i-book"></use></svg>Reuniões</button>
     <button type="button" data-aba="cad" onclick="mudarAba('cad')"><svg class="ic"><use href="/assets/icons.svg#i-users"></use></svg>Cadastro</button>
   </div>
   <span class="esp"></span>
@@ -398,12 +410,12 @@ label small{font-weight:500;text-transform:none;letter-spacing:0;color:#a39a85}
       <aside class="lado">
         <div class="lado-top">
           <div class="menu" id="menuNova">
-            <button type="button" class="primary" onclick="togMenu(event,'menuNova')"><svg class="ic"><use href="/assets/icons.svg#i-plus"></use></svg>Nova ata</button>
+            <button type="button" class="primary" onclick="togMenu(event,'menuNova')"><svg class="ic"><use href="/assets/icons.svg#i-plus"></use></svg><span data-grupo="ass">Nova assembleia</span><span data-grupo="reu" hidden>Nova reunião</span></button>
             <div class="menu-box esq">
-              <button type="button" onclick="novaAta('AGO')"><svg class="ic"><use href="/assets/icons.svg#i-book"></use></svg><span>Assembleia Geral Ordinária<small>Relatório, balanço e Conselho Fiscal</small></span></button>
-              <button type="button" onclick="novaAta('AGE')"><svg class="ic"><use href="/assets/icons.svg#i-gavel"></use></svg><span>Assembleia Geral Extraordinária<small>Cargo vago e outros assuntos</small></span></button>
-              <button type="button" onclick="novaAta('RLA')"><svg class="ic"><use href="/assets/icons.svg#i-users"></use></svg><span>Reunião Local Administrativa<small>RLA trimestral: secretaria, tesouraria, obras</small></span></button>
-              <button type="button" onclick="novaAta('RLM')"><svg class="ic"><use href="/assets/icons.svg#i-user"></use></svg><span>Reunião Local Ministerial<small>RLM trimestral: assuntos do ministério</small></span></button>
+              <button type="button" data-grupo="ass" onclick="novaAta('AGO')"><svg class="ic"><use href="/assets/icons.svg#i-book"></use></svg><span>Assembleia Geral Ordinária<small>Relatório, balanço e Conselho Fiscal</small></span></button>
+              <button type="button" data-grupo="ass" onclick="novaAta('AGE')"><svg class="ic"><use href="/assets/icons.svg#i-gavel"></use></svg><span>Assembleia Geral Extraordinária<small>Cargo vago e outros assuntos</small></span></button>
+              <button type="button" data-grupo="reu" hidden onclick="novaAta('RLA')"><svg class="ic"><use href="/assets/icons.svg#i-users"></use></svg><span>Reunião Local Administrativa<small>RLA trimestral: secretaria, tesouraria, obras</small></span></button>
+              <button type="button" data-grupo="reu" hidden onclick="novaAta('RLM')"><svg class="ic"><use href="/assets/icons.svg#i-user"></use></svg><span>Reunião Local Ministerial<small>RLM trimestral: assuntos do ministério</small></span></button>
             </div>
           </div>
         </div>
@@ -426,12 +438,14 @@ label small{font-weight:500;text-transform:none;letter-spacing:0;color:#a39a85}
 <div id="menuIndice" hidden></div>
 
 <script src="/assets/ui.js"></script>
+<script src="/assets/presenca.js"></script>
 <script src="/assets/atas-reuniao.js"></script>
 <script src="/assets/atas.js"></script>
 <script src="/assets/appbar.js"></script>
 <script>
 AppBar.montar([
-  { ic:'book', rot:'Atas', fn:()=>{ mudarAba('atas'); window.scrollTo({ top:0, behavior:'smooth' }); }, ativo:()=>ABA === 'atas' },
+  { ic:'gavel', rot:'Assembleias', fn:()=>{ mudarAba('ass'); window.scrollTo({ top:0, behavior:'smooth' }); }, ativo:()=>ABA === 'atas' && GRUPO === 'ass' },
+  { ic:'book', rot:'Reuniões', fn:()=>{ mudarAba('reu'); window.scrollTo({ top:0, behavior:'smooth' }); }, ativo:()=>ABA === 'atas' && GRUPO === 'reu' },
   { ic:'users', rot:'Cadastro', fn:()=>{ mudarAba('cad'); window.scrollTo({ top:0, behavior:'smooth' }); }, ativo:()=>ABA === 'cad' },
   { ic:'grid', rot:'Seções', menu:'#menuIndice' },
   { ic:'file', rot:'Arquivo', menu:'#menuArq .menu-box' },

@@ -1,0 +1,21 @@
+# Cabeçalhos dos arquivos do site (Cloudflare).
+# Páginas, scripts e estilos: o navegador sempre confere se há versão nova
+# (resposta rápida "304" quando nada mudou). Assim, depois de publicar,
+# todo mundo já pega a versão nova sem precisar limpar o cache.
+/*
+  Cache-Control: no-cache
+  X-Content-Type-Options: nosniff
+
+# Fontes e imagens quase nunca mudam: podem ficar guardadas por mais tempo.
+/assets/fonts/*
+  ! Cache-Control
+  Cache-Control: public, max-age=31536000, immutable
+/assets/*.png
+  ! Cache-Control
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+/assets/*.jpg
+  ! Cache-Control
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+/favicon.ico
+  ! Cache-Control
+  Cache-Control: public, max-age=86400

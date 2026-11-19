@@ -4,14 +4,17 @@
 <script>
 /* Acesso: quem tem a lista de uma região edita o relatório de igrejas dessa região. */
 (function () {
-  document.documentElement.style.visibility = 'hidden';
+  /* Se o login guardado neste aparelho ainda vale, mostra a página na hora e confere no servidor em paralelo
+     (antes a tela ficava em branco esperando o servidor, e sem internet mandava para o login). */
+  var __ok = (function () { try { var p = JSON.parse(atob((localStorage.getItem('session_token') || '').split('.')[0].replace(/-/g, '+').replace(/_/g, '/'))); if (p && p.exp > Date.now() + 60000 && (p.role === 'admin' || (p.lists || []).length > 0)) { window.__SESSAO_PREVIA = { ok: true, role: p.role === 'admin' ? 'admin' : 'padrao', lists: p.lists || [] }; return true; } } catch (e) {} return false; })();
+  document.documentElement.style.visibility = __ok ? 'visible' : 'hidden';
   var token = localStorage.getItem('session_token');
   if (!token) { window.location.replace('/login.html'); return; }
   fetch('/api/verify-session', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ token: token })
-  }).then(function (r) { return r.json(); }).then(function (data) {
+  }).then(function (r) { if (__ok && !r.ok && r.status !== 401 && r.status !== 403) throw new Error('servidor'); return r.json(); }).then(function (data) {
     if (data && data.ok) {
       window.__SESSAO = data;
       document.documentElement.style.visibility = 'visible';
@@ -38,7 +41,7 @@
       localStorage.removeItem('session_token');
       window.location.replace('/login.html');
     }
-  }).catch(function () { window.location.replace('/login.html'); });
+  }).catch(function () { if (!__ok) window.location.replace('/login.html'); });
 })();
 </script>
 <meta charset="UTF-8">
@@ -78,6 +81,10 @@ label{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:upperca
 .estado b{color:var(--ok)}
 .estado.pend b,.estado.pend svg.ic{color:#a46a12}
 .estado.pend{background:#fdf3dc;border:1px solid #ecd49a;border-radius:999px;padding:5px 12px}
+.estado[role=button]{cursor:pointer}
+.estado.salv b,.estado.salv svg.ic{color:#46628a}
+.estado svg.ic:has(use[href$="#i-spinner"]){animation:girar 1s linear infinite}
+@keyframes girar{to{transform:rotate(360deg)}}
 .menu{position:relative}
 .menu-box{display:none;position:absolute;right:0;top:calc(100% + 6px);min-width:250px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 18px 40px -16px rgba(27,42,65,.45);padding:6px;z-index:40}
 .menu.open .menu-box{display:block}
@@ -370,6 +377,7 @@ body.v-geral .corpo{display:none}
 <button type="button" class="fab-nova" onclick="novaIgreja()"><svg class="ic"><use href="/assets/icons.svg#i-plus"></use></svg>Nova igreja</button>
 
 <script src="/assets/ui.js"></script>
+<script src="/assets/presenca.js"></script>
 <script>
 /* =====================================================================
    Relatório de Igrejas — um por região.
@@ -414,67 +422,144 @@ function normalizar(d, r){
     encLocais:[], encRegionais:[], examinadoras:[], ensaios:[], obs:''
   }, i)) };
 }
-let _tSalvar = null;
+/* ---------- salvar ----------
+   Neste aparelho: na hora, sozinho. Na nuvem: só quando você manda (Salvar na nuvem / Ctrl+S).
+   Ao salvar, confere se outra pessoa salvou depois da versão que está aqui (e quem foi) e pergunta
+   antes de passar por cima. Ao abrir, confere uma vez se há versão mais nova e só avisa.
+   presenca.js avisa quem mais está com o relatório da mesma região aberto. */
+let _tSalvar = null, REV = 0, SALVANDO = false, ERRO_NUVEM = '', CONFLITO = false, NOVA = null, ATUALIZADO_AO_ABRIR = 0;
+const lerBase = r => { try { return +(localStorage.getItem(chaveLocal(r)+'_base') || 0) || 0; } catch(e){ return 0; } };
+const gravarBase = (r, v) => { try { localStorage.setItem(chaveLocal(r)+'_base', String(v || 0)); } catch(e){} };
+const temSessao = () => { try { return !!localStorage.getItem('session_token'); } catch(e){ return false; } };
+const porTxt = e => e ? String(e).split('@')[0] : '';
+function gravarLocal(r, dados, pend){
+  try { localStorage.setItem(chaveLocal(r), JSON.stringify(dados)); if (pend) localStorage.setItem(chaveLocal(r)+'_pend','1'); else localStorage.removeItem(chaveLocal(r)+'_pend'); return true; }
+  catch(e){ UI.toast('O navegador não deixou guardar neste aparelho (falta espaço). Salve na nuvem para não perder.', 'error'); return false; }
+}
 function guardar(){
   DADOS.atualizado = Date.now();
-  PENDENTE = true;
+  PENDENTE = true; REV++;
   clearTimeout(_tSalvar);
   agendarRefresco();
-  _tSalvar = setTimeout(()=>{ try { localStorage.setItem(chaveLocal(REG), JSON.stringify(DADOS)); localStorage.setItem(chaveLocal(REG)+'_pend','1'); } catch(e){} mostrarEstado(); }, 250);
+  _tSalvar = setTimeout(()=>{ _tSalvar = null; gravarLocal(REG, DADOS, true); mostrarEstado(); }, 250);
+  mostrarEstado();
 }
+function quandoTxt(ms){ if (!ms) return ''; const d = new Date(ms), h = new Date(); const hora = d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); return d.toDateString() === h.toDateString() ? 'hoje às ' + hora : d.toLocaleDateString('pt-BR') + ' às ' + hora; }
 function mostrarEstado(){
-  const el = document.getElementById('estado');
-  const q = ms => { if (!ms) return ''; const d = new Date(ms); return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); };
-  el.className = 'estado' + (PENDENTE ? ' pend' : '');
-  el.innerHTML = PENDENTE
-    ? `${ICO('alert')}<span><b>Alterações só neste aparelho</b> — salve na nuvem para todos verem</span>`
-    : `${ICO('check-circle')}<span><b>Em dia com a nuvem</b>${NUVEM_EM ? ' · ' + q(NUVEM_EM) : ''}</span>`;
+  const el = document.getElementById('estado'); if (!el) return;
+  let cls = '', ic = 'check-circle', txt;
+  if (CONFLITO){ cls = 'pend'; ic = 'alert'; txt = '<b>Há outra versão na nuvem</b> — toque para resolver'; }
+  else if (SALVANDO){ cls = 'salv'; ic = 'spinner'; txt = '<b>Salvando na nuvem…</b>'; }
+  else if (NOVA && !PENDENTE){ cls = 'pend'; ic = 'cloud-down'; txt = '<b>Há versão mais nova na nuvem</b> — toque para carregar'; }
+  else if (PENDENTE && ERRO_NUVEM){ cls = 'pend'; ic = 'alert'; txt = '<b>Não salvou na nuvem</b> — toque para tentar de novo'; }
+  else if (PENDENTE){ cls = 'pend'; ic = 'alert'; txt = '<b>Alterações só neste aparelho</b> — salve na nuvem para todos verem'; }
+  else txt = `<b>Em dia com a nuvem</b>${NUVEM_EM ? ' · ' + quandoTxt(NUVEM_EM) : ''}`;
+  el.className = 'estado' + (cls ? ' ' + cls : '');
+  el.innerHTML = `${ICO(ic)}<span>${txt}</span>`;
+  const acao = CONFLITO || PENDENTE || (NOVA && !PENDENTE);
+  el.setAttribute('role', acao ? 'button' : 'status'); el.tabIndex = acao ? 0 : -1;
+  el.title = CONFLITO || PENDENTE ? 'Salvar na nuvem agora' : NOVA ? 'Carregar a versão da nuvem' : '';
 }
+function cliqueEstado(){ if (!temSessao()){ location.href = '/login.html'; return; } if (CONFLITO || PENDENTE) salvarNuvem(); else if (NOVA) carregarNuvem(true); }
 
 /* ---------- nuvem ---------- */
 async function api(rota, corpo){
   const res = await fetch('/api/' + rota, { method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify(Object.assign({ token: localStorage.getItem('session_token'), regiao: REG }, corpo || {})) });
   let d = {}; try { d = await res.json(); } catch(e){}
-  if (!res.ok) throw new Error(d.error || 'Erro de comunicação com o servidor');
+  if (!res.ok){ const er = new Error(d.error || 'erro de comunicação com o servidor (' + res.status + ')'); er.status = res.status; throw er; }
   return d;
 }
+// quando e quem salvou por último (e quem mais está com o relatório desta região aberto)
+async function infoNuvem(entrar){
+  let i = null;
+  if (window.Presenca) i = entrar ? await Presenca.entrar(REG, ARQ_NUVEM) : await Presenca.info();
+  if (i && i.modificado) return { existe:true, modificado:i.modificado, por:i.por };
+  const lst = (await api('lista-list')).arquivos || [];   // arquivo salvo antes desta versão
+  const a = lst.find(x => x.nome === ARQ_NUVEM + '.json');
+  return a ? { existe:true, modificado:a.modificado, por:a.por || null } : { existe:false };
+}
+async function trazerDaNuvem(info, avisar){
+  const d = await api('lista-load', { nome: ARQ_NUVEM + '.json' });
+  const antes = JSON.stringify(DADOS);
+  DADOS = normalizar(typeof d.conteudo === 'string' ? JSON.parse(d.conteudo) : d.conteudo, REG);
+  PENDENTE = false; ERRO_NUVEM = ''; CONFLITO = false; NOVA = null; REV++;
+  gravarBase(REG, info && info.modificado); NUVEM_EM = info ? info.modificado : NUVEM_EM; gravarLocal(REG, DADOS, false);
+  if (!DADOS.igrejas.some(i=>i.id===SEL)) SEL = DADOS.igrejas[0] ? DADOS.igrejas[0].id : null;
+  desenharTudo();
+  if (avisar) UI.toast('Relatório carregado da nuvem.', { type:'ok', action:{ label:'Desfazer', icon:'undo', fn:()=>{ DADOS = normalizar(JSON.parse(antes), REG); guardar(); desenharTudo(); } } });
+}
+async function resolverConflito(info){
+  CONFLITO = true; mostrarEstado();
+  const quem = info.por ? `<b>${esc(info.por)}</b> salvou` : 'Alguém salvou';
+  const v = await UI.dialog({
+    title: `Outra pessoa salvou o relatório de ${REGIOES[REG]}`, icon:'alert',
+    body: `<p class="ui-modal__p">${quem} o relatório na nuvem <b>${esc(quandoTxt(info.modificado))}</b>, depois da versão que está neste aparelho.</p><p class="ui-modal__p">Se você salvar agora, o que essa pessoa salvou será substituído pelo que está aqui. Qual versão deve ficar?</p>`,
+    actions: [{ label:'Cancelar', value:null }, { label:'Carregar a da nuvem', value:'nuvem', icon:'cloud-down' }, { label:'Substituir pela minha', value:'aqui', primary:true, icon:'cloud-up' }]
+  });
+  if (v === 'aqui'){ CONFLITO = false; return true; }
+  if (v === 'nuvem'){ await trazerDaNuvem(info, true); return false; }
+  CONFLITO = false; mostrarEstado(); return false;
+}
 async function salvarNuvem(){
+  if (SALVANDO) return;
+  if (!temSessao()){ UI.toast('Sua sessão terminou. Entre de novo para salvar na nuvem (o que está na tela continua guardado neste aparelho).', { type:'error', action:{ label:'Entrar', icon:'arrow-right', fn:()=>{ location.href = '/login.html'; } } }); return; }
   const btn = document.getElementById('btnNuvemSalvar');
   const fim = UI.busy ? UI.busy(btn, 'Salvando...') : ()=>{};
+  const reg = REG, rev = REV;
+  SALVANDO = true; mostrarEstado();
   try {
-    await api('lista-save', { nome: ARQ_NUVEM, conteudo: JSON.stringify(DADOS) });
-    PENDENTE = false; NUVEM_EM = Date.now();
-    try { localStorage.removeItem(chaveLocal(REG)+'_pend'); } catch(e){}
-    mostrarEstado();
-    UI.toast(`Relatório de ${REGIOES[REG]} salvo na nuvem.`, 'ok');
-  } catch(e){ UI.toast('Não foi possível salvar na nuvem: ' + e.message, 'error'); }
-  finally { fim(); }
+    const info = await infoNuvem(false);
+    const base = lerBase(reg);
+    const legado = !base && info.existe && ATUALIZADO_AO_ABRIR > info.modificado;
+    if (info.existe && info.modificado > base && !legado){
+      SALVANDO = false;
+      if (!(await resolverConflito(info))) return;
+      SALVANDO = true; mostrarEstado();
+    }
+    const r = await api('lista-save', { nome: ARQ_NUVEM, conteudo: JSON.stringify(DADOS) });
+    const mod = Math.max((r && r.modificado) || Date.now(), lerBase(reg));
+    gravarBase(reg, mod); NUVEM_EM = mod; ERRO_NUVEM = ''; NOVA = null;
+    if (REV === rev) PENDENTE = false;
+    gravarLocal(REG, DADOS, PENDENTE);
+    const outros = window.Presenca ? Presenca.outros() : [];
+    UI.toast(`Relatório de ${REGIOES[reg]} salvo na nuvem.` + (outros.length ? ` Atenção: ${outros.map(o => porTxt(o.email)).join(', ')} também está com este relatório aberto.` : ''), outros.length ? { type:'info', duration:9000 } : 'ok');
+  } catch(e){
+    ERRO_NUVEM = e.message || 'erro';
+    const sessao = e.status === 401;
+    UI.toast((sessao ? 'Sua sessão terminou: ' : 'Não foi possível salvar na nuvem: ') + ERRO_NUVEM + (sessao ? '' : ' O que está na tela continua guardado neste aparelho.'), { type:'error', action: sessao ? { label:'Entrar', icon:'arrow-right', fn:()=>{ location.href = '/login.html'; } } : { label:'Tentar de novo', icon:'refresh', fn:()=>salvarNuvem() } });
+  } finally {
+    SALVANDO = false; fim(); mostrarEstado();
+  }
 }
-// manual: pergunta antes de trocar o que está na tela
+// manual: busca a versão da nuvem. Ao abrir: só confere e avisa; carrega sozinho se o aparelho não tem nada desta região.
 async function carregarNuvem(manual){
+  const reg = REG;
   try {
-    const lst = (await api('lista-list')).arquivos || [];
-    const arq = lst.find(a => a.nome === ARQ_NUVEM + '.json');
-    if (!arq){ if (manual) UI.toast(`Ainda não há relatório de ${REGIOES[REG]} salvo na nuvem.`, 'info'); NUVEM_EM = null; mostrarEstado(); return; }
-    NUVEM_EM = arq.modificado || null;
-    const pend = (()=>{ try { return localStorage.getItem(chaveLocal(REG)+'_pend')==='1'; } catch(e){ return false; } })();
-    if (pend && !manual){ PENDENTE = true; mostrarEstado(); return; } // não passa por cima do que ainda não foi enviado
-    if (manual && pend){
+    if (!temSessao()){ mostrarEstado(); return; }
+    const info = await infoNuvem(!manual);
+    if (reg !== REG) return;
+    if (!info.existe){ if (manual) UI.toast(`Ainda não há relatório de ${REGIOES[REG]} salvo na nuvem.`, 'info'); NUVEM_EM = null; NOVA = null; mostrarEstado(); return; }
+    NUVEM_EM = info.modificado || null;
+    if (!manual){
+      if (info.modificado <= lerBase(reg)){ NOVA = null; mostrarEstado(); return; }
+      if (!DADOS.igrejas.length && !PENDENTE){ await trazerDaNuvem(info, false); return; }
+      NOVA = info; mostrarEstado();
+      UI.toast(`Há uma versão mais nova do relatório de ${REGIOES[REG]} na nuvem${info.por ? ', salva por ' + porTxt(info.por) : ''} ${quandoTxt(info.modificado)}.` + (PENDENTE ? ' Este aparelho também tem alterações não salvas.' : ''), { type:'info', duration:15000, action:{ label:'Carregar', icon:'cloud-down', fn:()=>carregarNuvem(true) } });
+      return;
+    }
+    if (PENDENTE){
       const ok = await UI.confirm('Trocar pelo que está na nuvem?', 'Este aparelho tem alterações que ainda não foram salvas na nuvem. Elas serão substituídas.', { ok:'Trocar', danger:true });
       if (!ok) return;
     }
-    const d = await api('lista-load', { nome: ARQ_NUVEM + '.json' });
-    const antes = JSON.stringify(DADOS);
-    DADOS = normalizar(typeof d.conteudo === 'string' ? JSON.parse(d.conteudo) : d.conteudo, REG);
-    try { localStorage.setItem(chaveLocal(REG), JSON.stringify(DADOS)); localStorage.removeItem(chaveLocal(REG)+'_pend'); } catch(e){}
-    PENDENTE = false;
-    if (!DADOS.igrejas.some(i=>i.id===SEL)) SEL = DADOS.igrejas[0] ? DADOS.igrejas[0].id : null;
-    desenharTudo();
-    if (manual) UI.toast('Relatório recarregado da nuvem.', { type:'ok', action:{ label:'Desfazer', icon:'undo', fn:()=>{ DADOS = normalizar(JSON.parse(antes), REG); guardar(); desenharTudo(); } } });
+    await trazerDaNuvem(info, true);
   } catch(e){ if (manual) UI.toast('Não foi possível acessar a nuvem: ' + e.message, 'error'); }
   mostrarEstado();
 }
+function aoSair(){ if (_tSalvar && REG){ clearTimeout(_tSalvar); _tSalvar = null; gravarLocal(REG, DADOS, true); } }
+window.addEventListener('pagehide', aoSair);
+document.addEventListener('visibilitychange', ()=>{ if (document.visibilityState === 'hidden') aoSair(); });
+window.addEventListener('beforeunload', e=>{ aoSair(); if (PENDENTE && temSessao()){ e.preventDefault(); e.returnValue = ''; } });
 
 /* ---------- backup ---------- */
 function baixarBackup(){
@@ -820,8 +905,10 @@ function regioesPermitidas(){
   return Object.keys(REGIOES).filter(r => lists.includes(r));
 }
 function abrirRegiao(r){
+  if (REG && REG !== r){ aoSair(); if (PENDENTE) UI.toast(`As alterações de ${REGIOES[REG]} ficaram guardadas neste aparelho. Lembre de salvar na nuvem quando voltar para essa região.`, { type:'info', duration:8000 }); }
+  CONFLITO = false; ERRO_NUVEM = ''; NOVA = null; REV++;
   REG = r; try { localStorage.setItem('ccb_igrejas_ultima', r); } catch(e){}
-  DADOS = ler(r);
+  DADOS = ler(r); ATUALIZADO_AO_ABRIR = DADOS.atualizado || 0;
   PENDENTE = (()=>{ try { return localStorage.getItem(chaveLocal(r)+'_pend')==='1'; } catch(e){ return false; } })();
   NUVEM_EM = null;
   ordenar(); SEL = DADOS.igrejas[0] ? DADOS.igrejas[0].id : null;
@@ -832,7 +919,10 @@ function abrirRegiao(r){
 }
 function desenharTudo(){ desenharRegioes(); desenharPainel(); desenharLista(); desenharFicha(); mostrarEstado(); }
 
-window.__aoEntrar = function(){
+(()=>{ const est = document.getElementById('estado'); if (est){ est.addEventListener('click', cliqueEstado); est.addEventListener('keydown', e=>{ if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); cliqueEstado(); } }); } })();
+window.__aoEntrar = function(d){
+  if (d && !window.__SESSAO) window.__SESSAO = d;
+  if (window.__relIniciado) return; window.__relIniciado = true;
   const perm = regioesPermitidas();
   if (!perm.length){
     document.querySelector('.corpo').innerHTML = '<div class="vazia-ficha" style="grid-column:1/-1"><b>Nenhuma região liberada</b>Para editar o relatório de igrejas de uma região, peça ao administrador acesso à lista dessa região.</div>';
@@ -845,7 +935,7 @@ window.__aoEntrar = function(){
   const igPedida = new URLSearchParams(location.search).get('igreja');
   if (igPedida && DADOS.igrejas.some(i => i.id === igPedida)){ SEL = igPedida; if (VISAO === 'geral') mudarVisao('fichas'); desenharLista(); desenharFicha(); abrirFicha(); }
 };
-if (window.__SESSAO) window.__aoEntrar(window.__SESSAO);
+if (window.__SESSAO || window.__SESSAO_PREVIA) window.__aoEntrar(window.__SESSAO || window.__SESSAO_PREVIA); // com login válido no aparelho, abre sem esperar o servidor
 
 /* =====================================================================
    Impressão: uma ficha por igreja, duas por linha, agrupadas por cidade

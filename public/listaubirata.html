@@ -3,14 +3,17 @@
 <head>
 <script>
 (function () {
-  document.documentElement.style.visibility = 'hidden';
+  /* Se o login guardado neste aparelho ainda vale, mostra a página na hora e confere no servidor em paralelo
+     (antes a tela ficava em branco esperando o servidor, e sem internet mandava para o login). */
+  var __ok = (function () { try { var p = JSON.parse(atob((localStorage.getItem('session_token') || '').split('.')[0].replace(/-/g, '+').replace(/_/g, '/'))); if (p && p.exp > Date.now() + 60000 && (p.role === 'admin' || (p.lists || []).indexOf('ubirata') >= 0)) { window.__SESSAO_PREVIA = { ok: true, role: p.role === 'admin' ? 'admin' : 'padrao', lists: p.lists || [] }; return true; } } catch (e) {} return false; })();
+  document.documentElement.style.visibility = __ok ? 'visible' : 'hidden';
   var token = localStorage.getItem('session_token');
   if (!token) { window.location.replace('/login.html'); return; }
   fetch('/api/verify-session', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ token: token, list: 'ubirata' })
-  }).then(function (r) { return r.json(); }).then(function (data) {
+  }).then(function (r) { if (__ok && !r.ok && r.status !== 401 && r.status !== 403) throw new Error('servidor'); return r.json(); }).then(function (data) {
     if (data && data.ok) {
       document.documentElement.style.visibility = 'visible';
       var lists = Array.isArray(data.lists) ? data.lists : [];
@@ -49,9 +52,7 @@
       localStorage.removeItem('session_token');
       window.location.replace('/login.html');
     }
-  }).catch(function () {
-    window.location.replace('/login.html');
-  });
+  }).catch(function () { if (!__ok) window.location.replace('/login.html'); });
 })();
 </script>
 <meta charset="UTF-8">
