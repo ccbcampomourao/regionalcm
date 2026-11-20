@@ -526,13 +526,13 @@ async function gerarPDF() {
 function documentoHTML(c) {
   const lst = irmaosOrdenados(), EXTRA = 24;
   const X = m => `<span class="cx">${m ? '✕' : ''}</span>`;
-  let linhas = lst.map((i, n) => { const m = c ? c.marcas[i.id] : ''; return `<tr><td class="n">${n + 1}</td><td class="nm">${esc(i.nome)}</td><td>${esc(i.cidade)}</td><td>${esc(i.bairro)}</td><td class="ck">${X(m === 'v')}</td></tr>`; }).join('');
-  linhas += `<tr class="sep"><td></td><td colspan="4">Irmãos que não estão na lista</td></tr>`;
-  for (let j = 0; j < EXTRA; j++) linhas += `<tr><td class="n">${lst.length + j + 1}</td><td></td><td></td><td></td><td class="ck">${X(false)}</td></tr>`;
+  let linhas = lst.map((i, n) => { const m = c ? c.marcas[i.id] : ''; return `<tr><td class="n">${n + 1}</td><td class="nm">${esc(i.nome)}</td><td>${esc(i.instrumento)}</td><td>${esc(i.cidade)}</td><td>${esc(i.bairro)}</td><td class="ck">${X(m === 'v')}</td></tr>`; }).join('');
+  linhas += `<tr class="sep"><td></td><td colspan="5">Irmãos que não estão na lista</td></tr>`;
+  for (let j = 0; j < EXTRA; j++) linhas += `<tr><td class="n">${lst.length + j + 1}</td><td></td><td></td><td></td><td></td><td class="ck">${X(false)}</td></tr>`;
   const k = c ? contar(c) : null;
   const campo = (r, v) => `<div><b>${r}:</b> ${esc(v || '')}</div>`;
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Lista de presença${c ? ' ' + dataBR(c.data) : ''}</title><style>
-@page{size:A4;margin:11mm 10mm 12mm}
+@page{size:A4 landscape;margin:9mm 10mm 10mm}
 *{box-sizing:border-box}
 body{margin:0;font-family:Arial,'Liberation Sans',sans-serif;color:#1d2433;font-size:9.4pt;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .cab{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #1b2a41;padding-bottom:6px;margin-bottom:8px}
@@ -546,12 +546,12 @@ table{width:100%;border-collapse:collapse;table-layout:fixed}
 thead{display:table-header-group}
 thead th{background:#1b2a41;color:#fff;font-weight:700;font-size:8pt;text-transform:uppercase;letter-spacing:.05em;padding:5px 6px;text-align:left;white-space:nowrap}
 thead th.ck{text-align:center;padding:5px 2px}
-tbody td{border-bottom:.6pt solid #c9cfda;padding:0 6px;height:6.4mm;vertical-align:middle;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+tbody td{border-bottom:.6pt solid #c9cfda;padding:.6mm 6px;height:6.6mm;vertical-align:middle;white-space:normal;overflow-wrap:anywhere;line-height:1.15}
 tbody tr:nth-child(even) td{background:#f3f5f9}
 td.n{color:#7b8496;font-size:7.8pt;text-align:right;padding-right:6px}
 td.nm{font-weight:700}
-td.ck{text-align:center;border-left:.6pt solid #c9cfda}
-.cx{display:inline-flex;align-items:center;justify-content:center;width:4.2mm;height:4.2mm;border:1pt solid #4a5468;border-radius:1pt;background:#fff;font-size:9pt;font-weight:700;line-height:1;color:#1b2a41}
+td.ck{text-align:center;border-left:.6pt solid #c9cfda;line-height:0}
+.cx{display:inline-flex;vertical-align:middle;align-items:center;justify-content:center;width:4.2mm;height:4.2mm;border:1pt solid #4a5468;border-radius:1pt;background:#fff;font-size:9pt;font-weight:700;line-height:1;color:#1b2a41}
 tr{break-inside:avoid}
 tr.sep td{background:#fff!important;border:0;height:9mm;vertical-align:bottom;font-weight:700;color:#1b2a41;padding-bottom:3px}
 .res{margin-top:7mm;display:flex;gap:8mm;font-size:10pt;break-inside:avoid}
@@ -562,8 +562,8 @@ tr.sep td{background:#fff!important;border:0;height:9mm;vertical-align:bottom;fo
 <div class="cab"><div><h1>LISTA DE PRESENÇA</h1><div class="sub">Parte musical · em ordem alfabética · marque um X em “Presente” · quem não for marcado está ausente</div></div><div class="tot">${lst.length} irmãos<br>+ ${EXTRA} linhas para acrescentar</div></div>
 <div class="campos">${campo('Data', c ? dataBR(c.data) : '')}${campo('Ocasião', c ? c.ocasiao : '')}${campo('Local', c ? c.local : '')}</div>
 ${c && c.obs ? `<div style="font-size:9pt;margin:-3px 0 8px"><b>Observação:</b> ${esc(c.obs)}</div>` : ''}
-<table><colgroup><col style="width:9mm"><col><col style="width:33mm"><col style="width:52mm"><col style="width:19mm"></colgroup>
-<thead><tr><th style="text-align:right">Nº</th><th>Nome</th><th>Cidade</th><th>Bairro</th><th class="ck">Presente</th></tr></thead>
+<table><colgroup><col style="width:10mm"><col><col style="width:34mm"><col style="width:46mm"><col style="width:66mm"><col style="width:20mm"></colgroup>
+<thead><tr><th style="text-align:right">Nº</th><th>Nome</th><th>Instrumento</th><th>Cidade</th><th>Bairro</th><th class="ck">Presente</th></tr></thead>
 <tbody>${linhas}</tbody></table>
 <div class="res"><span><b>Presentes:</b> ${k ? k.v : '______'}</span><span><b>Ausentes:</b> ${k ? k.n : '______'}</span><span><b>Total:</b> ${k ? k.t : '______'}</span></div>
 <div class="fim"><div>Encarregado</div><div>Secretário</div><div>Conferido por</div></div>
