@@ -10,6 +10,7 @@ export const LISTAS = {
   calendario: '/calendario-ensaios.html',
   calendarioanual: '/calendario-reunioes.html',
   atas: '/atas.html',
+  presencamusical: '/presenca-musical.html',
 };
 
 // Rótulos amigáveis das listas, usados nas telas de admin e seleção de listas.
@@ -24,6 +25,7 @@ export const LISTA_LABELS = {
   calendario: 'Calendário dos Ensaios',
   calendarioanual: 'Calendário Anual de Reuniões',
   atas: 'Atas e Assembleias',
+  presencamusical: 'Lista de Presença Musical',
 };
 
 export const DEFAULT_ADMIN_EMAIL = 'bruno07dacosta@gmail.com';

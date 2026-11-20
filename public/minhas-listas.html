@@ -49,7 +49,8 @@ const CATALOGO = {
   ivaipora:        { url: '/listaivaipora.html',     label: 'Ivaiporã',                    tipo: 'local' },
   calendario:      { url: '/calendario-ensaios.html',label: 'Calendário dos Ensaios',      tipo: 'cal', desc: 'Ensaios locais da regional' },
   calendarioanual: { url: '/calendario-reunioes.html',label: 'Calendário Anual de Reuniões',tipo: 'cal', desc: 'Reuniões do ano, com capa, legenda e feriados' },
-  atas:            { url: '/atas.html',              label: 'Atas e Assembleias',          tipo: 'cad', desc: 'Edital, ata, relatório e balanço das assembleias' }
+  atas:            { url: '/atas.html',              label: 'Atas e Assembleias',          tipo: 'cad', desc: 'Edital, ata, relatório e balanço das assembleias' },
+  presencamusical: { url: '/presenca-musical.html',  label: 'Lista de Presença Musical',   tipo: 'cad', desc: 'Chamada dos músicos: presentes e ausentes' }
 };
 
 document.getElementById('btnSair').addEventListener('click', function (e) {
@@ -61,10 +62,11 @@ function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return ({ 
 
 const IGR = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3 4 8v13h16V8l-8-5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9.5 21v-6h5v6M12 7v4M10 9h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const ATA = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 19.5V5a2 2 0 0 1 2-2h13v16H6.5A2.5 2.5 0 0 0 4 21.5" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M19 19v2.5H6.5M8 7h7M8 11h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+const MUS = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 18V5l11-2v13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.5" cy="18" r="2.5" stroke="currentColor" stroke-width="1.8"/><circle cx="17.5" cy="16" r="2.5" stroke="currentColor" stroke-width="1.8"/></svg>';
 function cardHTML(c) {
   const cal = c.tipo === 'cal';
   return '<a class="lcard' + (cal ? ' cal' : '') + '" href="' + c.url + '">' +
-    '<div class="lic">' + (c.ata ? ATA : c.igr ? IGR : cal ? CAL : PIN) + '</div>' +
+    '<div class="lic">' + (c.mus ? MUS : c.ata ? ATA : c.igr ? IGR : cal ? CAL : PIN) + '</div>' +
     '<div class="ltx"><div class="lnm">' + esc(c.label) + '</div><div class="lds">' + esc(c.desc || 'Lista de serviços da localidade') + '</div></div>' +
     ARROW + '</a>';
 }
@@ -97,6 +99,7 @@ function renderListas(lists) {
     cads.push({ url: '/relatorio-igrejas.html', label: 'Relatório de Igrejas', tipo: 'cal', igr: true, desc: 'Casas de oração, cultos, ministério e parte musical da sua região' });
   }
   if ((lists || []).indexOf('atas') !== -1) cads.push({ url: '/atas.html', label: 'Atas e Assembleias', tipo: 'cal', ata: true, desc: 'Edital, ata, relatório e balanço das assembleias' });
+  if ((lists || []).indexOf('presencamusical') !== -1) cads.push({ url: '/presenca-musical.html', label: 'Lista de Presença Musical', tipo: 'cal', mus: true, desc: 'Chamada dos músicos: presentes e ausentes' });
   html += bloco('Cadastros', cads, true);
   document.getElementById('conteudo').innerHTML = html;
   destacarUltima();

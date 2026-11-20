@@ -300,7 +300,8 @@
     ivaipora:        { url: '/listaivaipora.html',      label: 'Ivaiporã',                     tipo: 'local',    desc: 'Lista de serviços da localidade' },
     calendario:      { url: '/calendario-ensaios.html', label: 'Calendário dos Ensaios',       tipo: 'cal',      desc: 'Ensaios locais da regional' },
     calendarioanual: { url: '/calendario-reunioes.html',label: 'Calendário Anual de Reuniões', tipo: 'cal',      desc: 'Reuniões do ano, com capa, legenda e feriados' },
-    atas:            { url: '/atas.html',               label: 'Atas e Assembleias',           tipo: 'cad',      desc: 'Edital, ata, relatório e balanço das assembleias' }
+    atas:            { url: '/atas.html',               label: 'Atas e Assembleias',           tipo: 'cad',      desc: 'Edital, ata, relatório e balanço das assembleias' },
+    presencamusical: { url: '/presenca-musical.html',   label: 'Lista de Presença Musical',    tipo: 'cad',      desc: 'Chamada dos músicos: presentes e ausentes' }
   };
 
   // Para onde levar quem já está com a sessão aberta
