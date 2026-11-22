@@ -459,6 +459,9 @@ body.ao-vivo .so-manual{display:none!important}
 .pm-gh em{font-style:normal;font-weight:600;color:#a39a85;font-size:11.5px;letter-spacing:0}
 .pm-gh + .pm-row{border-top:0}
 .pm-chips{display:flex;flex-wrap:wrap;gap:6px}
+.pm-rapido{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,230px) auto;gap:8px;margin-top:10px;padding:10px;border:1.5px dashed #dccfae;border-radius:12px;background:#fdfbf6}
+.pm-rapido input{font-weight:600}
+@media (max-width:640px){.pm-rapido{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.pm-rapido input{grid-column:1 / 3}}
 .pm-chip{border:1px solid #e2d9c4;background:#fff;color:#6d6652;border-radius:999px;padding:5px 11px;font-size:12.5px;display:inline-flex;align-items:center;gap:6px}
 .pm-chip.on{background:var(--primary);border-color:var(--primary);color:#fff}
 .pm-chip em{font-style:normal;opacity:.7;font-size:11.5px}

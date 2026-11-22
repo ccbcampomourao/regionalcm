@@ -456,7 +456,7 @@ function linhaHTML(i, n, c) {
   const p = c.marcas[i.id] === 'v';
   return `<div class="pm-row${p ? ' v' : ''}" data-id="${i.id}">
     <span class="pm-n">${n}</span>
-    <div class="pm-nm"><b>${esc(i.nome)}</b><small>${esc([c.tipo === 'regional' ? '' : i.instrumento, localTxt(i)].filter(Boolean).join(' · ')) || '&nbsp;'}</small></div>
+    <div class="pm-nm"><b>${esc(i.nome)}</b><small>${esc(c.tipo === 'regional' ? (localTxt(i) || i.cargo) : [i.instrumento, localTxt(i)].filter(Boolean).join(' · ')) || '&nbsp;'}</small></div>
     <div class="pm-bt">${p ? '' : '<em class="pm-aus">Ausente</em>'}<button type="button" class="b-v${p ? ' on' : ''}" onclick="marcar('${i.id}')" aria-pressed="${p}">${ICO('check')}<span>Presente</span></button></div>
   </div>`;
 }
@@ -497,8 +497,13 @@ function desenharChamada() {
       <div class="pm-seg" role="group">${[['', 'Todos'], ['v', 'Presentes'], ['n', 'Ausentes']].map(([v, r]) => `<button type="button" class="${FILTRO.so === v ? 'on' : ''}" onclick="FILTRO.so='${v}';desenharLinhas()">${r}</button>`).join('')}</div>
     </div>
     <div class="pm-lista" id="linhas"></div>
+    ${reg ? `<form class="pm-rapido" onsubmit="event.preventDefault();addMinisterio()" aria-label="Acrescentar alguém do ministério">
+      <input id="rNome" placeholder="Nome de quem veio e não está na lista" autocomplete="off" aria-label="Nome">
+      <select id="rCargo" aria-label="Cargo">${CARGOS_MIN.map(([cg]) => `<option${cg === (window.__ultCargo || 'Ancião') ? ' selected' : ''}>${esc(cg)}</option>`).join('')}</select>
+      <button type="submit" class="primary">${ICO('check')}Acrescentar presente</button>
+    </form>` : ''}
     <div class="linha-b">
-      <button type="button" onclick="abrirNovoIrmao()">${ICO('plus')}${reg ? 'Alguém que não está na lista' : 'Irmão que não está na lista'}</button>
+      ${reg ? '' : `<button type="button" onclick="abrirNovoIrmao()">${ICO('plus')}Irmão que não está na lista</button>`}
       ${reg ? `<button type="button" onclick="puxarMinisterio()">${ICO('refresh')}Atualizar do Relatório de Igrejas</button>` : ''}
       <button type="button" onclick="limparMarcas()">${ICO('undo')}Limpar marcações</button>
     </div>
@@ -655,6 +660,22 @@ async function limparMarcas() {
   if (!(await UI.confirm('Limpar as marcações?', 'Todos ficam como ausentes nesta chamada.', { ok: 'Limpar', danger: true }))) return;
   const antes = Object.assign({}, c.marcas); c.marcas = {}; guardar(); desenharLinhas(); atualizarContagem();
   UI.toast('Marcações limpas.', { action: { label: 'Desfazer', icon: 'undo', fn: () => { c.marcas = antes; guardar(); desenharLinhas(); atualizarContagem(); } } });
+}
+// Ensaio Regional: acrescenta alguém do ministério direto na chamada (só nome e cargo,
+// sem localidade) e já marca presente; o campo fica pronto para o próximo
+function addMinisterio() {
+  const c = CHAM(), inp = document.getElementById('rNome'), sel = document.getElementById('rCargo'); if (!c || !inp) return;
+  const nome = nomeBonito(inp.value); if (!nome) { inp.focus(); return; }
+  const cargo = sel ? sel.value : 'Ancião'; window.__ultCargo = cargo;
+  let i = DB.irmaos.find(x => norm(x.nome) === norm(nome));
+  if (i) { if (!GRUPOS_REGIONAL.includes(i.grupo)) { i.grupo = grupoDoCargo(cargo); i.cargo = cargo; } }
+  else { i = { id: novoId(), nome, instrumento: '', cidade: '', bairro: '', cargo, grupo: grupoDoCargo(cargo) }; DB.irmaos.push(i); }
+  c.marcas[i.id] = 'v'; guardar();
+  inp.value = ''; FILTRO.q = ''; const b = document.getElementById('busca'); if (b) b.value = '';
+  semPular(desenharLinhas); atualizarContagem(); atualizarTotais(); atualizarDatalists();
+  const row = document.querySelector(`.pm-row[data-id="${i.id}"]`); if (row) row.classList.add('remoto');
+  inp.focus();
+  UI.toast(`${i.nome} (${i.cargo}) acrescentado e marcado presente.`, 'ok');
 }
 function abrirNovoIrmao() { const b = document.getElementById('novoIrmao'); b.hidden = false; const n = document.getElementById('nNome'); n.value = FILTRO.q || ''; n.focus(); b.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
 function addIrmaoChamada() {
@@ -845,7 +866,7 @@ function documentoRegionalHTML(base, comDados) {
   const min = irmaosDa(base);
   let g0 = null;
   const lMin = min.map((i, n) => { const g = cargoPlural(i.cargo); const gh = g !== g0 ? `<tr class="sep gr"><td></td><td colspan="4">${esc((g0 = g))}</td></tr>` : ''; return gh + `<tr><td class="n">${n + 1}</td><td class="nm">${esc(i.nome)}</td><td>${esc(i.cargo)}</td><td>${esc(localTxt(i))}</td><td class="ck">${X(c && c.marcas[i.id] === 'v')}</td></tr>`; }).join('')
-    + `<tr class="sep"><td></td><td colspan="4">Não estão na lista</td></tr>` + Array.from({ length: 4 }, (_, j) => `<tr><td class="n">${min.length + j + 1}</td><td></td><td></td><td></td><td class="ck">${X(false)}</td></tr>`).join('');
+    ;   // sem linhas sobrando: quem não está na lista é acrescentado direto na chamada
   const usados = c ? [...new Set(c.locais.flatMap(l => Object.keys(l.inst)))].sort(ordInst) : [];
   const cols = usados.length ? usados : ['Violino', 'Viola', 'Violoncelo', 'Flauta', 'Clarinete', 'Saxofone', 'Trompete', 'Trombone', 'Euphonium', 'Tuba', 'Órgão'];
   const CURTO = { Violoncelo: 'Cello', Euphonium: 'Eufônio', 'Saxofone Soprano': 'Sax sop.', 'Saxofone Alto': 'Sax alto', 'Saxofone Tenor': 'Sax tenor', 'Saxofone Barítono': 'Sax barít.', Saxofone: 'Sax', Flugelhorn: 'Flugel', 'Corne Inglês': 'C. inglês', Trombonito: 'Trombon.' };
