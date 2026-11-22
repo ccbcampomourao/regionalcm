@@ -193,6 +193,47 @@
     });
   }
 
+  /* ---------------- Regional: o tipo da tabela como etiqueta ----------------
+     O título continua dentro do cabeçalho da tabela (assim a prévia e a impressão
+     repetem tudo igual quando a tabela passa para a outra página), mas aparece só
+     como uma etiqueta: a moldura é desenhada nas células, a partir dos nomes das colunas.
+     Para a moldura fechar certinho, cada linha é completada até a última coluna e as
+     células das bordas ganham uma marca (c-ini, c-fim, c-ult). */
+  function marcarEtiquetas(doc) {
+    doc.querySelectorAll('.table-wrapper th.table-title').forEach(function (th) {
+      var w = th.closest('.table-wrapper'), table = th.closest('table');
+      if (!w || !table || w.classList.contains('section-title-block')) return;
+      th.innerHTML = '<span class="rt">' + th.innerHTML + '</span>';
+      w.classList.add('rtab');
+      var tbody = table.tBodies[0]; if (!tbody || !tbody.rows.length) return;
+      var hd = table.querySelector('tr.nv-hd');
+      if (!hd) w.classList.add('semhd');
+      var total = 0;
+      if (hd) Array.prototype.forEach.call(hd.cells, function (c) { total += c.colSpan || 1; });
+      var lin = posicoes(tbody);
+      if (!total) lin.forEach(function (cells) { cells.forEach(function (x) { total = Math.max(total, x.start + x.span); }); });
+      // completa as linhas mais curtas (ex.: só um nome em "Atende")
+      var ocup = {};
+      lin.forEach(function (cells, r) {
+        cells.forEach(function (x) {
+          for (var k = 0; k < (x.td.rowSpan || 1); k++) for (var j = 0; j < x.span; j++) { ocup[r + k] = ocup[r + k] || {}; ocup[r + k][x.start + j] = true; }
+        });
+      });
+      Array.prototype.forEach.call(tbody.rows, function (tr, r) {
+        var fim = 0; for (var c = 0; c < total; c++) if (ocup[r] && ocup[r][c]) fim = c + 1;
+        if (fim < total) { var td = doc.createElement('td'); td.colSpan = total - fim; td.className = 'c-vazio'; tr.appendChild(td); }
+      });
+      var nl = tbody.rows.length;
+      posicoes(tbody).forEach(function (cells, r) {
+        cells.forEach(function (x) {
+          if (x.start === 0) x.td.classList.add('c-ini');
+          if (x.start + x.span >= total) x.td.classList.add('c-fim');
+          if (r + (x.td.rowSpan || 1) >= nl) x.td.classList.add('c-ult');
+        });
+      });
+    });
+  }
+
   /* ---------------- Aplica o modelo novo na folha ---------------- */
   function aplicar(html) {
     var doc = new DOMParser().parseFromString(html, 'text/html');
@@ -232,20 +273,7 @@
       th.innerHTML = '<span class="nv-cid">' + th.innerHTML + '</span>';
     });
     doc.querySelectorAll('.table-wrapper table').forEach(ajustarTabela);
-    if (VARIANTE === 'regional') {
-      // o tipo da tabela sai da tabela e vira uma etiqueta presa em cima dela:
-      // a moldura começa nos nomes das colunas (não há mais a linha inteira do título)
-      doc.querySelectorAll('.table-wrapper th.table-title').forEach(function (th) {
-        var w = th.closest('.table-wrapper'), tr = th.parentNode, tb = th.closest('table');
-        if (!w || !tb || w.classList.contains('section-title-block')) return;
-        var eti = doc.createElement('div');
-        eti.className = 'rt-eti';
-        eti.innerHTML = '<span class="rt">' + th.innerHTML + '</span>';
-        tb.parentNode.insertBefore(eti, tb);
-        if (tr.cells.length === 1) tr.remove(); else th.remove();
-        w.classList.add('rtab');
-      });
-    }
+    if (VARIANTE === 'regional') marcarEtiquetas(doc);
     doc.querySelectorAll('tr.ev-loc').forEach(function (tr) { var w = tr.closest('.table-wrapper'); if (w) w.classList.add('nv-bairros'); });
 
     // 4) avisos: títulos "-{ASSUNTO}-" viram subtítulos
@@ -438,10 +466,22 @@
     '.section-title-block th.table-title{ text-align:center !important; background:#000 !important; color:#fff !important; padding:3px !important; }',
     '.section-title-block .rt{ padding:0; background:none; border-radius:0; }',
     'tr.nv-hd th{ background:#ececec !important; }',
-    /* etiqueta do tipo em cima da tabela; a tabela guarda a moldura arredondada (menos no canto da etiqueta) */
-    '.rt-eti{ line-height:0; text-align:left; }',
-    '.rt-eti .rt{ line-height:1.25; font-weight:700; font-size:14px; text-transform:uppercase; }',
-    '.rtab > table{ border-top-left-radius:0 !important; }',
+    /* a linha do título fica fora da moldura: só a etiqueta aparece; a moldura começa nos nomes das colunas */
+    '.rtab > table{ border:none !important; border-radius:0 !important; overflow:visible !important; }',
+    '.rtab th.table-title{ background:transparent !important; border:none !important; }',
+    '.rtab th.table-title .rt{ border-radius:2mm 2mm 0 0; }',
+    '.rtab tr.nv-hd th{ border-top:1pt solid ' + E + ' !important; }',
+    '.rtab tr.nv-hd th:first-child{ border-left:1pt solid ' + E + ' !important; }',
+    '.rtab tr.nv-hd th:last-child{ border-right:1pt solid ' + E + ' !important; border-top-right-radius:2mm; }',
+    '.rtab td.c-ini{ border-left:1pt solid ' + E + ' !important; }',
+    '.rtab td.c-fim{ border-right:1pt solid ' + E + ' !important; }',
+    '.rtab td.c-ult{ border-bottom:1pt solid ' + E + ' !important; }',
+    '.rtab tbody > tr:last-child > td{ border-bottom:1pt solid ' + E + ' !important; }',
+    '.rtab td.c-ini.c-ult{ border-bottom-left-radius:2mm; }',
+    '.rtab td.c-fim.c-ult{ border-bottom-right-radius:2mm; }',
+    '.rtab.semhd tbody tr:first-child td{ border-top:1pt solid ' + E + ' !important; }',
+    '.rtab.semhd tbody tr:first-child td.c-fim{ border-top-right-radius:2mm; }',
+    '.rtab td.c-vazio{ background:inherit; }',
     '@media print{ .section-title-block th.table-title{ background:#000 !important; } tr.nv-hd th{ background:#ececec !important; } .rt{ background:#000 !important; color:#fff !important; } }'
   ].join('\n');
   var CSS_REGIONAL_COR = '\n' + [

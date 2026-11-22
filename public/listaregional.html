@@ -1914,7 +1914,10 @@ function fmtTime(t){ return t || ''; }
    "Novo" aplica o visual preto e branco por cima (assets/lista-modelo-novo.js). */
 function buildDocumentHTML(){
   const html = buildDocumentHTMLClassico();
-  if (window.ModeloLista) { ModeloLista.sincronizar(); if (ModeloLista.ativo() !== 'atual') return ModeloLista.aplicar(html); }
+  if (window.ModeloLista) {
+    try { ModeloLista.sincronizar(); if (ModeloLista.ativo() !== 'atual') return ModeloLista.aplicar(html); }
+    catch (e) { console.error('Modelo novo da folha falhou; usando o modelo atual.', e); }
+  }
   return html;
 }
 
