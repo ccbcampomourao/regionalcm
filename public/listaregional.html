@@ -853,6 +853,29 @@ const SECTION_TYPES = {
       {key:"atende", label:"Obreiros que atendem", type:"list", itemLabel:"Obreiro"}
     ]
   },
+  obreiros: {
+    label: "Novos Obreiros",
+    columns: ["Data","Hora","Local","Ministério","Obreiro","Atende"],
+    fields: [
+      {key:"cidade", label:"Cidade", type:"text"},
+      {key:"data", label:"Data", type:"date"},
+      {key:"hora", label:"Hora", type:"time"},
+      {key:"local", label:"Local", type:"text"},
+      {key:"ministerio", label:"Ministério", type:"text"},
+      {key:"novoobreiro", label:"Novo Obreiro", type:"text"},
+      {key:"atende", label:"Atende", type:"list", itemLabel:"Obreiro"}
+    ]
+  },
+  reuniaopiedade: {
+    label: "Reunião de Ensinamento da Piedade",
+    columns: ["Data","Hora","Local","Atende"],
+    fields: [
+      {key:"data", label:"Data", type:"date"},
+      {key:"hora", label:"Hora", type:"time"},
+      {key:"local", label:"Local", type:"text"},
+      {key:"atende", label:"Atende (opcional)", type:"list", itemLabel:"Obreiro"}
+    ]
+  },
   reuniaodiversa: {
     label: "Reuniões Diversas",
     columns: ["Data","Hora","Local","Convocados","Evento"],
@@ -984,7 +1007,27 @@ const newId = () => 'id_' + Date.now() + '_' + Math.floor(Math.random() * 100000
 
 let dragSrcEl = null;
 
+// Lista antiga com um tipo de tabela que esta tela não conhece: monta um tipo simples
+// a partir dos próprios dados, para a lista abrir e nada se perder.
+function tipoDesconhecido(sec){
+  if (!sec || !sec.typeKey || SECTION_TYPES[sec.typeKey]) return;
+  const ordem = ['cidade','data','hora','local'], chaves = [];
+  (sec.entries||[]).forEach(e => Object.keys((e && e.data) || {}).forEach(k => { if (!chaves.includes(k)) chaves.push(k); }));
+  chaves.sort((a,b)=> (ordem.indexOf(a)<0?99:ordem.indexOf(a)) - (ordem.indexOf(b)<0?99:ordem.indexOf(b)));
+  const nome = k => k.replace(/_/g,' ').replace(/^./, c=>c.toUpperCase());
+  const fields = chaves.map(k => {
+    const ex = (sec.entries||[]).map(e => e.data && e.data[k]).find(v => v != null);
+    if (k === 'data') return {key:k, label:'Data', type:'date'};
+    if (k === 'hora') return {key:k, label:'Hora', type:'time'};
+    if (Array.isArray(ex)) return {key:k, label:nome(k), type:'list', itemLabel:'Obreiro'};
+    return {key:k, label:nome(k), type:'text'};
+  });
+  if (!fields.length && typeof sec.text === 'string') { SECTION_TYPES[sec.typeKey] = { label: nome(sec.typeKey), isFreeText: true, columns: [], fields: [] }; return; }
+  SECTION_TYPES[sec.typeKey] = { label: nome(sec.typeKey), columns: fields.map(f=>f.label), fields: fields };
+}
+
 function sanitizeState() {
+  (STATE.sections||[]).forEach(tipoDesconhecido);
   const seenIds = new Set();
   STATE.sections.forEach(sec => {
     if (!sec.id || seenIds.has(sec.id)) sec.id = newId();
@@ -1219,7 +1262,7 @@ const TIPO_COR = (()=>{
     reuniaodiversa:[...cinza,'calendar'], reuniaodiversa_cozinha:[...cinza,'calendar'],
     evangelizacao:[...areia,'pin'], assembleia_ordinaria:[...cinza,'file'], assembleia_extraordinaria:[...cinza,'file'],
     coleta_reforco_caixa:[...agua,'clock'], abertura_casa_oracao:[...malva,'pin'], reabertura_casa_oracao:[...malva,'pin'],
-    culto_busca_dons:[...azul,'calendar'], avisos:[...rosa,'info']
+    culto_busca_dons:[...azul,'calendar'], obreiros:[...terra,'user'], reuniaopiedade:[...verde,'users'], avisos:[...rosa,'info']
   };
 })();
 const tipoCor = k => TIPO_COR[k] || ['#ece6d6','#6d6652','grid'];
@@ -1230,7 +1273,7 @@ const NOME_CURTO = {
   reuniaodiversa:'Reuniões Diversas', reuniaodiversa_cozinha:'Cozinha Central', evangelizacao:'Evangelização',
   assembleia_ordinaria:'Assembleia Ordinária', assembleia_extraordinaria:'Assembleia Extraord.', avisos:'Avisos',
   coleta_reforco_caixa:'Coletas Reforço de Caixa', abertura_casa_oracao:'Abertura de Casa', reabertura_casa_oracao:'Reabertura de Casa',
-  culto_busca_dons:'Busca de Dons'
+  culto_busca_dons:'Busca de Dons', obreiros:'Novos Obreiros', reuniaopiedade:'Ensinamento da Piedade'
 };
 const GRUPO_LIN = { coleta_reforco_caixa:'bat', batismo:'bat', ensaio_geral_categoria:'cat', reuniaodiversa:'div', reuniaodiversa_cozinha:'coz', evangelizacao:'eva' };
 const DIAS_SEM = ['dom','seg','ter','qua','qui','sex','sáb'];
@@ -1986,6 +2029,129 @@ function buildDocumentHTMLClassico(){
       });
       
       body += `</td></tr></tbody></table></div>`;
+      return;
+    }
+
+    if(section.typeKey === 'obreiros'){
+      if(!section.entries.length) return;
+
+      // Colunas exibidas na tabela (a "Cidade" não vira coluna: ela vira o
+      // cabeçalho de cada bloco, agrupando as reuniões daquela cidade).
+      const displayFields = def.fields.filter(f=>f.key!=='cidade');
+
+      const listFieldsCid = displayFields.filter(f=>f.type==='list');
+      const maxCountsCid = {};
+      listFieldsCid.forEach(f=>{
+        let max = 1;
+        section.entries.forEach(entry=>{
+          const filled = (entry.data[f.key]||[]).filter(x=>x && x.trim());
+          max = Math.max(max, filled.length || 1);
+        });
+        maxCountsCid[f.key] = max;
+      });
+
+      let totalColsCid = 0;
+      displayFields.forEach(f=>{
+        if(f.type==='list') totalColsCid += maxCountsCid[f.key];
+        else if(f.type==='date') totalColsCid += 2;
+        else totalColsCid += 1;
+      });
+
+      // Colspan da barra de cidade: as 3 primeiras colunas visuais
+      // (Data, Hora, Local) mescladas numa célula só, e o restante
+      // (Endereço + Atende) na célula seguinte, do tamanho que sobrar.
+      let colsCidadeFirst3 = 0;
+      displayFields.slice(0, 3).forEach(f=>{
+        if(f.type==='list') colsCidadeFirst3 += maxCountsCid[f.key];
+        else if(f.type==='date') colsCidadeFirst3 += 2;
+        else colsCidadeFirst3 += 1;
+      });
+      const colsCidadeRest = totalColsCid - colsCidadeFirst3;
+
+      // Agrupa as entradas por cidade preservando a ordem cronológica já
+      // aplicada por sortStateDates() dentro de cada grupo; os GRUPOS em si
+      // são ordenados alfabeticamente (sem alterar o array em STATE, então
+      // digitar não reordena o formulário nem pisca a pré-visualização).
+      const groupsMap = new Map();
+      section.entries.forEach(entry=>{
+        const cidadeRaw = (entry.data.cidade || '').trim();
+        const cidadeKey = cidadeRaw || 'SEM CIDADE INFORMADA';
+        if(!groupsMap.has(cidadeKey)) groupsMap.set(cidadeKey, []);
+        groupsMap.get(cidadeKey).push(entry);
+      });
+      const groups = Array.from(groupsMap.entries())
+        .map(([cidade, entries])=>({cidade, entries}))
+        .sort((a,b)=> a.cidade.localeCompare(b.cidade, 'pt-BR'));
+
+      let colHeaderRowCid = `<tr>`;
+      displayFields.forEach(f=>{
+        if(f.type==='list'){
+          const n = maxCountsCid[f.key];
+          const label = f.label.toUpperCase().replace(/\s*\(OPCIONAL\)/,'').replace(/\s*\(MÁX\.\s*\d+\)/,'');
+          colHeaderRowCid += `<th colspan="${n}">${escapeHTML(label)}</th>`;
+        } else if(f.type==='date') {
+          colHeaderRowCid += `<th colspan="2" style="width:65px; max-width:65px;">DATA</th>`;
+        } else {
+          const label = f.label.replace(/\s*\(opcional\)/i,'').toUpperCase();
+          colHeaderRowCid += `<th style="${narrowCols[label]||''}">${escapeHTML(label)}</th>`;
+        }
+      });
+      colHeaderRowCid += `</tr>`;
+
+      // O título geral "REUNIÕES DE EVANGELIZAÇÃO" vira um bloco PRÓPRIO,
+      // separado das tabelas de cidade, para conseguir ter um espaço real
+      // (margem) entre ele e a primeira barra de cidade — coisa que não dá
+      // pra fazer com padding quando os dois estão dentro da mesma tabela.
+      body += `<div class="section-title-block" data-force-break="true"><table><thead><tr><th colspan="${totalColsCid}" class="table-title">${escapeHTML(def.label.toUpperCase())}</th></tr></thead></table></div>`;
+
+      groups.forEach((g, gIdx)=>{
+        let theadHtml = '';
+        // Os blocos de cidade começam direto pela barra com o nome da
+        // cidade, igual no impresso; o título geral já foi emitido acima.
+        theadHtml += `<tr><th colspan="${colsCidadeFirst3}" class="table-title-cidade">${escapeHTML(g.cidade.toUpperCase())}</th><th colspan="${colsCidadeRest}" class="table-title-cidade-rest"></th></tr>`;
+        theadHtml += colHeaderRowCid;
+
+        let rowsHtml = '';
+        g.entries.forEach(entry=>{
+          rowsHtml += '<tr>';
+          displayFields.forEach(f=>{
+            if(f.type==='list'){
+              const n = maxCountsCid[f.key];
+              const vals = (entry.data[f.key]||[]).filter(x=>x && x.trim());
+              if(!vals.length){
+                rowsHtml += `<td colspan="${n}">-</td>`;
+              } else {
+                vals.forEach((v, i)=>{
+                  const isLast = i === vals.length - 1;
+                  if(isLast && vals.length < n){
+                    // Não tem próximo obreiro: mescla essa célula com as
+                    // colunas que sobrariam vazias, em vez de deixá-las em branco.
+                    const span = n - vals.length + 1;
+                    rowsHtml += `<td colspan="${span}">${escapeHTML(v)}</td>`;
+                  } else {
+                    rowsHtml += `<td>${escapeHTML(v)}</td>`;
+                  }
+                });
+              }
+            } else if(f.type==='date'){
+              rowsHtml += `<td style="width:10px; max-width:10px;">${fmtDate(entry.data[f.key])}</td>`;
+              rowsHtml += `<td style="width:6px; max-width:6px;">${getWeekdayAbbr(entry.data[f.key])}</td>`;
+            } else if(f.type==='time'){
+              rowsHtml += `<td>${fmtTime(entry.data[f.key]) || '-'}</td>`;
+            } else if(f.key === 'endereco'){
+              let strEndereco = entry.data[f.key] || '';
+              let formatedEndereco = escapeHTML(strEndereco).replace(/\s*\(/g, '<br>(');
+              rowsHtml += `<td style="line-height: 1.3;">${formatedEndereco || '-'}</td>`;
+            } else {
+              rowsHtml += `<td>${escapeHTML(entry.data[f.key]||'') || '-'}</td>`;
+            }
+          });
+          rowsHtml += '</tr>';
+        });
+
+        body += `<div class="table-wrapper cidade-frame" data-no-split="true"><table><thead>${theadHtml}</thead><tbody>${rowsHtml}</tbody></table></div>`;
+      });
+
       return;
     }
 
