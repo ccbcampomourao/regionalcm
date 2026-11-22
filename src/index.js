@@ -23,6 +23,9 @@ import * as signup from '../functions/api/signup.js';
 import * as verifySession from '../functions/api/verify-session.js';
 import * as presenca from '../functions/api/presenca-arquivo.js';
 import * as oauth from '../functions/api/oauth.js';
+import { onRequestVivo } from '../functions/api/presenca-musical-vivo.js';
+// Lista de Presença Musical ao vivo (Durable Object). O wrangler precisa ver a classe exportada aqui.
+export { SalaPresencaMusical } from './sala-presenca.js';
 
 // Mapa "MÉTODO caminho" -> handler original.
 const routes = {
@@ -46,6 +49,8 @@ const routes = {
   'POST /api/signup': signup.onRequestPost,
   'POST /api/verify-session': verifySession.onRequestPost,
   'POST /api/presenca': presenca.onRequestPost,
+  'GET /api/presenca-musical/ws': onRequestVivo,
+  'POST /api/presenca-musical/estado': onRequestVivo,
   // Login com Google / Microsoft
   'GET /api/oauth-providers': oauth.onRequestProviders,
   'GET /api/oauth-start': oauth.onRequestStart,

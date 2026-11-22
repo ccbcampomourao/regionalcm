@@ -71,7 +71,9 @@ function contar(c) {
 const localTxt = i => [i.cidade, i.bairro].filter(x => String(x || '').trim()).join(' · ');
 
 /* ---------- salvar ----------
-   Neste aparelho: na hora. Na nuvem: só quando você manda (Salvar na nuvem / Ctrl+S).
+   Normalmente a lista é "ao vivo" (veja mais abaixo): cada mudança vai sozinha, só ela.
+   Se o servidor ainda não tiver o modo ao vivo, vale o jeito de antes:
+   neste aparelho na hora; na nuvem só quando você manda (Salvar na nuvem / Ctrl+S).
    Antes de salvar confere se outra pessoa salvou depois (e quem); presenca.js mostra quem
    mais está com a lista aberta. */
 let _tSalvar = null, REV = 0, SALVANDO = false, ERRO_NUVEM = '', NOVA = null, ATUALIZADO_AO_ABRIR = 0;
@@ -81,17 +83,40 @@ const gravarBase = v => { try { localStorage.setItem(BASE_KEY, String(v || 0)); 
 const temSessao = () => { try { return !!localStorage.getItem('session_token'); } catch (e) { return false; } };
 const porTxt = e => e ? String(e).split('@')[0] : '';
 function gravarLocal() {
-  try { localStorage.setItem(KEY, JSON.stringify(DB)); if (PENDENTE) localStorage.setItem(KEY + '_pend', '1'); else localStorage.removeItem(KEY + '_pend'); }
+  try { localStorage.setItem(KEY, JSON.stringify(DB)); localStorage.setItem(KEY + '_seq', String(typeof VIVO !== 'undefined' ? VIVO.seq : 0)); if (PENDENTE) localStorage.setItem(KEY + '_pend', '1'); else localStorage.removeItem(KEY + '_pend'); }
   catch (e) { UI.toast('O navegador não deixou guardar neste aparelho (falta espaço). Salve na nuvem para não perder.', 'error'); }
 }
 function guardar() {
-  DB.atualizado = Date.now(); PENDENTE = true; REV++;
+  DB.atualizado = Date.now(); REV++;
+  if (aoVivo()) {   // ao vivo: manda só o que mudou, sozinho
+    agendarEnvio();
+    clearTimeout(_tSalvar); _tSalvar = setTimeout(() => { _tSalvar = null; gravarLocal(); }, 250);
+    mostrarEstado(); return;
+  }
+  PENDENTE = true;
   clearTimeout(_tSalvar); _tSalvar = setTimeout(() => { _tSalvar = null; gravarLocal(); }, 250);
   mostrarEstado();
 }
 function quandoTxt(ms) { if (!ms) return ''; const d = new Date(ms), h = new Date(); const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); return d.toDateString() === h.toDateString() ? 'hoje às ' + hora : d.toLocaleDateString('pt-BR') + ' às ' + hora; }
 function mostrarEstado() {
   const el = document.getElementById('estado'); if (!el) return;
+  if (aoVivo()) {
+    const aberto = VIVO.ws && VIVO.ws.readyState === 1 && VIVO.abriu, esp = VIVO.fila.reduce((n, l) => n + l.ops.length, 0);
+    const nomes = [...new Set(VIVO.gente.map(g => porTxt(g.email)))];
+    let cls, h, acao = false;
+    if (VIVO.modo === 'sessao') { cls = 'pend'; h = `${ICO('alert')}<span><b>Sessão terminou</b> — toque para entrar de novo</span>`; acao = true; }
+    else if (aberto) {
+      cls = 'vivo';
+      h = `<i class="pt" aria-hidden="true"></i>${nomes.length ? `<em class="nq" aria-hidden="true">+${nomes.length}</em>` : ''}<span><b>Ao vivo</b>${nomes.length ? ` <span class="quem">· com ${esc(nomes.slice(0, 3).join(', '))}${nomes.length > 3 ? ` e mais ${nomes.length - 3}` : ''}</span>` : ''}${esp ? ' <span class="quem">· enviando…</span>' : ''}</span>`;
+      el.title = (nomes.length ? 'Também estão nesta lista: ' + nomes.join(', ') + '. ' : '') + 'O que cada um marca aparece na hora para todos e fica salvo sozinho.';
+    } else if (VIVO.tent > 0 || VIVO.fila.length) {
+      cls = 'lig'; acao = true;
+      h = `<i class="pt" aria-hidden="true"></i><span><b>Sem conexão</b>${esp ? ` — ${esp} ${esp === 1 ? 'mudança esperando' : 'mudanças esperando'}` : ''} · vai sozinho quando voltar</span>`;
+    } else { cls = 'lig'; h = `<i class="pt" aria-hidden="true"></i><span><b>Conectando…</b></span>`; }
+    el.className = 'estado ' + cls; el.innerHTML = h;
+    el.setAttribute('role', acao ? 'button' : 'status'); el.tabIndex = acao ? 0 : -1;
+    return;
+  }
   let cls = '', ic = 'check-circle', txt;
   if (SALVANDO) { cls = 'salv'; ic = 'spinner'; txt = '<b>Salvando na nuvem…</b>'; }
   else if (NOVA && !PENDENTE) { cls = 'pend'; ic = 'cloud-down'; txt = '<b>Há versão mais nova na nuvem</b> — toque para carregar'; }
@@ -103,7 +128,7 @@ function mostrarEstado() {
   const acao = PENDENTE || NOVA;
   el.setAttribute('role', acao ? 'button' : 'status'); el.tabIndex = acao ? 0 : -1;
 }
-function cliqueEstado() { if (!temSessao()) { location.href = '/login.html'; return; } if (PENDENTE) salvarNuvem(); else if (NOVA) carregarNuvem(true); }
+function cliqueEstado() { if (!temSessao() || VIVO.modo === 'sessao') { location.href = '/login.html'; return; } if (aoVivo()) { VIVO.tent = 0; ligarVivo(); return; } if (PENDENTE) salvarNuvem(); else if (NOVA) carregarNuvem(true); }
 
 async function api(rota, corpo) {
   const res = await fetch('/api/' + rota, { method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -131,6 +156,7 @@ async function trazerDaNuvem(info, avisar) {
   if (avisar) UI.toast('Lista carregada da nuvem.', { type: 'ok', action: { label: 'Desfazer', icon: 'undo', fn: () => { DB = normalizar(JSON.parse(antes)); guardar(); desenharTudo(); } } });
 }
 async function salvarNuvem() {
+  if (aoVivo()) { UI.toast('Esta lista salva sozinha: o que cada um marca já aparece para todos.', 'info'); return; }
   if (SALVANDO) return;
   if (!temSessao()) { UI.toast('Sua sessão terminou. Entre de novo para salvar na nuvem.', { type: 'error', action: { label: 'Entrar', icon: 'arrow-right', fn: () => { location.href = '/login.html'; } } }); return; }
   const fim = UI.busy(document.getElementById('btnNuvemSalvar'), 'Salvando...');
@@ -186,7 +212,7 @@ async function carregarNuvem(manual) {
 function aoSair() { if (_tSalvar) { clearTimeout(_tSalvar); _tSalvar = null; gravarLocal(); } }
 window.addEventListener('pagehide', aoSair);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') aoSair(); });
-window.addEventListener('beforeunload', e => { aoSair(); if (PENDENTE && temSessao()) { e.preventDefault(); e.returnValue = ''; } });
+window.addEventListener('beforeunload', e => { aoSair(); if (!aoVivo() && PENDENTE && temSessao()) { e.preventDefault(); e.returnValue = ''; } });
 function baixarBackup() {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(DB, null, 1)], { type: 'application/json' }));
@@ -199,7 +225,7 @@ function abrirBackup(ev) {
     try {
       const d = JSON.parse(r.result); if (!d || !Array.isArray(d.irmaos)) throw new Error('não é um backup da lista de presença');
       const antes = JSON.stringify(DB); DB = normalizar(d); SEL = maisRecente(); guardar(); desenharTudo();
-      UI.toast(`Backup aberto: ${DB.irmaos.length} irmãos e ${DB.chamadas.length} chamadas. Salve na nuvem para os outros verem.`, { type: 'ok', action: { label: 'Desfazer', icon: 'undo', fn: () => { DB = normalizar(JSON.parse(antes)); guardar(); desenharTudo(); } } });
+      UI.toast(`Backup aberto: ${DB.irmaos.length} irmãos e ${DB.chamadas.length} chamadas.${aoVivo() ? ' Já foi para todos.' : ' Salve na nuvem para os outros verem.'}`, { type: 'ok', action: { label: 'Desfazer', icon: 'undo', fn: () => { DB = normalizar(JSON.parse(antes)); guardar(); desenharTudo(); } } });
     } catch (e) { UI.toast('Não foi possível abrir: ' + e.message, 'error'); }
   };
   r.readAsText(f);
@@ -579,6 +605,242 @@ function atualizarDatalists() {
   set('dlOcasioes', [...new Set(OCASIOES.concat(DB.chamadas.map(c => c.ocasiao).filter(Boolean)))]);
 }
 
+/* ---------- ao vivo: várias pessoas na mesma lista ----------
+   A lista fica numa "sala" no servidor (src/sala-presenca.js). Cada tela manda SÓ o que
+   mudou — "fulano presente", "nome do irmão X", "data da chamada Y" — e recebe na hora o
+   que os outros mudaram. Não regrava a lista inteira e ninguém sobrescreve ninguém:
+   cada marcação é uma coisa separada (duas pessoas marcando irmãos diferentes nunca se atropelam).
+   Como funciona aqui:
+   - ESPELHO é a lista como a sala conhece (mais o que já mandamos). O que mudou na tela
+     é a diferença entre DB e ESPELHO: vira mudanças pequenas e vai para a FILA;
+   - a FILA fica guardada no aparelho até a sala confirmar; sem internet, a pessoa continua
+     marcando e tudo vai quando a ligação voltar;
+   - o que chega dos outros é aplicado só nas linhas que mudaram (sem redesenhar a tela,
+     sem piscar, sem mexer na rolagem nem no campo que a pessoa está digitando).
+   Se o servidor ainda não tiver a sala (deploy antigo), volta sozinho para o modo de antes
+   (salvar na nuvem quando você manda). */
+const VIVO = { modo: 'ligando', ws: null, seq: 0, fila: [], gente: [], tent: 0, abriu: false, falhas: 0, tRec: null, tEnvio: null, tPing: null, primeira: true };
+const SEQ_KEY = KEY + '_seq', FILA_KEY = KEY + '_fila';
+const CLIENTE = (() => { try { let c = sessionStorage.getItem('pm_cliente'); if (!c) { c = novoId(); sessionStorage.setItem('pm_cliente', c); } return c; } catch (e) { return novoId(); } })();
+const CAMPOS_I = ['nome', 'instrumento', 'cidade', 'bairro', 'cargo'], CAMPOS_C = ['data', 'ocasiao', 'local', 'obs'];
+let ESPELHO = null;
+const copia = o => JSON.parse(JSON.stringify(o));
+const aoVivo = () => VIVO.modo !== 'manual';
+
+// aplica uma mudança numa lista (DB ou ESPELHO), mexendo no próprio objeto
+function aplicarOp(db, op) {
+  const ch = id => db.chamadas.find(c => c.id === id), ir = id => db.irmaos.find(i => i.id === id);
+  switch (op.t) {
+    case 'm': { const c = ch(op.c); if (!c) return; if (op.v) c.marcas[op.i] = 'v'; else delete c.marcas[op.i]; return; }
+    case 'mc': { const c = ch(op.c); if (!c) return; c.marcas = {}; (op.lista || []).forEach(i => { c.marcas[i] = 'v'; }); return; }
+    case 'i': { let i = ir(op.id); if (!i) { i = { id: op.id, nome: '', instrumento: '', cidade: '', bairro: '', cargo: '' }; db.irmaos.push(i); } Object.assign(i, op.campos || {}); return; }
+    case 'i-': { const k = db.irmaos.findIndex(i => i.id === op.id); if (k >= 0) db.irmaos.splice(k, 1); db.chamadas.forEach(c => { delete c.marcas[op.id]; }); return; }
+    case 'c': { let c = ch(op.id); if (!c) { c = { id: op.id, data: '', ocasiao: '', local: '', obs: '', marcas: {} }; db.chamadas.push(c); } Object.assign(c, op.campos || {}); return; }
+    case 'c-': { const k = db.chamadas.findIndex(c => c.id === op.id); if (k >= 0) db.chamadas.splice(k, 1); return; }
+  }
+}
+// o que mudou entre a lista da sala (ESPELHO) e a da tela (DB): só as diferenças
+function diferencas(de, para) {
+  const ops = [];
+  const aI = new Map(de.irmaos.map(i => [i.id, i])), bI = new Map(para.irmaos.map(i => [i.id, i]));
+  bI.forEach((i, id) => {
+    const o = aI.get(id), campos = {};
+    CAMPOS_I.forEach(k => { const v = i[k] == null ? '' : String(i[k]); if (!o || (o[k] == null ? '' : String(o[k])) !== v) campos[k] = v; });
+    if (!o || Object.keys(campos).length) ops.push({ t: 'i', id, campos });
+  });
+  aI.forEach((i, id) => { if (!bI.has(id)) ops.push({ t: 'i-', id }); });
+  const aC = new Map(de.chamadas.map(c => [c.id, c])), bC = new Map(para.chamadas.map(c => [c.id, c]));
+  bC.forEach((c, id) => {
+    const o = aC.get(id), campos = {};
+    CAMPOS_C.forEach(k => { const v = c[k] == null ? '' : String(c[k]); if (!o || (o[k] == null ? '' : String(o[k])) !== v) campos[k] = v; });
+    if (!o || Object.keys(campos).length) ops.push({ t: 'c', id, campos });
+    const ma = o ? o.marcas : {}, mb = c.marcas, mud = [];
+    Object.keys(mb).forEach(i => { if (!ma[i]) mud.push({ t: 'm', c: id, i, v: 1 }); });
+    Object.keys(ma).forEach(i => { if (!mb[i]) mud.push({ t: 'm', c: id, i, v: 0 }); });
+    if (mud.length > 25 || (!o && mud.length)) ops.push({ t: 'mc', c: id, lista: Object.keys(mb) });
+    else ops.push(...mud);
+  });
+  aC.forEach((c, id) => { if (!bC.has(id)) ops.push({ t: 'c-', id }); });
+  return ops;
+}
+function gravarFila() { try { localStorage.setItem(FILA_KEY, JSON.stringify(VIVO.fila)); } catch (e) {} }
+// junta o que mudou na tela e manda (chamado logo depois de cada mudança, com um pequeno atraso)
+function enviarAgora() {
+  clearTimeout(VIVO.tEnvio); VIVO.tEnvio = null;
+  if (!aoVivo() || !ESPELHO) return;
+  const ops = diferencas(ESPELHO, DB);
+  if (!ops.length) return;
+  ops.forEach(op => aplicarOp(ESPELHO, op));
+  const lote = { lote: novoId(), ops };
+  VIVO.fila.push(lote); gravarFila();
+  if (VIVO.ws && VIVO.ws.readyState === 1 && VIVO.abriu) VIVO.ws.send(JSON.stringify(Object.assign({ t: 'ops' }, lote)));
+  mostrarEstado();
+}
+function agendarEnvio() { clearTimeout(VIVO.tEnvio); VIVO.tEnvio = setTimeout(enviarAgora, 180); }
+
+// guarda rolagem e o campo em que a pessoa está, redesenha, e devolve tudo como estava
+function semPular(fn) {
+  const y = window.scrollY, a = document.activeElement;
+  const chave = a && a.dataset ? (a.dataset.i ? '[data-i="' + a.dataset.i + '"]' : a.dataset.c ? '[data-c="' + a.dataset.c + '"]' : a.id ? '#' + a.id : null) : null;
+  let s0 = null, s1 = null; try { s0 = a.selectionStart; s1 = a.selectionEnd; } catch (e) {}
+  fn();
+  if (chave) { const n = document.querySelector(chave); if (n && n !== document.activeElement) { n.focus({ preventScroll: true }); try { if (s0 != null) n.setSelectionRange(s0, s1); } catch (e) {} } }
+  if (Math.abs(window.scrollY - y) > 1) window.scrollTo(0, y);
+}
+const focado = el => el && el === document.activeElement;
+
+// mostra na tela o que os outros mudaram, mexendo só no necessário
+function mostrarMudancas(ops) {
+  const c = CHAM();
+  let lista = false, linhas = false, contagem = false, irm = false, irmLinhas = false, res = false, heroi = false, apagada = null, dl = false;
+  const linhasMarcar = new Set();
+  ops.forEach(op => {
+    if (op.t === 'm') { if (c && op.c === c.id) { linhasMarcar.add(op.i); contagem = true; } lista = true; res = true; }
+    else if (op.t === 'mc') { if (c && op.c === c.id) { linhas = true; contagem = true; } lista = true; res = true; }
+    else if (op.t === 'i') {
+      const novo = !document.querySelector(`.pm-tr[data-id="${op.id}"]`);
+      if (c) { if (document.querySelector(`.pm-row[data-id="${op.id}"]`) && !('nome' in (op.campos || {}))) linhasMarcar.add(op.id); else linhas = true; contagem = true; }
+      if (ABA === 'irm') { if (novo || 'nome' in (op.campos || {})) irmLinhas = true; else irm = op; }
+      res = true; dl = true;
+    }
+    else if (op.t === 'i-') { linhas = true; contagem = true; irmLinhas = true; res = true; lista = true; }
+    else if (op.t === 'c') { lista = true; if (c && op.id === c.id) heroi = op; res = true; dl = true; }
+    else if (op.t === 'c-') { lista = true; res = true; if (SEL === op.id) apagada = op; }
+    else if (op.t === 'tudo') { apagada = apagada || null; lista = linhas = contagem = irmLinhas = res = true; }
+  });
+  if (apagada || !CHAM() && SEL) {
+    SEL = maisRecente();
+    semPular(desenharTudo);
+    if (apagada) UI.toast(`${porTxt(apagada.por) || 'Alguém'} apagou a chamada que estava aberta.`, 'info');
+    return;
+  }
+  if (ABA === 'cham') {
+    if (lista) desenharLista();
+    if (heroi) {
+      const cc = CHAM(), h = document.querySelector('.heroi');
+      if (cc && h) { h.querySelector('.h-tit small').textContent = diaSemana(cc.data); h.querySelector('h2').textContent = dataLonga(cc.data); h.querySelector('.h-sub').textContent = [cc.ocasiao, cc.local].filter(Boolean).join(' · ') || 'Chamada'; }
+      Object.keys(heroi.campos || {}).forEach(k => { const inp = document.querySelector(`[data-c="${k}"]`); if (inp && !focado(inp) && cc) inp.value = cc[k] || ''; });
+    }
+    if (linhas) semPular(desenharLinhas);
+    else if (linhasMarcar.size) {
+      const cc = CHAM();
+      linhasMarcar.forEach(id => {
+        const row = document.querySelector(`.pm-row[data-id="${id}"]`), i = DB.irmaos.find(x => x.id === id);
+        if (!row || !i || !cc) return;
+        const tmp = document.createElement('div'); tmp.innerHTML = linhaHTML(i, row.querySelector('.pm-n').textContent, cc);
+        const nova = tmp.firstElementChild; nova.classList.add('remoto'); row.replaceWith(nova);
+      });
+    }
+    if (contagem) { const cc = CHAM(), el = document.getElementById('contagem'); if (cc && el) el.innerHTML = contagemHTML(contar(cc)); }
+  } else if (ABA === 'irm') {
+    if (irmLinhas) semPular(desenharIrmaosLinhas);
+    else if (irm) {
+      const i = DB.irmaos.find(x => x.id === irm.id);
+      if (i) Object.keys(irm.campos || {}).forEach(k => { const inp = document.querySelector(`[data-i="${irm.id}:${k}"]`); if (inp && !focado(inp)) inp.value = i[k] || ''; });
+    }
+  } else if (ABA === 'res' && res) semPular(desenharResumo);
+  if (dl) atualizarDatalists();
+}
+
+function receber(msg) {
+  if (msg.t === 'gente') { VIVO.gente = (msg.lista || []).filter(g => g.cliente !== CLIENTE); mostrarEstado(); return; }
+  if (msg.t === 'tudo') {
+    enviarAgora();   // o que ainda não foi mandado entra na fila antes de trocar
+    const daSala = normalizar(msg.db);
+    let junto = 0;
+    if (VIVO.primeira && PENDENTE && (DB.irmaos.length || DB.chamadas.length)) {
+      // primeira vez ao vivo com alterações que nunca foram para a nuvem: junta (sem apagar nada de ninguém)
+      const ids = new Set(daSala.irmaos.map(i => i.id)), cids = new Set(daSala.chamadas.map(c => c.id));
+      const extra = copia(daSala);
+      DB.irmaos.forEach(i => { if (!ids.has(i.id)) { extra.irmaos.push(copia(i)); junto++; } });
+      DB.chamadas.forEach(c => {
+        if (!cids.has(c.id)) { extra.chamadas.push(copia(c)); junto++; return; }
+        const o = extra.chamadas.find(x => x.id === c.id);
+        Object.keys(c.marcas).forEach(i => { if (!o.marcas[i]) { o.marcas[i] = 'v'; junto++; } });
+      });
+      ESPELHO = daSala; DB = extra;
+    } else {
+      ESPELHO = daSala; DB = copia(daSala);
+    }
+    VIVO.fila.forEach(l => l.ops.forEach(op => { aplicarOp(ESPELHO, op); aplicarOp(DB, op); }));
+    VIVO.seq = msg.seq || 0; VIVO.primeira = false; PENDENTE = false;
+    gravarFila(); gravarLocal();
+    if (!CHAM()) SEL = maisRecente();
+    semPular(() => { desenharTudo(); atualizarDatalists(); });
+    if (junto) { agendarEnvio(); UI.toast('As alterações que estavam só neste aparelho foram juntadas à lista de todos.', 'ok'); }
+    return;
+  }
+  if (msg.t === 'mudou') {
+    const meu = msg.lote && VIVO.fila.some(l => l.lote === msg.lote);
+    if (meu) VIVO.fila = VIVO.fila.filter(l => l.lote !== msg.lote);
+    if (msg.seq) VIVO.seq = msg.seq;
+    const deOutros = meu ? [] : (msg.ops || []);
+    const troca = deOutros.find(op => op.t === 'tudo');
+    if (troca) { receber({ t: 'tudo', db: troca.db, seq: msg.seq }); return; }
+    if (deOutros.length) {
+      enviarAgora();   // o que eu mexi e ainda não mandei vai antes (e fica valendo por cima)
+      deOutros.forEach(op => { if (op.t === 'nada') return; aplicarOp(ESPELHO, op); aplicarOp(DB, op); });
+      // o que eu mandei e a sala ainda não confirmou vale por cima do que chegou antes dele
+      VIVO.fila.forEach(l => l.ops.forEach(op => { aplicarOp(ESPELHO, op); aplicarOp(DB, op); }));
+      mostrarMudancas(deOutros);
+    }
+    gravarFila(); clearTimeout(_tSalvar); _tSalvar = setTimeout(() => { _tSalvar = null; gravarLocal(); }, 400);
+    mostrarEstado();
+  }
+}
+
+function urlSala() {
+  return (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/api/presenca-musical/ws?cliente=' + encodeURIComponent(CLIENTE) + '&token=' + encodeURIComponent(localStorage.getItem('session_token') || '');
+}
+function ligarVivo() {
+  if (VIVO.modo === 'manual' || !temSessao()) { if (!temSessao()) mostrarEstado(); return; }
+  if (VIVO.ws && (VIVO.ws.readyState === 0 || VIVO.ws.readyState === 1)) return;
+  clearTimeout(VIVO.tRec);
+  let ws; try { ws = new WebSocket(urlSala()); } catch (e) { return religar(); }
+  VIVO.ws = ws; VIVO.abriu = false; mostrarEstado();
+  ws.onopen = () => {
+    VIVO.abriu = true; VIVO.tent = 0; VIVO.falhas = 0; VIVO.modo = 'vivo';
+    document.body.classList.add('ao-vivo');
+    ws.send(JSON.stringify({ t: 'ola', desde: VIVO.primeira && PENDENTE ? 0 : VIVO.seq }));
+    VIVO.fila.forEach(l => ws.send(JSON.stringify(Object.assign({ t: 'ops' }, l))));
+    clearInterval(VIVO.tPing); VIVO.tPing = setInterval(() => { if (ws.readyState === 1) ws.send('ping'); }, 30000);
+    mostrarEstado();
+  };
+  ws.onmessage = e => { if (e.data === 'pong') return; let m; try { m = JSON.parse(e.data); } catch (er) { return; } try { receber(m); } catch (er) { console.error('ao vivo:', er); } };
+  ws.onclose = () => {
+    clearInterval(VIVO.tPing);
+    if (VIVO.ws !== ws) return;
+    VIVO.ws = null;
+    if (!VIVO.abriu) VIVO.falhas++;
+    religar();
+  };
+  ws.onerror = () => {};
+}
+async function religar() {
+  // nunca abriu: confere se o servidor tem a sala (deploy antigo -> modo de antes) ou se a sessão acabou
+  if (VIVO.falhas >= 1 && VIVO.modo === 'ligando') {
+    try {
+      const r = await fetch('/api/presenca-musical/estado', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: localStorage.getItem('session_token') }) });
+      if (r.status === 404) return irParaManual();
+      if (r.status === 401) { VIVO.modo = 'sessao'; mostrarEstado(); return; }
+      if (r.status === 403) return irParaManual();
+    } catch (e) { /* sem internet: continua tentando */ }
+  }
+  mostrarEstado();
+  const espera = Math.min(30000, 1000 * Math.pow(2, VIVO.tent++));
+  clearTimeout(VIVO.tRec); VIVO.tRec = setTimeout(ligarVivo, espera);
+}
+function irParaManual() {
+  VIVO.modo = 'manual'; clearTimeout(VIVO.tRec); clearTimeout(VIVO.tEnvio);
+  document.body.classList.remove('ao-vivo');
+  if (VIVO.fila.length || (ESPELHO && diferencas(ESPELHO, DB).length)) PENDENTE = true;
+  VIVO.fila = []; gravarFila(); gravarLocal();
+  mostrarEstado(); carregarNuvem(false);
+}
+window.addEventListener('online', () => { if (aoVivo() && !VIVO.ws) { VIVO.tent = 0; ligarVivo(); } });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && aoVivo() && !VIVO.ws) { VIVO.tent = 0; ligarVivo(); } });
+window.addEventListener('pagehide', () => { if (aoVivo()) enviarAgora(); });
+
 /* ---------- atalhos ---------- */
 document.addEventListener('keydown', e => {
   if (!(e.ctrlKey || e.metaKey) || e.altKey || document.querySelector('.ui-modal')) return;
@@ -591,12 +853,16 @@ document.addEventListener('keydown', e => {
 DB = ler();
 ATUALIZADO_AO_ABRIR = DB.atualizado || 0;
 try { PENDENTE = localStorage.getItem(KEY + '_pend') === '1'; } catch (e) {}
+try { VIVO.seq = +(localStorage.getItem(SEQ_KEY) || 0) || 0; VIVO.fila = JSON.parse(localStorage.getItem(FILA_KEY) || '[]') || []; } catch (e) { VIVO.seq = 0; VIVO.fila = []; }
+VIVO.primeira = !VIVO.seq;
+ESPELHO = copia(DB);
 try { const s = localStorage.getItem(KEY + '_sel'); SEL = DB.chamadas.some(c => c.id === s) ? s : maisRecente(); } catch (e) { SEL = maisRecente(); }
 window.__aoEntrar = function () {
   if (window.__pmIniciado) return; window.__pmIniciado = true;
   const est = document.getElementById('estado');
   if (est) { est.addEventListener('click', cliqueEstado); est.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); cliqueEstado(); } }); }
   let ab = 'cham'; try { const v = localStorage.getItem(KEY + '_aba'); if (['cham', 'irm', 'res'].includes(v)) ab = v; } catch (e) {}
-  atualizarDatalists(); mudarAba(ab); carregarNuvem(false);
+  atualizarDatalists(); mudarAba(ab);
+  if ('WebSocket' in window) ligarVivo(); else irParaManual();
 };
 if (window.__SESSAO || window.__SESSAO_PREVIA) window.__aoEntrar(window.__SESSAO || window.__SESSAO_PREVIA);

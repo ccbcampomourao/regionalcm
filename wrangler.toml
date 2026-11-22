@@ -24,6 +24,17 @@ id = "a3ce11ad984a45a1b7aa5d4d5a45fd5d"
 binding = "LISTAS_KV"
 id = "d8dd62c8775e48f986bbea8ec85524e1"
 
+# Lista de Presença Musical "ao vivo": várias pessoas fazendo a chamada ao mesmo tempo
+# (src/sala-presenca.js). É um Durable Object com SQLite — funciona no plano gratuito
+# e é criado sozinho no deploy; não precisa criar nada no painel.
+[[durable_objects.bindings]]
+name = "SALA_PRESENCA"
+class_name = "SalaPresencaMusical"
+
+[[migrations]]
+tag = "v1-sala-presenca"
+new_sqlite_classes = ["SalaPresencaMusical"]
+
 # As variáveis abaixo são SECRETS (não coloque valores aqui no arquivo).
 # Depois do primeiro deploy, defina cada uma com:
 #   wrangler secret put SESSION_SECRET

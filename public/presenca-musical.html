@@ -89,6 +89,18 @@ label small{font-weight:500;text-transform:none;letter-spacing:0;color:#a39a85}
 .estado.pend{background:#fdf3dc;border:1px solid #ecd49a;border-radius:999px;padding:5px 12px}
 .estado[role=button]{cursor:pointer}
 .estado.salv b{color:#46628a}
+/* ao vivo: várias pessoas na mesma lista */
+body.ao-vivo .so-manual{display:none!important}
+.estado.vivo b{color:var(--ok)}
+.estado.vivo .pt{width:8px;height:8px;border-radius:50%;background:var(--ok);flex:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 22%,transparent)}
+.estado.lig .pt{width:8px;height:8px;border-radius:50%;background:#a46a12;flex:none;animation:piscar 1.2s ease-in-out infinite}
+@keyframes piscar{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.estado.lig .pt{animation:none}}
+.estado .quem{color:var(--muted);font-weight:500}
+.estado .nq{display:none;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--ok);color:#fff;font:700 11px/1 Inter,sans-serif}
+.pm-row.remoto{animation:pmremoto 1.4s ease-out}
+@keyframes pmremoto{from{box-shadow:inset 3px 0 0 #6b8fbf}to{box-shadow:inset 3px 0 0 transparent}}
+@media (prefers-reduced-motion:reduce){.pm-row.remoto{animation:none}}
 .estado.salv svg.ic{color:#46628a}
 .estado .ic-spin,.estado use[href$="spinner"]{transform-origin:center}
 .estado svg.ic:has(use[href$="#i-spinner"]){animation:girar 1s linear infinite}
@@ -366,6 +378,9 @@ label small{font-weight:500;text-transform:none;letter-spacing:0;color:#a39a85}
   .topo .b-previa{padding:8px 10px}
   .estado:not(.pend) span{display:none}
   .estado.pend{flex:1 1 100%;order:9;justify-content:center}
+  .estado.lig{flex:1 1 100%;order:9;justify-content:center;background:#fdf3dc;border:1px solid #ecd49a;border-radius:999px;padding:5px 12px}
+  .estado.lig > span{display:inline!important}
+  .estado.vivo .nq{display:inline-flex!important}
 }
 @media screen and (max-width:700px){
   body.tem-appbar .topo .menu,body.tem-appbar .topo .b-pdf{display:none}
@@ -480,8 +495,8 @@ label small{font-weight:500;text-transform:none;letter-spacing:0;color:#a39a85}
   <div class="menu" id="menuArq">
     <button type="button" onclick="togMenu(event,'menuArq')"><svg class="ic"><use href="/assets/icons.svg#i-file"></use></svg>Arquivo<svg class="ic"><use href="/assets/icons.svg#i-chevron-down"></use></svg></button>
     <div class="menu-box">
-      <button type="button" id="btnNuvemSalvar" onclick="salvarNuvem()"><svg class="ic"><use href="/assets/icons.svg#i-cloud-up"></use></svg>Salvar na nuvem</button>
-      <button type="button" onclick="carregarNuvem(true)"><svg class="ic"><use href="/assets/icons.svg#i-cloud-down"></use></svg>Carregar da nuvem</button>
+      <button type="button" id="btnNuvemSalvar" class="so-manual" onclick="salvarNuvem()"><svg class="ic"><use href="/assets/icons.svg#i-cloud-up"></use></svg>Salvar na nuvem</button>
+      <button type="button" id="btnNuvemCarregar" class="so-manual" onclick="carregarNuvem(true)"><svg class="ic"><use href="/assets/icons.svg#i-cloud-down"></use></svg>Carregar da nuvem</button>
       <hr>
       <button type="button" onclick="document.getElementById('arqPDF').click()"><svg class="ic"><use href="/assets/icons.svg#i-upload"></use></svg>Importar relatório de membros (PDF)</button>
       <button type="button" onclick="baixarBackup()"><svg class="ic"><use href="/assets/icons.svg#i-download"></use></svg>Baixar backup (.json)</button>
