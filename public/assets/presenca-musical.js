@@ -500,6 +500,8 @@ function desenharChamada() {
     ${reg ? `<form class="pm-rapido" onsubmit="event.preventDefault();addMinisterio()" aria-label="Acrescentar alguém do ministério">
       <input id="rNome" placeholder="Nome de quem veio e não está na lista" autocomplete="off" aria-label="Nome">
       <select id="rCargo" aria-label="Cargo">${CARGOS_MIN.map(([cg]) => `<option${cg === (window.__ultCargo || 'Ancião') ? ' selected' : ''}>${esc(cg)}</option>`).join('')}</select>
+      <input id="rCid" list="dlCidades" placeholder="Cidade" autocomplete="off" aria-label="Cidade">
+      <input id="rBai" list="dlBairros" placeholder="Bairro" autocomplete="off" aria-label="Bairro">
       <button type="submit" class="primary">${ICO('check')}Acrescentar presente</button>
     </form>` : ''}
     <div class="linha-b">
@@ -667,11 +669,13 @@ function addMinisterio() {
   const c = CHAM(), inp = document.getElementById('rNome'), sel = document.getElementById('rCargo'); if (!c || !inp) return;
   const nome = nomeBonito(inp.value); if (!nome) { inp.focus(); return; }
   const cargo = sel ? sel.value : 'Ancião'; window.__ultCargo = cargo;
+  const val = id => { const x = document.getElementById(id); return x ? nomeBonito(x.value) : ''; };
+  const cidade = val('rCid'), bairro = val('rBai');
   let i = DB.irmaos.find(x => norm(x.nome) === norm(nome));
-  if (i) { if (!GRUPOS_REGIONAL.includes(i.grupo)) { i.grupo = grupoDoCargo(cargo); i.cargo = cargo; } }
-  else { i = { id: novoId(), nome, instrumento: '', cidade: '', bairro: '', cargo, grupo: grupoDoCargo(cargo) }; DB.irmaos.push(i); }
+  if (i) { if (!GRUPOS_REGIONAL.includes(i.grupo)) { i.grupo = grupoDoCargo(cargo); i.cargo = cargo; } if (cidade) i.cidade = cidade; if (bairro) i.bairro = bairro; }
+  else { i = { id: novoId(), nome, instrumento: '', cidade, bairro, cargo, grupo: grupoDoCargo(cargo) }; DB.irmaos.push(i); }
   c.marcas[i.id] = 'v'; guardar();
-  inp.value = ''; FILTRO.q = ''; const b = document.getElementById('busca'); if (b) b.value = '';
+  inp.value = ''; ['rCid', 'rBai'].forEach(id => { const x = document.getElementById(id); if (x) x.value = ''; }); FILTRO.q = ''; const b = document.getElementById('busca'); if (b) b.value = '';
   semPular(desenharLinhas); atualizarContagem(); atualizarTotais(); atualizarDatalists();
   const row = document.querySelector(`.pm-row[data-id="${i.id}"]`); if (row) row.classList.add('remoto');
   inp.focus();
