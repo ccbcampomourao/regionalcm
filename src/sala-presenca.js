@@ -344,11 +344,27 @@ export class SalaPresencaMusical extends DurableObject {
     const email = request.headers.get('X-Email') || 'alguém';
     const codigo = request.headers.get('X-Link');
     let c = null;
-    if (codigo) {   // link da chamada: confere antes de tudo (410 = desativado)
+    const pausado = this.meta('pausa') === '1';
+    if (codigo) {   // link da chamada: confere antes de tudo (410 = desativado, 423 = tempo real desligado)
       const r = this.sql.exec('SELECT c FROM links WHERE code = ?', codigo).toArray();
       if (!r.length) return new Response('Link desativado', { status: 410 });
+      if (pausado) return new Response('Tempo real desligado', { status: 423 });
       c = r[0].c;
-    } else if (url.pathname.endsWith('/estado')) return Response.json({ ok: true, seq: this.seq(), db: this.tudo() });
+    } else if (url.pathname.endsWith('/estado')) {
+      const acao = request.headers.get('X-Acao');
+      // ligar/desligar o tempo real para todos (só quem tem acesso ao sistema chega aqui)
+      if (acao === 'pausa') {
+        const v = request.headers.get('X-V') === '1';
+        this.setMeta('pausa', v ? '1' : '0'); this.setMeta('pausaPor', v ? email : '');
+        if (v) {
+          const s = JSON.stringify({ t: 'pausa', v: 1, por: email });
+          for (const w of this.ctx.getWebSockets()) { try { w.send(s); w.close(4409, 'pausa'); } catch (e) {} }
+        }
+        return Response.json({ ok: true, pausa: v });
+      }
+      if (acao === 'status') return Response.json({ ok: true, pausa: pausado, por: pausado ? this.meta('pausaPor') || '' : '' });
+      return Response.json({ ok: true, seq: this.seq(), pausa: pausado, db: this.tudo() });
+    }
     if (request.headers.get('Upgrade') !== 'websocket') return new Response('Esperava WebSocket', { status: 426 });
     const par = new WebSocketPair();
     const [cliente, servidor] = Object.values(par);
@@ -415,11 +431,14 @@ export class SalaPresencaMusical extends DurableObject {
       } else {
         ws.send(JSON.stringify({ t: 'tudo', db: this.tudo(), seq }));
       }
+      // tempo real desligado: quem tem acesso recebe a lista atualizada e fica em pausa
+      if (this.meta('pausa') === '1') { ws.send(JSON.stringify({ t: 'pausa', v: 1, por: this.meta('pausaPor') || '' })); try { ws.close(4409, 'pausa'); } catch (e) {} return; }
       this.espalhar({ t: 'gente', lista: this.gente() });
       return;
     }
 
     if (msg.t === 'ops' && Array.isArray(msg.ops)) {
+      if (this.meta('pausa') === '1') return;   // desligado: nada é gravado (fica esperando no aparelho)
       const feitas = [];
       let seq = this.seq();
       this.ctx.storage.transactionSync(() => {

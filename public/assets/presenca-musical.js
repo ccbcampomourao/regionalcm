@@ -152,12 +152,12 @@ function quandoTxt(ms) { if (!ms) return ''; const d = new Date(ms), h = new Dat
 function mostrarEstado() {
   const el = document.getElementById('estado'); if (!el) return;
   const bp = document.getElementById('btnPausa');
-  if (bp) { bp.hidden = !aoVivo() || VIVO.modo === 'sessao'; bp.innerHTML = VIVO.pausa ? `${ICO('refresh')}Ligar o tempo real` : `${ICO('pause')}Pausar o tempo real`; }
+  if (bp) { bp.hidden = !aoVivo() || VIVO.modo === 'sessao'; bp.innerHTML = VIVO.pausa ? `${ICO('refresh')}Ligar o tempo real (para todos)` : `${ICO('pause')}Desligar o tempo real (para todos)`; }
   if (aoVivo() && VIVO.pausa) {
     const n = ESPELHO ? diferencas(ESPELHO, DB).length + VIVO.fila.reduce((k, l) => k + l.ops.length, 0) : 0;
     el.className = 'estado pend';
-    el.innerHTML = `${ICO('pause')}<span><b>Tempo real pausado</b>${n ? ` · ${n} ${n === 1 ? 'mudança' : 'mudanças'} para enviar` : ''} — toque para ligar</span>`;
-    el.title = 'Pausado: o que você faz fica guardado neste aparelho e não gasta nada do servidor. Ao ligar de novo, vai tudo de uma vez e você recebe o que os outros mudaram.';
+    el.innerHTML = `${ICO('pause')}<span><b>Tempo real desligado</b>${n ? ` · ${n} ${n === 1 ? 'mudança' : 'mudanças'} para enviar` : ''} — toque para ligar</span>`;
+    el.title = 'Desligado para todos (inclusive o link de convidado): o que você faz fica guardado neste aparelho e não gasta nada do servidor. Ao ligar de novo, vai tudo de uma vez e você recebe o que os outros mudaram.';
     el.setAttribute('role', 'button'); el.tabIndex = 0;
     return;
   }
@@ -671,7 +671,7 @@ function blocoLink(c) {
   </section>`;
 }
 function enviarOpsDiretas(ops) {
-  if (!(aoVivo() && VIVO.ws && VIVO.ws.readyState === 1 && VIVO.abriu)) { UI.toast(VIVO.pausa ? 'Para isso ligue o tempo real (está pausado).' : 'Para isso é preciso estar ao vivo (com internet).', 'error'); return false; }
+  if (!(aoVivo() && VIVO.ws && VIVO.ws.readyState === 1 && VIVO.abriu)) { UI.toast(VIVO.pausa ? 'Para isso ligue o tempo real (está desligado).' : 'Para isso é preciso estar ao vivo (com internet).', 'error'); return false; }
   enviarAgora();
   const lote = { lote: novoId(), ops, off: false };
   VIVO.fila.push(lote); gravarFila(); VIVO.ws.send(JSON.stringify(Object.assign({ t: 'ops' }, lote)));
@@ -1547,6 +1547,7 @@ function mostrarMudancas(ops) {
 }
 
 function receber(msg) {
+  if (msg.t === 'pausa') { if (!VIVO.pausa) entrarPausa(msg.por || ''); return; }
   if (msg.t === 'eu') { const antes = JSON.stringify(VIVO.eu || null); VIVO.eu = { email: msg.email || '', admin: !!msg.admin }; if (antes !== JSON.stringify(VIVO.eu) && DB && EM_CHAM()) semPular(desenharLinhas); return; }
   if (msg.t === 'gente') { VIVO.gente = (msg.lista || []).filter(g => g.cliente !== CLIENTE); mostrarEstado(); return; }
   if (msg.t === 'tudo') {
@@ -1656,30 +1657,62 @@ async function religar() {
   const espera = Math.min(30000, 1000 * Math.pow(2, VIVO.tent++));
   clearTimeout(VIVO.tRec); VIVO.tRec = setTimeout(ligarVivo, espera);
 }
-/* ---------- pausar o tempo real ----------
-   Pausado: desliga a ligação com a sala (não gasta nada do servidor). O que a pessoa faz fica
-   neste aparelho; a "foto" de como a sala estava (ESPELHO) fica guardada para, ao ligar de novo,
-   mandar só o que mudou — de uma vez — e receber o que os outros mudaram nesse meio tempo. */
+/* ---------- ligar/desligar o tempo real (para todos) ----------
+   Desligado: a sala fecha a ligação de todo mundo (aplicativo e link de convidado) e não grava
+   nada; ninguém gasta o servidor. Cada aparelho continua mexendo e guarda o que fez; a "foto" de
+   como a sala estava (ESPELHO) fica guardada para, ao ligar de novo, mandar só o que mudou — de uma
+   vez — e receber o que os outros mudaram. Enquanto está desligado, cada tela aberta só confere a
+   cada 5 minutos se já ligaram de novo (uma consulta pequena). */
 const PAUSA_KEY = KEY + '_pausa', ESPELHO_KEY = KEY + '_espelho';
-function pausarVivo(pausar) {
+async function apiVivo(acao, v) {
+  try {
+    const r = await fetch('/api/presenca-musical/estado', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: localStorage.getItem('session_token'), acao, v: v ? 1 : 0 }) });
+    if (!r.ok) return null; return await r.json();
+  } catch (e) { return null; }
+}
+function entrarPausa(por) {
+  VIVO.pausa = true;
+  try { localStorage.setItem(PAUSA_KEY, '1'); localStorage.setItem(ESPELHO_KEY, JSON.stringify(ESPELHO)); } catch (e) {}
+  clearTimeout(VIVO.tRec); clearTimeout(VIVO.tEnvio); clearInterval(VIVO.tPing);
+  const ws = VIVO.ws; VIVO.ws = null; VIVO.abriu = false; VIVO.gente = [];
+  if (ws) { try { ws.close(1000, 'pausa'); } catch (e) {} }
+  document.body.classList.remove('ao-vivo'); document.body.classList.add('pausado');
+  vigiarPausa(); mostrarEstado();
+  if (por !== undefined) UI.toast(`${por ? porTxt(por) + ' desligou' : 'O tempo real foi desligado'} o tempo real para todos. Pode continuar mexendo: fica guardado neste aparelho e vai quando ligar de novo.`, { type: 'info', duration: 9000 });
+}
+function sairPausa(aviso) {
+  VIVO.pausa = false; clearInterval(VIVO.tVigia);
+  try { localStorage.removeItem(PAUSA_KEY); localStorage.removeItem(ESPELHO_KEY); } catch (e) {}
+  document.body.classList.remove('pausado');
+  VIVO.tent = 0; VIVO.modo = VIVO.modo === 'vivo' ? 'vivo' : 'ligando';
+  ligarVivo();
+  if (aviso) UI.toast(aviso, 'ok');
+}
+// desligado: confere de vez em quando se alguém ligou de novo
+function vigiarPausa() {
+  clearInterval(VIVO.tVigia);
+  VIVO.tVigia = setInterval(conferirPausa, 5 * 60 * 1000);
+}
+async function conferirPausa() {
+  if (!VIVO.pausa || document.visibilityState !== 'visible' || Date.now() - (VIVO.ultConf || 0) < 60000) return;
+  VIVO.ultConf = Date.now();
+  const r = await apiVivo('status');
+  if (r && r.ok && !r.pausa && VIVO.pausa) sairPausa('O tempo real foi ligado de novo: suas mudanças foram enviadas e as dos outros chegaram.');
+}
+async function pausarVivo(pausar) {
   if (VIVO.modo === 'manual') return;
   if (pausar) {
-    enviarAgora();                       // o que já estava pronto vai antes de pausar
-    VIVO.pausa = true;
-    try { localStorage.setItem(PAUSA_KEY, '1'); localStorage.setItem(ESPELHO_KEY, JSON.stringify(ESPELHO)); } catch (e) {}
-    clearTimeout(VIVO.tRec); clearTimeout(VIVO.tEnvio); clearInterval(VIVO.tPing);
-    const ws = VIVO.ws; VIVO.ws = null; VIVO.abriu = false; VIVO.gente = [];
-    if (ws) { try { ws.close(1000, 'pausa'); } catch (e) {} }
-    document.body.classList.remove('ao-vivo'); document.body.classList.add('pausado');
-    mostrarEstado();
-    UI.toast('Tempo real pausado. Pode mexer à vontade: fica guardado neste aparelho e não gasta o servidor. Ligue de novo para enviar.', { type: 'info', duration: 8000 });
+    if (!(await UI.confirm('Desligar o tempo real para todos?', 'Ninguém fica ao vivo (nem quem está pelo link de convidado) e o servidor não é usado. Cada um continua marcando no próprio aparelho; quando alguém ligar de novo, tudo é enviado e juntado.', { ok: 'Desligar' }))) return;
+    enviarAgora();
+    for (let k = 0; k < 15 && VIVO.fila.length && VIVO.ws && VIVO.ws.readyState === 1; k++) await new Promise(r => setTimeout(r, 100));   // espera o que já foi mandado ser confirmado
+    const r = await apiVivo('pausa', 1);
+    if (!r || !r.ok) { UI.toast('Não foi possível desligar agora (sem internet?). Tente de novo.', 'error'); return; }
+    entrarPausa(); 
+    UI.toast('Tempo real desligado para todos. Pode mexer à vontade: fica guardado neste aparelho. Ligue de novo para enviar.', { type: 'info', duration: 8000 });
   } else {
-    VIVO.pausa = false;
-    try { localStorage.removeItem(PAUSA_KEY); localStorage.removeItem(ESPELHO_KEY); } catch (e) {}
-    document.body.classList.remove('pausado');
-    VIVO.tent = 0; VIVO.modo = VIVO.modo === 'vivo' ? 'vivo' : 'ligando';
-    ligarVivo();
-    UI.toast('Tempo real ligado: suas mudanças foram enviadas e as dos outros chegaram.', 'ok');
+    const r = await apiVivo('pausa', 0);
+    if (!r || !r.ok) { UI.toast('Não foi possível ligar agora (sem internet?). O que você fez continua guardado neste aparelho.', 'error'); return; }
+    sairPausa('Tempo real ligado para todos: suas mudanças foram enviadas e as dos outros chegaram.');
   }
 }
 function irParaManual() {
@@ -1690,7 +1723,7 @@ function irParaManual() {
   mostrarEstado(); carregarNuvem(false);
 }
 window.addEventListener('online', () => { if (aoVivo() && !VIVO.ws && !VIVO.pausa) { VIVO.tent = 0; ligarVivo(); } });
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && aoVivo() && !VIVO.ws && !VIVO.pausa) { VIVO.tent = 0; ligarVivo(); } });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && aoVivo() && !VIVO.ws && !VIVO.pausa) { VIVO.tent = 0; ligarVivo(); } if (document.visibilityState === 'visible' && VIVO.pausa) conferirPausa(); });
 window.addEventListener('pagehide', () => { if (aoVivo()) enviarAgora(); });
 
 /* ---------- atalhos ---------- */
@@ -1718,6 +1751,6 @@ window.__aoEntrar = function () {
   const s0 = DB.chamadas.find(c => c.id === SEL);
   if (!ab || (ab === 'cham' && s0 && s0.tipo === 'regional')) ab = s0 && s0.tipo === 'nomes' ? 'cham' : 'reg';
   atualizarDatalists(); mudarAba(ab);
-  if ('WebSocket' in window) ligarVivo(); else irParaManual();
+  if ('WebSocket' in window) { ligarVivo(); if (VIVO.pausa) { vigiarPausa(); conferirPausa(); } } else irParaManual();
 };
 if (window.__SESSAO || window.__SESSAO_PREVIA) window.__aoEntrar(window.__SESSAO || window.__SESSAO_PREVIA);

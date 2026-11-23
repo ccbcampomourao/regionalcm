@@ -32,6 +32,7 @@
   const CLIENTE = (() => { try { let c = localStorage.getItem('pm_link_cliente'); if (!c) { c = novoId() + novoId(); localStorage.setItem('pm_link_cliente', c); } return c.slice(0, 40); } catch (e) { return novoId(); } })();
   const FILA_KEY = 'pm_link_fila_' + CODIGO;
 
+  let PAUSA = false, tPausa = null;
   let S = null, ABA = 'min', BUSCA = '', LOC = '', BUSCA_L = '', ws = null, aberto = false, tent = 0, tRec = null, tPing = null, fim = false, gente = 0;
   let fila = []; try { fila = JSON.parse(localStorage.getItem(FILA_KEY) || '[]') || []; } catch (e) { fila = []; }
   try { const a = localStorage.getItem('pm_link_aba'); if (a === 'mus') ABA = a; } catch (e) {}
@@ -74,7 +75,7 @@
     mostrarVivo();
   }
   function ligar() {
-    if (fim || !CODIGO) return;
+    if (fim || !CODIGO || PAUSA) return;
     if (ws && ws.readyState < 2) return;
     clearTimeout(tRec);
     const url = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/api/presenca-musical/ws?link=' + encodeURIComponent(CODIGO) + '&cliente=' + encodeURIComponent(CLIENTE);
@@ -93,6 +94,7 @@
       if (ws !== w) return;
       const abriu = aberto; ws = null; aberto = false;
       if (ev.code === 4410) return acabou();
+      if (ev.code === 4409) return pausado();
       religar(abriu);
     };
     w.onerror = () => {};
@@ -100,21 +102,42 @@
   async function religar(jaAbriu) {
     if (!jaAbriu) {
       // nunca abriu: o link ainda vale?
-      try { const r = await fetch('/api/presenca-musical/ws?link=' + encodeURIComponent(CODIGO)); if (r.status === 410 || r.status === 404) return acabou(); } catch (e) {}
+      try { const r = await fetch('/api/presenca-musical/ws?link=' + encodeURIComponent(CODIGO)); if (r.status === 410 || r.status === 404) return acabou(); if (r.status === 423) return pausado(); } catch (e) {}
     }
     mostrarVivo();
     clearTimeout(tRec); tRec = setTimeout(ligar, Math.min(30000, 1000 * Math.pow(2, tent++)));
+  }
+  // o responsável desligou o tempo real: não fica tentando ligar (não gasta o servidor);
+  // confere a cada 5 minutos se já ligaram de novo. O que for marcado fica guardado aqui.
+  function pausado() {
+    const novo = !PAUSA; PAUSA = true; clearTimeout(tRec); clearInterval(tPing);
+    if (!S) app().innerHTML = `<div class="fim"><h1>Tempo real desligado</h1><p>O responsável pela lista desligou o tempo real por enquanto. Esta página liga sozinha quando ele ligar de novo.</p></div>`;
+    else if (novo) toast('O responsável desligou o tempo real. Pode continuar marcando: fica guardado neste celular e vai quando ligar de novo.', 'info');
+    mostrarVivo();
+    clearInterval(tPausa); tPausa = setInterval(conferir, 5 * 60 * 1000);
+  }
+  async function conferir() {
+    if (!PAUSA || document.visibilityState !== 'visible') return;
+    try {
+      const r = await fetch('/api/presenca-musical/ws?link=' + encodeURIComponent(CODIGO));
+      if (r.status === 410 || r.status === 404) return acabou();
+      if (r.status === 423) return;
+      PAUSA = false; clearInterval(tPausa); tent = 0;
+      if (!S) app().innerHTML = '<div class="fim"><p>Carregando…</p></div>';
+      ligar();
+    } catch (e) {}
   }
   function acabou() {
     fim = true; clearTimeout(tRec); clearInterval(tPing);
     try { localStorage.removeItem(FILA_KEY); } catch (e) {}
     app().innerHTML = `<div class="fim"><h1>Este link não está mais ativo</h1><p>Quem está cuidando da lista desativou o link ou apagou a chamada. Peça um link novo, se for preciso.</p></div>`;
   }
-  window.addEventListener('online', () => { if (!ws) { tent = 0; ligar(); } });
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !ws) { tent = 0; ligar(); } });
+  window.addEventListener('online', () => { if (!ws && !PAUSA) { tent = 0; ligar(); } });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !ws) { if (PAUSA) conferir(); else { tent = 0; ligar(); } } });
 
   function receber(m) {
     if (m.t === 'fim') return acabou();
+    if (m.t === 'pausa') return;   // a sala vai fechar a ligação (4409) logo em seguida
     if (m.t === 'gente') { gente = Math.max(0, (m.n || 1) - 1); mostrarVivo(); return; }
     if (m.t === 'tudo') {
       const primeira = !S;
@@ -152,7 +175,7 @@
     const el = document.getElementById('vivo'); if (!el) return;
     const ok = ws && ws.readyState === 1 && aberto, esp = fila.reduce((n, l) => n + l.ops.length, 0);
     el.className = 'vivo' + (ok ? '' : ' off');
-    el.innerHTML = `<i></i>${ok ? (gente ? `ao vivo · +${gente}` : 'ao vivo') : esp ? `sem conexão · ${esp} esperando` : 'conectando…'}`;
+    el.innerHTML = `<i></i>${PAUSA ? `tempo real desligado${esp ? ` · ${esp} esperando` : ''}` : ok ? (gente ? `ao vivo · +${gente}` : 'ao vivo') : esp ? `sem conexão · ${esp} esperando` : 'conectando…'}`;
   }
   function montar() {
     const c = S.chamada;
