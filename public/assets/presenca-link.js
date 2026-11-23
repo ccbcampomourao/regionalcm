@@ -61,6 +61,7 @@
         return;
       }
       case 'l-': S.locais = S.locais.filter(x => x.id !== op.id); return;
+      case 'x': if (op.c !== S.chamada.id) return; if (op.inst || op.loc) S.toca[op.i] = { inst: op.inst || '', loc: op.loc || '' }; else delete S.toca[op.i]; return;
     }
   }
 
@@ -116,7 +117,7 @@
     if (m.t === 'gente') { gente = Math.max(0, (m.n || 1) - 1); mostrarVivo(); return; }
     if (m.t === 'tudo') {
       const primeira = !S;
-      S = { chamada: m.chamada, irmaos: m.irmaos || [], marcas: m.marcas || {}, locais: (m.locais || []).map(l => Object.assign({ nome: '', total: '', inst: {} }, l)) };
+      S = { chamada: m.chamada, irmaos: m.irmaos || [], marcas: m.marcas || {}, toca: m.toca || {}, locais: (m.locais || []).map(l => Object.assign({ nome: '', total: '', inst: {} }, l)) };
       fila.forEach(l => l.ops.forEach(aplicar));   // o que ainda não foi confirmado continua valendo na tela
       if (primeira) montar(); else semPular(desenhar);
       return;
@@ -125,6 +126,7 @@
       if (m.lote) { fila = fila.filter(l => l.lote !== m.lote); gravarFila(); }
       (m.ops || []).forEach(aplicar);
       if ((m.ops || []).some(op => op.corr && op.t === 'm')) toast('Sem internet só dá para acrescentar presença; quem já estava presente continua.', 'info');
+      if ((m.ops || []).some(op => op.corr && op.t === 'x')) toast('O instrumento desse irmão já foi marcado por outra pessoa.', 'info');
       atualizar(m.ops || []);
       mostrarVivo();
     }
@@ -178,8 +180,9 @@
           <select class="s2" id="nCargo" aria-label="Cargo">${CARGOS.map(([cg]) => `<option${cg === (window.__ultCargo || 'Ancião') ? ' selected' : ''}>${esc(cg)}</option>`).join('')}</select>
           <input id="nCid" placeholder="Cidade" autocomplete="off" list="dlCid" aria-label="Cidade">
           <input id="nBai" placeholder="Bairro" autocomplete="off" list="dlBai" aria-label="Bairro">
+          <select class="s2" id="nInst" aria-label="Instrumento"><option value="">Não tocou (sem instrumento)</option>${INSTRUMENTOS.map(x => `<option>${esc(x)}</option>`).join('')}</select>
           <button type="submit" class="primary s2">${ICO('check')}Acrescentar presente</button></form>
-        <p class="dica">Toque em <b>Presente</b> em quem veio. Você só consegue desmarcar o que marcou neste aparelho, e não dá para mudar quem já está na lista.</p>
+        <p class="dica">Toque em <b>Presente</b> em quem veio e, se o irmão tocou, escolha o instrumento. Você só consegue desmarcar (ou trocar o instrumento) de quem marcou neste aparelho, e não dá para mudar quem já está na lista.</p>
         <datalist id="dlCid">${[...new Set(S.irmaos.map(i => i.cidade).filter(Boolean))].map(v => `<option value="${esc(v)}">`).join('')}</datalist>
         <datalist id="dlBai">${[...new Set(S.irmaos.map(i => i.bairro).filter(Boolean))].map(v => `<option value="${esc(v)}">`).join('')}</datalist>`;
       document.getElementById('busca').addEventListener('input', e => { BUSCA = e.target.value; desenharLista(); });
@@ -199,7 +202,12 @@
     const bt = m === 'meu' ? `<button type="button" class="bt on" data-m="${i.id}" aria-pressed="true">${ICO('check')}Presente</button>`
       : m ? `<span class="bt trav" title="Marcado por outra pessoa">${ICO('check')}Presente</span>`
       : `<button type="button" class="bt" data-m="${i.id}" aria-pressed="false">${ICO('check')}Presente</button>`;
-    return `<div class="row${m ? ' v' : ''}" data-id="${i.id}"><div><b>${esc(i.nome)}</b><small>${esc(loc || i.cargo || '')}</small></div>${bt}</div>`;
+    const ins = (S.toca[i.id] || {}).inst || '';
+    // presente: escolhe o instrumento, se ele tocou (o que outra pessoa já escolheu só ela muda)
+    const toca = !m ? '' : (m === 'meu' || !ins)
+      ? `<label class="toca">${ICO('music')}<select data-xi="${i.id}" data-f="xi:${i.id}" aria-label="Instrumento de ${esc(i.nome)}"><option value="">Não tocou</option>${INSTRUMENTOS.concat(ins && !INSTRUMENTOS.includes(ins) ? [ins] : []).map(x => `<option${x === ins ? ' selected' : ''}>${esc(x)}</option>`).join('')}</select></label>`
+      : `<span class="toca trav">${ICO('music')}${esc(ins)}</span>`;
+    return `<div class="row${m ? ' v' : ''}" data-id="${i.id}"><div><b>${esc(i.nome)}</b><small>${esc(loc || i.cargo || '')}</small></div>${bt}${toca}</div>`;
   }
   function desenharLista() {
     const el = document.getElementById('lista'); if (!el) return;
@@ -240,8 +248,9 @@
     if (ops.some(op => op.t === 'c')) cabecalho();
     if (ABA === 'min') {
       if (ops.some(op => op.t === 'i' || op.t === 'i-' || op.t === 'mc')) semPular(desenharLista);
-      else ops.filter(op => op.t === 'm').forEach(op => {
+      else ops.filter(op => op.t === 'm' || op.t === 'x').forEach(op => {
         const row = document.querySelector(`.row[data-id="${op.i}"]`), i = S.irmaos.find(x => x.id === op.i);
+        if (row && row.contains(document.activeElement)) return;
         if (row && i) { const t = document.createElement('div'); t.innerHTML = linha(i); const n = t.firstElementChild; if (!op.meu) n.classList.add('novo-r'); row.replaceWith(n); }
       });
       contMin();
@@ -285,8 +294,10 @@
       S.irmaos.push(i); ops.push({ t: 'i', id: i.id, campos: { nome, cargo, cidade, bairro } });
     }
     if (!S.marcas[i.id]) { S.marcas[i.id] = 'meu'; ops.push({ t: 'm', c: S.chamada.id, i: i.id, v: 1 }); }
+    const inst = document.getElementById('nInst').value;
+    if (inst && (S.marcas[i.id] === 'meu' || !(S.toca[i.id] || {}).inst)) { S.toca[i.id] = Object.assign({ loc: '' }, S.toca[i.id] || {}, { inst }); ops.push({ t: 'x', c: S.chamada.id, i: i.id, inst }); }
     if (ops.length) enviar(ops);
-    ['nNome', 'nCid', 'nBai'].forEach(id => { document.getElementById(id).value = ''; });
+    ['nNome', 'nCid', 'nBai', 'nInst'].forEach(id => { document.getElementById(id).value = ''; });
     BUSCA = ''; document.getElementById('busca').value = '';
     semPular(desenharLista);
     const row = document.querySelector(`.row[data-id="${i.id}"]`); if (row) { row.classList.add('novo-r'); row.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
@@ -318,6 +329,8 @@
     if (b) { const l = S.locais.find(x => x.id === b.dataset.menos); if (l) mudarInst(l.id, b.dataset.k, (l.inst[b.dataset.k] || 0) - 1); }
   });
   document.addEventListener('change', e => {
+    const x = e.target.closest && e.target.closest('[data-xi]');
+    if (x && S) { const id = x.dataset.xi; if (!S.marcas[id]) return; if (x.value) S.toca[id] = Object.assign({ loc: '' }, S.toca[id] || {}, { inst: x.value }); else if (S.toca[id]) S.toca[id].inst = ''; enviar([{ t: 'x', c: S.chamada.id, i: id, inst: x.value }]); return; }
     const s = e.target.closest && e.target.closest('[data-add]'); if (!s || !s.value) return;
     const id = s.dataset.add, k = s.value; s.value = '';
     const l = S.locais.find(x => x.id === id); if (!l) return;
