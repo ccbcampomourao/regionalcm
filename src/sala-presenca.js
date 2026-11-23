@@ -19,14 +19,30 @@ const ARQ = '_presenca_musical';
 const MAX_LOG = 3000;              // mudanças guardadas para quem volta (reconexão sem baixar tudo)
 const BACKUP_MS = 5 * 60 * 1000;   // cópia no KV
 const CAMPOS_I = ['nome', 'instrumento', 'cidade', 'bairro', 'cargo', 'grupo'];
-const CAMPOS_C = ['data', 'ocasiao', 'local', 'obs', 'tipo', 'grupos'];
+const CAMPOS_C = ['data', 'ocasiao', 'local', 'obs', 'tipo', 'grupos', 'cidade', 'presidente', 'hino', 'capitulo', 'livro', 'regente', 'hinos'];
 const CAMPOS_L = ['nome', 'total'];
 
+// Link da chamada (para quem não tem cadastro): o que essa pessoa pode fazer
+const CARGOS_LINK = ['Ancião', 'Diácono', 'Cooperador do Ofício Ministerial', 'Cooperador de Jovens e Menores', 'Encarregado Regional', 'Encarregado Local', 'Examinadora'];
+const GRUPOS_MIN = ['Ministério', 'Encarregados', 'Examinadoras'];
+const normal0 = v => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+// mesmo critério da tela (presenca-musical.js): grupo pelo cargo, quando não foi escolhido
+function grupoDoCargo(cargo) {
+  const c = normal0(cargo);
+  if (/ancia|diacon|cooperador/.test(c)) return 'Ministério';
+  if (/encarregad/.test(c)) return 'Encarregados';
+  if (/instrutor/.test(c)) return 'Instrutores';
+  if (/examinador/.test(c)) return 'Examinadoras';
+  if (/organista/.test(c)) return 'Organistas';
+  return 'Músicos';
+}
+const grupoDe = d => d.grupo || grupoDoCargo(d.cargo);
+const normal = v => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
 const txt = (v, max) => String(v == null ? '' : v).slice(0, max || 200);
 const idOk = v => typeof v === 'string' && /^[A-Za-z0-9_-]{1,40}$/.test(v);
 function so(campos, lista) {
   const o = {};
-  if (campos && typeof campos === 'object') lista.forEach(k => { if (k in campos) o[k] = txt(campos[k], k === 'obs' ? 500 : 200); });
+  if (campos && typeof campos === 'object') lista.forEach(k => { if (k in campos) o[k] = txt(campos[k], k === 'obs' || k === 'hinos' ? 500 : 200); });
   return o;
 }
 
@@ -41,6 +57,10 @@ export class SalaPresencaMusical extends DurableObject {
       this.sql.exec('CREATE TABLE IF NOT EXISTS log (seq INTEGER PRIMARY KEY, op TEXT NOT NULL)');
       // Ensaio Regional: músicos contados por localidade (total e quantidade de cada instrumento)
       this.sql.exec('CREATE TABLE IF NOT EXISTS locais (c TEXT NOT NULL, id TEXT NOT NULL, dados TEXT NOT NULL, PRIMARY KEY (c, id))');
+      // links de chamada para quem não tem cadastro (código -> chamada)
+      this.sql.exec('CREATE TABLE IF NOT EXISTS links (code TEXT PRIMARY KEY, c TEXT NOT NULL, criado INTEGER)');
+      // quem marcou (pelo link): só quem marcou pelo link pode desmarcar a própria marcação
+      try { this.sql.exec("ALTER TABLE marcas ADD COLUMN por TEXT DEFAULT ''"); } catch (e) { /* já tem */ }
       this.sql.exec('CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)');
       if (!this.meta('iniciado')) {
         // primeira vez: começa com a lista que já estava salva na nuvem
@@ -79,8 +99,66 @@ export class SalaPresencaMusical extends DurableObject {
     const locais = {};
     for (const r of this.sql.exec('SELECT c, id, dados FROM locais')) (locais[r.c] = locais[r.c] || []).push(Object.assign({ id: r.id }, JSON.parse(r.dados)));
     Object.values(locais).forEach(l => l.sort((a, b) => (a.ord || 0) - (b.ord || 0)));
-    const chamadas = [...this.sql.exec('SELECT id, dados FROM chamadas')].map(r => Object.assign({ id: r.id }, JSON.parse(r.dados), { marcas: marcas[r.id] || {}, locais: locais[r.id] || [] }));
+    const links = {};
+    for (const r of this.sql.exec('SELECT code, c FROM links')) links[r.c] = r.code;
+    const chamadas = [...this.sql.exec('SELECT id, dados FROM chamadas')].map(r => Object.assign({ id: r.id }, JSON.parse(r.dados), { marcas: marcas[r.id] || {}, locais: locais[r.id] || [] }, links[r.id] ? { link: links[r.id] } : {}));
     return { versao: 2, atualizado: +(this.meta('atualizado') || 0), irmaos, chamadas };
+  }
+
+  // o que quem entra pelo link vê: só aquela chamada e o ministério (nada dos músicos por nome)
+  tudoLink(c, cliente) {
+    const r = this.sql.exec('SELECT dados FROM chamadas WHERE id = ?', c).toArray();
+    if (!r.length) return null;
+    const ch = JSON.parse(r[0].dados);
+    const irmaos = [...this.sql.exec('SELECT id, dados FROM irmaos')].map(x => Object.assign({ id: x.id }, JSON.parse(x.dados)))
+      .filter(i => GRUPOS_MIN.includes(grupoDe(i)))
+      .map(i => ({ id: i.id, nome: i.nome, cargo: i.cargo || '', cidade: i.cidade || '', bairro: i.bairro || '', grupo: grupoDe(i) }));
+    const marcas = {};
+    for (const m of this.sql.exec('SELECT i, por FROM marcas WHERE c = ?', c)) marcas[m.i] = m.por && m.por === cliente ? 'meu' : 'v';
+    const locais = [...this.sql.exec('SELECT id, dados FROM locais WHERE c = ?', c)].map(x => Object.assign({ id: x.id }, JSON.parse(x.dados))).sort((a, b) => (a.ord || 0) - (b.ord || 0));
+    return { chamada: { id: c, data: ch.data || '', ocasiao: ch.ocasiao || '', local: ch.local || '', tipo: ch.tipo || 'nomes' }, irmaos, marcas, locais };
+  }
+
+  // pelo link só vale: marcar presença (desmarcar só o que o próprio aparelho marcou),
+  // acrescentar alguém do ministério (sem mudar quem já está) e contar músicos por localidade
+  permitidoLink(op, eu, troca) {
+    if (!op || typeof op !== 'object') return null;
+    if (op.t === 'm') {
+      const i = troca[op.i] || op.i;
+      if (op.c !== eu.c || !idOk(i)) return null;
+      if (!op.v) {
+        const m = this.sql.exec('SELECT por FROM marcas WHERE c = ? AND i = ?', op.c, i).toArray();
+        if (!m.length || m[0].por !== eu.cliente) return m.length ? { t: 'm', c: op.c, i, v: 1, corr: 1 } : null;
+      }
+      return { t: 'm', c: op.c, i, v: op.v ? 1 : 0 };
+    }
+    if (op.t === 'i') {
+      if (!idOk(op.id) || this.existe('irmaos', op.id)) return null;   // quem já está não muda
+      const cp = op.campos || {}, nome = txt(cp.nome, 120).replace(/\s+/g, ' ').trim();
+      if (!nome) return null;
+      const cargo = CARGOS_LINK.includes(cp.cargo) ? cp.cargo : 'Ancião';
+      // mesmo nome já cadastrado: usa quem já está
+      for (const x of this.sql.exec('SELECT id, dados FROM irmaos')) { if (normal(JSON.parse(x.dados).nome) === normal(nome)) { troca[op.id] = x.id; return null; } }
+      return { t: 'i', id: op.id, campos: { nome, cargo, grupo: grupoDoCargo(cargo), instrumento: '', cidade: txt(cp.cidade, 80), bairro: txt(cp.bairro, 80) } };
+    }
+    if (op.t === 'l') { if (op.c !== eu.c) return null; return op; }
+    return null;
+  }
+  // o que repassar para quem está pelo link
+  paraLink(ops, eu) {
+    const out = [];
+    let fechar = false;
+    ops.forEach(op => {
+      if ((op.t === 'm' || op.t === 'mc' || op.t === 'l' || op.t === 'l-') && op.c === eu.c) out.push(op.t === 'm' ? Object.assign({}, op, { meu: op.pc && op.pc === eu.cliente ? 1 : 0 }) : op);
+      else if (op.t === 'c' && op.id === eu.c) out.push({ t: 'c', id: op.id, campos: so(op.campos, ['data', 'ocasiao', 'local', 'tipo']) });
+      else if (op.t === 'i') {
+        const r = this.sql.exec('SELECT dados FROM irmaos WHERE id = ?', op.id).toArray();
+        if (r.length) { const d = JSON.parse(r[0].dados); out.push(GRUPOS_MIN.includes(grupoDe(d)) ? { t: 'i', id: op.id, campos: { nome: d.nome || '', cargo: d.cargo || '', cidade: d.cidade || '', bairro: d.bairro || '', grupo: grupoDe(d) } } : { t: 'i-', id: op.id }); }
+      } else if (op.t === 'i-') out.push(op);
+      else if ((op.t === 'c-' && op.id === eu.c) || (op.t === 'link-' && op.c === eu.c)) fechar = true;
+      else if (op.t === 'tudo') fechar = 'tudo';
+    });
+    return { out, fechar };
   }
 
   // uma localidade do Ensaio Regional: junta só o que veio (nome, total, e os instrumentos que mudaram)
@@ -109,7 +187,8 @@ export class SalaPresencaMusical extends DurableObject {
   // ACRESCENTAR presença: tirar alguém de presente (ou limpar a chamada) não vale, porque
   // a pessoa não estava vendo o que os outros marcaram. A sala devolve a presença certa
   // para esse aparelho (op com corr: 1), para a tela dele voltar a ficar igual à de todos.
-  aplicar(op, semRede) {
+  aplicar(op, semRede, eu) {
+    eu = eu || {};
     if (!op || typeof op !== 'object') return null;
     switch (op.t) {
       case 'm': {   // marca / desmarca presente
@@ -118,9 +197,12 @@ export class SalaPresencaMusical extends DurableObject {
           const tem = this.sql.exec('SELECT 1 FROM marcas WHERE c = ? AND i = ?', op.c, op.i).toArray().length > 0;
           return tem ? { t: 'm', c: op.c, i: op.i, v: 1, corr: 1 } : null;
         }
-        if (op.v) this.sql.exec('INSERT OR IGNORE INTO marcas (c, i) VALUES (?, ?)', op.c, op.i);
+        const pc = eu.link ? eu.cliente : '';
+        if (op.v) this.sql.exec("INSERT OR IGNORE INTO marcas (c, i, por) VALUES (?, ?, ?)", op.c, op.i, pc);
         else this.sql.exec('DELETE FROM marcas WHERE c = ? AND i = ?', op.c, op.i);
-        return { t: 'm', c: op.c, i: op.i, v: op.v ? 1 : 0 };
+        // pc = quem fica como "dono" da marcação (o primeiro que marcou pelo link)
+        const dono = op.v ? ((this.sql.exec('SELECT por FROM marcas WHERE c = ? AND i = ?', op.c, op.i).toArray()[0] || {}).por || '') : '';
+        return { t: 'm', c: op.c, i: op.i, v: op.v ? 1 : 0, pc: dono };
       }
       case 'mc': {  // todas as marcações de uma chamada (limpar / desfazer)
         if (!idOk(op.c) || !this.existe('chamadas', op.c)) return null;
@@ -157,6 +239,7 @@ export class SalaPresencaMusical extends DurableObject {
         this.sql.exec('DELETE FROM chamadas WHERE id = ?', op.id);
         this.sql.exec('DELETE FROM marcas WHERE c = ?', op.id);
         this.sql.exec('DELETE FROM locais WHERE c = ?', op.id);
+        this.sql.exec('DELETE FROM links WHERE c = ?', op.id);
         return { t: 'c-', id: op.id };
       }
       case 'l': {   // localidade do Ensaio Regional: nome, total e instrumentos (só o que mudou)
@@ -172,6 +255,18 @@ export class SalaPresencaMusical extends DurableObject {
         this.sql.exec('DELETE FROM locais WHERE c = ? AND id = ?', op.c, op.id);
         return { t: 'l-', c: op.c, id: op.id };
       }
+      case 'link': {  // cria (ou devolve) o link desta chamada
+        if (eu.link || !idOk(op.c) || !this.existe('chamadas', op.c)) return null;
+        let r = this.sql.exec('SELECT code FROM links WHERE c = ?', op.c).toArray();
+        let code = r.length ? r[0].code : null;
+        if (!code) { code = crypto.randomUUID().replace(/-/g, '').slice(0, 22); this.sql.exec('INSERT INTO links (code, c, criado) VALUES (?, ?, ?)', code, op.c, Date.now()); }
+        return { t: 'link', c: op.c, code, corr: 1 };
+      }
+      case 'link-': {
+        if (eu.link || !idOk(op.c)) return null;
+        this.sql.exec('DELETE FROM links WHERE c = ?', op.c);
+        return { t: 'link-', c: op.c, corr: 1 };
+      }
       case 'tudo': { // abrir backup / carregar arquivo: troca a lista inteira
         this.importar(op.db);
         return { t: 'tudo', db: this.tudo() };
@@ -183,12 +278,20 @@ export class SalaPresencaMusical extends DurableObject {
   async fetch(request) {
     const url = new URL(request.url);
     const email = request.headers.get('X-Email') || 'alguém';
-    if (url.pathname.endsWith('/estado')) return Response.json({ ok: true, seq: this.seq(), db: this.tudo() });
+    const codigo = request.headers.get('X-Link');
+    let c = null;
+    if (codigo) {   // link da chamada: confere antes de tudo (410 = desativado)
+      const r = this.sql.exec('SELECT c FROM links WHERE code = ?', codigo).toArray();
+      if (!r.length) return new Response('Link desativado', { status: 410 });
+      c = r[0].c;
+    } else if (url.pathname.endsWith('/estado')) return Response.json({ ok: true, seq: this.seq(), db: this.tudo() });
     if (request.headers.get('Upgrade') !== 'websocket') return new Response('Esperava WebSocket', { status: 426 });
     const par = new WebSocketPair();
     const [cliente, servidor] = Object.values(par);
     this.ctx.acceptWebSocket(servidor);
-    servidor.serializeAttachment({ email, cliente: txt(url.searchParams.get('cliente'), 40), desde: Date.now() });
+    servidor.serializeAttachment(codigo
+      ? { email: 'pelo link', link: codigo, c, cliente: txt(url.searchParams.get('cliente'), 40), desde: Date.now() }
+      : { email, cliente: txt(url.searchParams.get('cliente'), 40), desde: Date.now() });
     return new Response(null, { status: 101, webSocket: cliente });
   }
 
@@ -198,12 +301,42 @@ export class SalaPresencaMusical extends DurableObject {
   }
   espalhar(msg, exceto) {
     const s = JSON.stringify(msg);
-    for (const ws of this.ctx.getWebSockets()) { if (ws === exceto) continue; try { ws.send(s); } catch (e) {} }
+    for (const ws of this.ctx.getWebSockets()) {
+      if (ws === exceto) continue;
+      let a = {}; try { a = ws.deserializeAttachment() || {}; } catch (e) {}
+      try {
+        if (!a.link) { ws.send(s); continue; }
+        if (msg.t === 'gente') { ws.send(JSON.stringify({ t: 'gente', n: msg.lista.length })); continue; }
+        if (msg.t !== 'mudou') continue;
+        const { out, fechar } = this.paraLink(msg.ops || [], a);
+        if (fechar === 'tudo') { const d = this.tudoLink(a.c, a.cliente); if (d) ws.send(JSON.stringify(Object.assign({ t: 'tudo' }, d))); else ws.close(4410, 'link'); continue; }
+        if (fechar) { ws.send(JSON.stringify({ t: 'fim' })); ws.close(4410, 'link'); continue; }
+        if (out.length || (msg.cliente && msg.cliente === a.cliente)) ws.send(JSON.stringify({ t: 'mudou', lote: msg.cliente === a.cliente ? msg.lote : null, ops: out }));
+      } catch (e) {}
+    }
   }
 
   async webSocketMessage(ws, data) {
     let msg; try { msg = JSON.parse(typeof data === 'string' ? data : new TextDecoder().decode(data)); } catch (e) { return; }
     const eu = (() => { try { return ws.deserializeAttachment() || {}; } catch (e) { return {}; } })();
+
+    if (eu.link) {
+      // pelo link: confere se o link ainda vale
+      const ok = this.sql.exec('SELECT c FROM links WHERE code = ?', eu.link).toArray();
+      if (!ok.length) { ws.send(JSON.stringify({ t: 'fim' })); ws.close(4410, 'link'); return; }
+      if (msg.t === 'ola') {
+        const d = this.tudoLink(eu.c, eu.cliente);
+        if (!d) { ws.send(JSON.stringify({ t: 'fim' })); ws.close(4410, 'link'); return; }
+        ws.send(JSON.stringify(Object.assign({ t: 'tudo' }, d)));
+        this.espalhar({ t: 'gente', lista: this.gente() });
+        return;
+      }
+      if (msg.t === 'ops' && Array.isArray(msg.ops)) {
+        const troca = {}, limpas = [];
+        msg.ops.slice(0, 200).forEach(op => { const x = this.permitidoLink(op, eu, troca); if (x) limpas.push(x); });
+        msg = { t: 'ops', lote: msg.lote, off: msg.off, ops: limpas };
+      } else return;
+    }
 
     if (msg.t === 'ola') {
       // quem chega (ou volta): manda só o que mudou desde a última vez, ou a lista inteira
@@ -224,7 +357,7 @@ export class SalaPresencaMusical extends DurableObject {
       let seq = this.seq();
       this.ctx.storage.transactionSync(() => {
         msg.ops.slice(0, 2000).forEach(op => {
-          const ok = this.aplicar(op, !!msg.off); if (!ok) return;
+          const ok = op.corr ? op : this.aplicar(op, !!msg.off, eu); if (!ok) return;
           seq++;
           const reg = Object.assign(ok, { seq, por: eu.email || '' });
           // a troca da lista inteira não fica no histórico (é grande): quem voltar recebe "tudo"
@@ -237,7 +370,12 @@ export class SalaPresencaMusical extends DurableObject {
         if (seq % 200 === 0) this.sql.exec('DELETE FROM log WHERE seq <= ?', seq - MAX_LOG);
       });
       // confirma para quem mandou (mesmo se nada valeu) e repassa para todos
+      // quem criou/desativou o link só interessa a quem tem cadastro
       this.espalhar({ t: 'mudou', lote: msg.lote || null, cliente: eu.cliente || null, ops: feitas, seq });
+      if (feitas.some(o => o.t === 'link-')) {
+        const fora = feitas.filter(o => o.t === 'link-').map(o => o.c);
+        for (const w of this.ctx.getWebSockets()) { let a = {}; try { a = w.deserializeAttachment() || {}; } catch (e) {} if (a.link && fora.includes(a.c)) { try { w.send(JSON.stringify({ t: 'fim' })); w.close(4410, 'link'); } catch (e) {} } }
+      }
       if (feitas.length && (await this.ctx.storage.getAlarm()) == null) await this.ctx.storage.setAlarm(Date.now() + BACKUP_MS);
     }
   }

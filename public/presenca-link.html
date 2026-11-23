@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<title>Lista de presença</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/ui.css">
+<style>
+/* Página aberta pelo link da chamada: sem login, só para marcar presença e contar.
+   (o que pode ou não fazer é conferido pelo servidor: src/sala-presenca.js) */
+:root{--primary:#1b2a41;--brass:#a97d3d;--bg:#f5f1e8;--line:#e6dcc4;--ink:#24304a;--muted:#7a7263;--ok:#3d7a57;--bad:#b65a48}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 Inter,system-ui,Arial,sans-serif;-webkit-text-size-adjust:100%}
+body{padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+svg.ic{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+.topo{background:linear-gradient(180deg,#22344f,#1b2a41);color:#fff;padding:16px 16px 14px;position:sticky;top:0;z-index:10;box-shadow:0 6px 18px -12px rgba(0,0,0,.6)}
+.topo .l1{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.topo small{display:block;color:#e2c48f;font-weight:700;font-size:11.5px;letter-spacing:.12em;text-transform:uppercase}
+.topo h1{margin:2px 0 0;font:600 21px/1.15 Fraunces,Georgia,serif}
+.topo .sub{color:#cfd8e5;font-size:13px;margin-top:2px}
+.vivo{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#b5e3c4;white-space:nowrap;padding-top:3px}
+.vivo i{width:8px;height:8px;border-radius:50%;background:#8fd0a5}
+.vivo.off{color:#f1d18f}.vivo.off i{background:#f1d18f;animation:pisca 1.2s infinite}
+@keyframes pisca{50%{opacity:.3}}
+@media (prefers-reduced-motion:reduce){.vivo.off i{animation:none}}
+.abas{display:flex;gap:4px;margin-top:12px;background:rgba(255,255,255,.1);border-radius:12px;padding:4px}
+.abas button{flex:1;border:0;background:none;color:#dfe6f0;padding:9px 6px;border-radius:9px;font-weight:600;font-size:14px;display:flex;align-items:center;justify-content:center;gap:6px}
+.abas button.on{background:#fff;color:var(--primary)}
+.abas em{font-style:normal;font-size:12px;opacity:.75}
+main{max-width:760px;margin:0 auto;padding:14px 12px}
+.cont{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+.cont span{background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:13px;color:var(--muted)}
+.cont b{display:block;font-size:20px;color:var(--primary);line-height:1.1}
+.busca{position:relative;margin-bottom:10px}
+.busca svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#a39a85}
+input,select{width:100%;border:1px solid var(--line);background:#fffdf8;border-radius:10px;padding:11px 12px;font-size:15px;min-width:0}
+input:focus,select:focus{outline:2px solid #6b8fbf;outline-offset:1px;background:#fff}
+.busca input{padding-left:38px}
+.lista{background:#fff;border:1px solid #efe8d6;border-radius:14px;overflow:hidden}
+.gh{padding:9px 14px 6px;background:#f6f1e4;font-weight:700;font-size:12.5px;letter-spacing:.04em;color:#6f6550;border-top:1px solid #efe6cf}
+.gh:first-child{border-top:0}
+.gh em{font-style:normal;color:#a39a85;font-weight:600}
+.row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 12px 10px 14px;border-top:1px solid #f3eddf}
+.row.v{background:#eef7f1}
+.row b{display:block;color:var(--primary);font-size:15px}
+.row small{display:block;color:var(--muted);font-size:12.5px}
+.bt{border:1px solid var(--line);background:#fff;border-radius:11px;padding:10px 14px;font-weight:600;font-size:14px;display:inline-flex;align-items:center;gap:6px;color:#6d6652;min-width:118px;justify-content:center}
+.bt.on{background:var(--ok);border-color:var(--ok);color:#fff}
+.bt.trav{background:#e3efe7;border-color:#c5dccd;color:#2f6346;cursor:default}
+.novo{margin-top:12px;background:#fdfbf6;border:1.5px dashed #dccfae;border-radius:14px;padding:12px;display:grid;gap:8px;grid-template-columns:1fr 1fr}
+.novo h2{grid-column:1/3;margin:0;font-size:14px;color:var(--primary)}
+.novo .s2{grid-column:1/3}
+.primary{background:linear-gradient(180deg,#2c3f5c,#1b2a41);color:#fff;border:0;border-radius:11px;padding:12px 16px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.dica{font-size:12.5px;color:var(--muted);margin:8px 2px 0;line-height:1.45}
+.loc{background:#fff;border:1px solid #e9dfc8;border-radius:14px;padding:12px;margin-bottom:10px}
+.loc-h{display:grid;grid-template-columns:minmax(0,1fr) 92px;gap:8px;align-items:end}
+.loc-h label{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8f846b;display:block;margin:0 0 4px 2px}
+.loc-h .tot input{text-align:center;font-weight:700;font-size:17px;color:var(--primary)}
+.insts{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.inst{display:inline-flex;align-items:center;gap:2px;border:1px solid var(--line);border-radius:11px;background:#fdfbf6;padding:3px 3px 3px 10px}
+.inst span{font-size:14px;margin-right:4px}
+.inst button{border:0;background:#f1ecdf;width:34px;height:34px;border-radius:9px;font-size:18px;color:var(--primary)}
+.inst input{width:46px;padding:5px 2px;text-align:center;font-weight:700;border-color:transparent;background:transparent}
+.insts select{width:auto;padding:8px 10px;font-size:14px}
+.dif{display:block;margin-top:6px;font-size:12.5px;color:#a46a12}
+.dif[hidden]{display:none}
+.tots{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.tots span{background:#f6f1e4;border-radius:8px;padding:4px 10px;font-size:13px}
+.vazio{padding:22px 14px;text-align:center;color:var(--muted)}
+.fim{max-width:420px;margin:18vh auto 0;text-align:center;padding:24px}
+.fim h1{font:600 22px Fraunces,Georgia,serif;color:var(--primary)}
+.fim p{color:var(--muted)}
+.row.novo-r{animation:realce 1.4s ease-out}
+@keyframes realce{from{box-shadow:inset 3px 0 0 #6b8fbf}to{box-shadow:inset 3px 0 0 transparent}}
+@media (prefers-reduced-motion:reduce){.row.novo-r{animation:none}}
+@media (max-width:420px){.bt{min-width:0;padding:10px 12px}}
+</style>
+</head>
+<body>
+<div id="app"><div class="fim"><h1>Abrindo a lista…</h1><p>Um instante.</p></div></div>
+<script src="/assets/ui.js"></script>
+<script src="/assets/presenca-link.js"></script>
+</body>
+</html>

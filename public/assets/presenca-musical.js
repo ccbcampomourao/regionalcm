@@ -21,11 +21,12 @@ const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLow
 const novoId = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
 const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 const DIAS = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
-const INSTRUMENTOS = ['Cornet', 'Trompete', 'Flugelhorn', 'Trompa', 'Trombone', 'Trombonito', 'Barítono', 'Euphonium', 'Tuba', 'Violino', 'Viola', 'Violoncelo', 'Flauta', 'Oboé', 'Corne Inglês', 'Fagote', 'Clarinete', 'Clarone', 'Saxofone Soprano', 'Saxofone Alto', 'Saxofone Tenor', 'Saxofone Barítono', 'Órgão'];
+// na ordem do relatório do Ensaio Regional
+const INSTRUMENTOS = ['Violino', 'Viola', 'Violoncelo', 'Flauta', 'Clarinete', 'Clarinete Alto', 'Clarinete Baixo', 'Oboé', "Oboé d'Amore", 'Corne Inglês', 'Fagote', 'Saxofone Soprano', 'Saxofone Alto', 'Saxofone Tenor', 'Saxofone Barítono', 'Saxofone Baixo', 'Trompete', 'Cornet', 'Flugelhorn', 'Trompa', 'Trombone', 'Trombonito', 'Euphonium', 'Tuba', 'Acordeon', 'Órgão'];
 const OCASIOES = ['Ensaio Regional', 'Ensaio Local', 'Reunião de Músicos', 'Reunião de Encarregados', 'Culto Oficial', 'Batismo', 'Santa Ceia', 'Teste de Músicos'];
 /* subcategorias: cada irmão está num grupo; cada chamada diz quais grupos entram */
 const GRUPOS = ['Ministério', 'Encarregados', 'Instrutores', 'Examinadoras', 'Organistas', 'Músicos'];
-const GRUPOS_REGIONAL = ['Ministério', 'Encarregados'];   // no Ensaio Regional, nome por nome só eles
+const GRUPOS_REGIONAL = ['Ministério', 'Encarregados', 'Examinadoras'];   // no Ensaio Regional, nome por nome só eles
 const ordemGrupo = g => { const k = GRUPOS.indexOf(g); return k < 0 ? 50 : k; };
 function grupoDoCargo(cargo) {
   const c = norm(cargo);
@@ -37,7 +38,7 @@ function grupoDoCargo(cargo) {
   return 'Músicos';
 }
 // ordem do ministério no Ensaio Regional (subcategorias pelo cargo)
-const CARGOS_MIN = [['Ancião', 'Anciães'], ['Diácono', 'Diáconos'], ['Cooperador do Ofício Ministerial', 'Cooperadores do Ofício Ministerial'], ['Cooperador de Jovens e Menores', 'Cooperadores de Jovens e Menores'], ['Encarregado Regional', 'Encarregados Regionais'], ['Encarregado Local', 'Encarregados Locais']];
+const CARGOS_MIN = [['Ancião', 'Anciães'], ['Diácono', 'Diáconos'], ['Cooperador do Ofício Ministerial', 'Cooperadores do Ofício Ministerial'], ['Cooperador de Jovens e Menores', 'Cooperadores de Jovens e Menores'], ['Encarregado Regional', 'Encarregados Regionais'], ['Encarregado Local', 'Encarregados Locais'], ['Examinadora', 'Examinadoras']];
 const ordemCargo = cg => { const k = CARGOS_MIN.findIndex(([s]) => norm(s) === norm(cg)); return k < 0 ? 50 : k; };
 const cargoPlural = cg => { const x = CARGOS_MIN.find(([s]) => norm(s) === norm(cg)); return x ? x[1] : (cg || 'Outros'); };
 const hojeISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
@@ -68,7 +69,7 @@ function normalizar(d) {
     return n;
   });
   db.chamadas = (Array.isArray(d.chamadas) ? d.chamadas : []).map(c => {
-    const n = Object.assign({ id: novoId(), data: '', ocasiao: '', local: '', obs: '', tipo: 'nomes', grupos: '', marcas: {}, locais: [] }, c);
+    const n = Object.assign({ id: novoId(), data: '', ocasiao: '', local: '', obs: '', tipo: 'nomes', grupos: '', marcas: {}, locais: [], cidade: '', presidente: '', hino: '', capitulo: '', livro: '', regente: '', hinos: '' }, c);
     const m = n.marcas && typeof n.marcas === 'object' ? n.marcas : {};
     n.marcas = {};   // só "presente" é marcado; quem não está aqui é ausente
     Object.keys(m).forEach(k => { if (m[k] === 'v') n.marcas[k] = 'v'; });
@@ -371,7 +372,7 @@ async function carregarRelatorio(forcar) {
 async function puxarMinisterio() {
   const igs = await carregarRelatorio(true);
   if (!igs.length) { UI.toast('Não achei o Relatório de Igrejas (nem neste aparelho, nem na nuvem). Abra o Relatório de Igrejas uma vez, ou peça acesso a ele.', 'error'); return; }
-  const CAMPOS = [['anciaes', 'Ancião', 'Ministério'], ['diaconos', 'Diácono', 'Ministério'], ['coopOficio', 'Cooperador do Ofício Ministerial', 'Ministério'], ['coopJovens', 'Cooperador de Jovens e Menores', 'Ministério'], ['encRegionais', 'Encarregado Regional', 'Encarregados'], ['encLocais', 'Encarregado Local', 'Encarregados']];
+  const CAMPOS = [['anciaes', 'Ancião', 'Ministério'], ['diaconos', 'Diácono', 'Ministério'], ['coopOficio', 'Cooperador do Ofício Ministerial', 'Ministério'], ['coopJovens', 'Cooperador de Jovens e Menores', 'Ministério'], ['encRegionais', 'Encarregado Regional', 'Encarregados'], ['encLocais', 'Encarregado Local', 'Encarregados'], ['examinadoras', 'Examinadora', 'Examinadoras']];
   const achados = new Map();   // nome -> {cargo, grupo, cidade, bairro} (fica o cargo mais alto)
   igs.forEach(g => CAMPOS.forEach(([k, cargo, grupo], ord) => (g[k] || []).forEach(n => {
     n = nomeBonito(String(n || '').replace(/\s+/g, ' ').trim()); if (!n) return;
@@ -489,6 +490,7 @@ function desenharChamada() {
       ${reg ? '' : `<div class="campo s4"><label>Quem entra nesta chamada</label><div class="pm-chips">${grupos.map(g => `<button type="button" class="pm-chip${sel.includes(g) ? ' on' : ''}" onclick="alternarGrupo(this.dataset.g)" data-g="${esc(g)}" aria-pressed="${sel.includes(g)}">${sel.includes(g) ? ICO('check') : ''}${esc(g)} <em>${DB.irmaos.filter(i => i.grupo === g).length}</em></button>`).join('')}</div></div>`}
     </div>
   </section>
+  ${reg ? blocoLink(c) : ''}
   <section class="bloco"><h3><span class="bi">${ICO('users')}</span><span>${reg ? 'Ministério e encarregados' : 'Irmãos'}<br><small>${reg ? 'Por cargo, em ordem alfabética · toque em Presente' : 'Por grupo, em ordem alfabética · toque em Presente; quem não for marcado fica como ausente'}</small></span><em id="emFiltro">${lst.length} de ${k.t}</em></h3>
     ${reg && !k.t ? `<div class="pm-imp">${ICO('users')}<div><b>Ainda não há ministério na lista</b><small>Puxe os anciães, diáconos, cooperadores e encarregados do Relatório de Igrejas (ou acrescente um por um).</small></div><button type="button" class="primary" onclick="puxarMinisterio()">${ICO('refresh')}Puxar do Relatório</button></div>` : ''}
     <div class="pm-filtros">
@@ -525,7 +527,17 @@ function desenharChamada() {
     <div class="pm-locs" id="locais"></div>
     <div class="linha-b"><button type="button" class="primary" onclick="addLocal()">${ICO('plus')}Acrescentar localidade</button></div>
   </section>
-  <section class="bloco"><h3><span class="bi">${ICO('grid')}</span><span>Totais do ensaio</span></h3><div class="pm-tot" id="pmTotais"></div></section>` : ''}`;
+  <section class="bloco"><h3><span class="bi">${ICO('file')}</span><span>Relatório do ensaio<br><small>Os números vêm das presenças e das localidades · complete o atendimento e os hinos</small></span><button type="button" class="primary" style="margin-left:auto" onclick="gerarRelatorioPDF()">${ICO('print')}<span class="lbl-md">Gerar relatório</span></button></h3>
+    <div class="grid g4 pm-ata">
+      <div class="campo"><label>Cidade</label><input data-c="cidade" list="dlCidades" value="${esc(c.cidade)}" placeholder="${esc(CIDADE_PADRAO)}"></div>
+      <div class="campo s3"><label>Presidido pelo irmão</label><input data-c="presidente" list="dlPresidente" value="${esc(c.presidente)}" placeholder="ex.: ancião Daniel Castanheira Lopes da Silva"></div>
+      <div class="campo"><label>Hino cantado</label><input data-c="hino" inputmode="numeric" value="${esc(c.hino)}" placeholder="ex.: 1"></div>
+      <div class="campo"><label>Capítulo</label><input data-c="capitulo" inputmode="numeric" value="${esc(c.capitulo)}" placeholder="ex.: 1"></div>
+      <div class="campo s2"><label>Livro</label><input data-c="livro" list="dlLivros" value="${esc(c.livro)}" placeholder="ex.: Josué"></div>
+      <div class="campo s4"><label>Regente</label><input data-c="regente" value="${esc(c.regente)}" placeholder="ex.: Jonas Mafra - Ribeirão Preto"></div>
+      <div class="campo s4"><label>Hinos ensaiados <small>(na ordem, separados por espaço ou vírgula)</small></label><input data-c="hinos" value="${esc(c.hinos)}" placeholder="ex.: 374 63 257 17"></div>
+    </div>
+    <div class="pm-rel-wrap" id="pmTotais"></div></section>` : ''}`;
   desenharLinhas();
   if (reg) { desenharLocais(); atualizarTotais(); carregarRelatorio(false); }
 }
@@ -551,6 +563,45 @@ function desenharLinhas() {
   const em = document.getElementById('emFiltro'); if (em) em.textContent = `${lst.length} de ${todos.length}`;
   document.querySelectorAll('.pm-seg button').forEach((b, i) => b.classList.toggle('on', ['', 'v', 'n'][i] === FILTRO.so));
 }
+/* ---------- link da chamada (para quem não tem cadastro) ----------
+   Quem abre o link (sem login) só consegue: marcar presença do ministério, desmarcar o que
+   ele mesmo marcou, acrescentar alguém do ministério (sem mudar quem já está) e contar os
+   músicos por localidade. A sala (src/sala-presenca.js) confere tudo isso. */
+const urlLink = c => location.origin + '/presenca-link#' + c.link;
+function blocoLink(c) {
+  const ao = aoVivo() && VIVO.ws && VIVO.ws.readyState === 1;
+  return `<section class="bloco"><h3><span class="bi">${ICO('pin')}</span><span>Link para quem não tem cadastro<br><small>Sem login: marca presença do ministério, acrescenta quem não está na lista e conta os músicos. Não muda nem apaga quem já está.</small></span></h3>
+    ${c.link ? `<div class="pm-link"><input readonly value="${esc(urlLink(c))}" aria-label="Link da chamada" onfocus="this.select()">
+      <button type="button" class="primary" onclick="copiarLink()">${ICO('copy')}Copiar</button>
+      ${navigator.share ? `<button type="button" onclick="compartilharLink()">${ICO('arrow-right')}Enviar</button>` : ''}
+      <button type="button" class="danger" onclick="desativarLink()">${ICO('x')}Desativar</button></div>
+      <div class="dica" style="margin:8px 0 0">Quem estiver com o link aberto aparece em “Ao vivo” como “pelo link”. Desativando, o link para de funcionar na hora.</div>`
+    : `<div class="linha-b" style="margin-top:0"><button type="button" class="primary" onclick="criarLink()"${ao ? '' : ' disabled title="Precisa estar ao vivo (com internet)"'}>${ICO('plus')}Criar link desta chamada</button></div>`}
+  </section>`;
+}
+function enviarOpsDiretas(ops) {
+  if (!(aoVivo() && VIVO.ws && VIVO.ws.readyState === 1 && VIVO.abriu)) { UI.toast('Para isso é preciso estar ao vivo (com internet).', 'error'); return false; }
+  enviarAgora();
+  const lote = { lote: novoId(), ops, off: false };
+  VIVO.fila.push(lote); gravarFila(); VIVO.ws.send(JSON.stringify(Object.assign({ t: 'ops' }, lote)));
+  return true;
+}
+function criarLink() { const c = CHAM(); if (c) enviarOpsDiretas([{ t: 'link', c: c.id }]); }
+async function desativarLink() {
+  const c = CHAM(); if (!c || !c.link) return;
+  if (!(await UI.confirm('Desativar o link?', 'Quem estiver com ele aberto não consegue mais marcar nada. Dá para criar outro depois (com outro endereço).', { ok: 'Desativar', danger: true }))) return;
+  enviarOpsDiretas([{ t: 'link-', c: c.id }]);
+}
+async function copiarLink() {
+  const c = CHAM(); if (!c || !c.link) return;
+  try { await navigator.clipboard.writeText(urlLink(c)); UI.toast('Link copiado. Mande para quem vai ajudar na chamada.', 'ok'); }
+  catch (e) { const i = document.querySelector('.pm-link input'); if (i) { i.focus(); i.select(); } UI.toast('Selecione o link e copie.', 'info'); }
+}
+function compartilharLink() {
+  const c = CHAM(); if (!c || !c.link) return;
+  navigator.share({ title: 'Lista de presença · ' + (c.ocasiao || 'Ensaio Regional'), text: `Lista de presença do ${c.ocasiao || 'Ensaio Regional'} (${dataBR(c.data)}):`, url: urlLink(c) }).catch(() => {});
+}
+
 /* ---------- tipo de lista e grupos da chamada ---------- */
 function mudarTipo(t) {
   const c = CHAM(); if (!c || c.tipo === t) return;
@@ -587,11 +638,11 @@ function desenharLocais() {
 }
 function atualizarTotais() {
   const c = CHAM(), el = document.getElementById('pmTotais'); if (!c || !el || c.tipo !== 'regional') return;
-  const k = contar(c), inst = {};
-  c.locais.forEach(l => Object.keys(l.inst).forEach(i => { inst[i] = (inst[i] || 0) + l.inst[i]; }));
-  const lst = Object.keys(inst).sort(ordInst);
-  el.innerHTML = `<div class="pm-tot-n"><span><b>${k.v}</b>do ministério</span><span><b>${k.musicos}</b>${k.musicos === 1 ? 'músico' : 'músicos'}</span><span><b>${k.locs}</b>${k.locs === 1 ? 'localidade' : 'localidades'}</span></div>
-    ${lst.length ? `<div class="pm-tot-i">${lst.map(i => `<span>${esc(i)} <b>${inst[i]}</b></span>`).join('')}</div>` : '<div class="dica" style="margin:0">Os instrumentos somados de todas as localidades aparecem aqui.</div>'}`;
+  const k = contar(c);
+  el.innerHTML = relTabelaHTML(c, true);
+  let pres = document.getElementById('dlPresidente');
+  if (!pres) { pres = document.createElement('datalist'); pres.id = 'dlPresidente'; document.body.appendChild(pres); }
+  if (pres) pres.innerHTML = DB.irmaos.filter(i => c.marcas[i.id] === 'v' && /ancia|diacon|cooperador/.test(norm(i.cargo))).sort((a, b) => ordemCargo(a.cargo) - ordemCargo(b.cargo) || ordemNome(a, b)).map(i => `<option value="${esc(norm(i.cargo).startsWith('cooperador') ? 'cooperador ' + i.nome : i.cargo.toLowerCase() + ' ' + i.nome)}">`).join('');
   const em = document.getElementById('emLocs'); if (em) em.textContent = `${k.locs} ${k.locs === 1 ? 'localidade' : 'localidades'}`;
   const ct = document.getElementById('contagem'); if (ct) ct.innerHTML = contagemHTML(k, c);
 }
@@ -641,6 +692,7 @@ document.addEventListener('change', e => {
 function atualizarContagem() {
   const c = CHAM(); if (!c) return;
   const el = document.getElementById('contagem'); if (el) el.innerHTML = contagemHTML(contar(c), c);
+  if (c.tipo === 'regional') atualizarTotais();
   desenharLista();
 }
 function marcar(id) {
@@ -718,6 +770,7 @@ document.addEventListener('input', e => {
   if (el.dataset && el.dataset.c) {
     const c = CHAM(); if (!c) return;
     c[el.dataset.c] = el.value; guardar();
+    if (c.tipo === 'regional') atualizarTotais();
     if (el.dataset.c === 'ocasiao' && /^ensaio regional$/i.test(el.value.trim()) && c.tipo !== 'regional' && !Object.keys(c.marcas).length) {
       c.tipo = 'regional'; guardar(); UI.toast('Lista trocada para Ensaio Regional: ministério nome por nome e músicos por localidade.', 'info');
       semPular(desenharChamada); desenharLista(); return;
@@ -796,8 +849,24 @@ function desenharResumo() {
 }
 
 /* ---------- PDF ---------- */
+function abrirImpressao(html) {
+  const w = window.open('', '_blank'); if (!w) { UI.toast('O navegador bloqueou a janela do PDF. Permita janelas deste site.', 'error'); return; }
+  w.document.open(); w.document.write(html); w.document.close();
+  setTimeout(() => { try { w.focus(); w.print(); } catch (e) {} }, 600);
+}
+function gerarRelatorioPDF() { const c = CHAM(); if (c) abrirImpressao(relatorioRegionalHTML(c)); }
 async function gerarPDF() {
   const c = CHAM();
+  if (c && c.tipo === 'regional') {
+    const v = await UI.dialog({
+      title: 'Gerar PDF do Ensaio Regional', icon: 'print',
+      body: `<p class="ui-modal__p">O relatório do ensaio (resumo por instrumento, ministério e hinos) ou a lista de presença com os nomes.</p>`,
+      actions: [{ label: 'Cancelar', value: null }, { label: 'Lista em branco', value: 'branco', icon: 'file' }, { label: 'Lista de presença', value: 'chamada', icon: 'check' }, { label: 'Relatório do ensaio', value: 'rel', primary: true, icon: 'file' }]
+    });
+    if (!v) return;
+    if (v === 'rel') return gerarRelatorioPDF();
+    return abrirImpressao(documentoRegionalHTML(c, v === 'chamada'));
+  }
   if (!DB.irmaos.length) { UI.toast('Coloque os irmãos primeiro (aba Irmãos).', 'info'); return; }
   const tem = c && Object.keys(c.marcas).length;
   const v = await UI.dialog({
@@ -929,6 +998,103 @@ ${c && c.obs ? `<div style="font-size:9pt;margin:-3px 0 8px"><b>Observação:</b
 </body></html>`;
 }
 
+/* ---------- Relatório do Ensaio Regional (igual ao modelo em papel) ----------
+   Instrumentos na ordem do relatório; cada linha junta os nomes que contam nela.
+   Órgão conta como organista. Total geral = músicos e organistas + anciães, diáconos e
+   cooperadores (encarregados e examinadoras já estão entre os músicos e organistas). */
+const LIVROS = ['Gênesis', 'Êxodo', 'Levítico', 'Números', 'Deuteronômio', 'Josué', 'Juízes', 'Rute', '1 Samuel', '2 Samuel', '1 Reis', '2 Reis', '1 Crônicas', '2 Crônicas', 'Esdras', 'Neemias', 'Ester', 'Jó', 'Salmos', 'Provérbios', 'Eclesiastes', 'Cantares', 'Isaías', 'Jeremias', 'Lamentações', 'Ezequiel', 'Daniel', 'Oséias', 'Joel', 'Amós', 'Obadias', 'Jonas', 'Miquéias', 'Naum', 'Habacuque', 'Sofonias', 'Ageu', 'Zacarias', 'Malaquias', 'Mateus', 'Marcos', 'Lucas', 'João', 'Atos', 'Romanos', '1 Coríntios', '2 Coríntios', 'Gálatas', 'Efésios', 'Filipenses', 'Colossenses', '1 Tessalonicenses', '2 Tessalonicenses', '1 Timóteo', '2 Timóteo', 'Tito', 'Filemom', 'Hebreus', 'Tiago', '1 Pedro', '2 Pedro', '1 João', '2 João', '3 João', 'Judas', 'Apocalipse'];
+const REL_INST = [
+  ['VIOLINO', ['Violino'], 'c'], ['VIOLA', ['Viola'], 'c'], ['VIOLONCELO', ['Violoncelo'], 'c'],
+  ['FLAUTA', ['Flauta'], 'm'], ['CLARINETE', ['Clarinete'], 'm'], ['CLARINETE ALTO', ['Clarinete Alto'], 'm'], ['CLARINETE BAIXO', ['Clarinete Baixo', 'Clarone'], 'm'],
+  ["OBOÉ / OBOÉ D' AMORE", ['Oboé', "Oboé d'Amore", 'Oboé d Amore'], 'm'], ['CORNE INGLÊS', ['Corne Inglês'], 'm'], ['FAGOTE', ['Fagote'], 'm'],
+  ['SAXOFONE SOPRANO', ['Saxofone Soprano', 'Sax Soprano'], 'm'], ['SAXOFONE ALTO', ['Saxofone Alto', 'Sax Alto', 'Saxofone'], 'm'], ['SAXOFONE TENOR', ['Saxofone Tenor', 'Sax Tenor'], 'm'],
+  ['SAXOFONE BARÍTONO', ['Saxofone Barítono', 'Sax Barítono'], 'm'], ['SAXOFONE BAIXO', ['Saxofone Baixo', 'Sax Baixo'], 'm'],
+  ['TROMPETE / CORNET', ['Trompete', 'Cornet'], 'b'], ['FLUGELHORN', ['Flugelhorn'], 'b'], ['TROMPA', ['Trompa'], 'b'], ['TROMBONE / TROMBONITO', ['Trombone', 'Trombonito'], 'b'],
+  ['EUPHONIO / BARÍTONO DE PISTO', ['Euphonium', 'Euphonio', 'Eufônio', 'Barítono', 'Barítono de Pisto'], 'b'], ['TUBA', ['Tuba'], 'b'], ['ACORDEON', ['Acordeon', 'Acordeão'], '']
+];
+const REL_MIN = [['ANCIÃES', /ancia/, 1], ['DIÁCONOS', /diacon/, 1], ['COOPERADORES CULTO OFICIAL', /cooperador.*(oficio|culto)/, 1], ['COOPERADORES DE JOVENS E MENORES', /cooperador.*jove/, 1], ['ENCARREGADOS REGIONAIS', /encarregad.*regional/, 0], ['ENCARREGADOS LOCAIS', /encarregad.*local/, 0], ['EXAMINADORAS', /examinador/, 0]];
+const listaHinos = c => String(c.hinos || '').split(/[\s,;/]+/).map(x => x.trim()).filter(Boolean);
+function relDados(c) {
+  const soma = {}; let org = 0, mus = 0;
+  (c.locais || []).forEach(l => {
+    let o = 0;
+    Object.keys(l.inst || {}).forEach(k => { const n = +l.inst[k] || 0; if (norm(k) === 'orgao') o += n; else soma[norm(k)] = (soma[norm(k)] || 0) + n; });
+    org += o; mus += Math.max(0, totalLocal(l) - o);
+  });
+  const usados = new Set();
+  const inst = REL_INST.map(([rot, al, fam]) => { let n = 0; al.forEach(a => { const k = norm(a); if (soma[k] && !usados.has(k)) { n += soma[k]; usados.add(k); } }); return { rot, n, fam }; });
+  Object.keys(soma).forEach(k => { if (!usados.has(k) && soma[k]) { const nome = (c.locais.flatMap(l => Object.keys(l.inst)).find(x => norm(x) === k) || k); inst.push({ rot: nome.toUpperCase(), n: soma[k], fam: '' }); } });
+  const base = inst.reduce((a, r) => a + r.n, 0), fam = f => inst.filter(r => r.fam === f).reduce((a, r) => a + r.n, 0);
+  const pct = f => base ? Math.round(fam(f) * 100 / base) + '%' : '';
+  const pres = DB.irmaos.filter(i => c.marcas[i.id] === 'v');
+  const min = REL_MIN.map(([rot, re, soma]) => ({ rot, soma, n: pres.filter(i => re.test(norm(i.cargo))).length }));
+  const minT = min.reduce((a, r) => a + r.n, 0);
+  return { inst, mus, org, tot: mus + org, min, minT, geral: mus + org + min.filter(r => r.soma).reduce((a, r) => a + r.n, 0), hinos: listaHinos(c), fam: { c: pct('c'), m: pct('m'), b: pct('b') } };
+}
+const REL_CSS = `
+.rel{width:100%;border-collapse:collapse;table-layout:fixed;font-family:Arial,'Liberation Sans',Helvetica,sans-serif;color:#000;font-size:10.8pt;line-height:1.12}
+.rel td{border:1px solid #000;padding:0 3px;height:5.35mm;vertical-align:middle}
+.rel .t1 td,.rel .t2 td,.rel .t3 td{border-top:0;border-bottom:0;text-align:center;font-weight:700;font-style:italic;padding:1px 4px;height:auto;font-size:10.6pt}
+.rel .t1 td{padding-top:5px}
+.rel .t2 td{font-style:normal;font-weight:900;font-family:'Arial Black',Arial,sans-serif;font-size:10.6pt;text-decoration:underline}
+.rel .t3 td{padding-bottom:4px}
+.rel .sec td{background:#d9d9d9;text-align:center;font-weight:700;font-size:11pt}
+.rel .sec td.hd{font-family:Calibri,Carlito,Arial,sans-serif;font-size:8.8pt}
+.rel .txt td{font-size:9.6pt;line-height:1.22;padding:3px 3px 4px;height:auto}
+.rel td.v,.rel td.r{text-align:center}
+.rel td.rh{text-align:center;font-family:Calibri,Carlito,Arial,sans-serif;font-weight:700;font-size:8.8pt}
+.rel td.r.p{font-family:Calibri,Carlito,Arial,sans-serif;font-size:8.8pt}
+.rel td.th{text-align:center;vertical-align:top;font-family:Calibri,Carlito,Arial,sans-serif;font-weight:700;font-size:8.8pt;line-height:2.05;padding-top:1px}
+.rel td.th b{display:block;font-size:9.6pt;line-height:1.3}
+.rel tr.i td.l{font-weight:700}
+.rel tr.g1 td.l,.rel tr.g1 td.v{background:#d9d9d9;font-weight:700}
+.rel tr.g2 td.l,.rel tr.g2 td.v{background:#808080;font-weight:700}
+.rel tr.gg td.l{text-align:center}
+`;
+(function () { const st = document.createElement('style'); st.textContent = REL_CSS.replace(/\.rel/g, '.pm-rel-wrap .rel'); document.head.appendChild(st); })();
+function relTabelaHTML(c, cheio) {
+  const d = relDados(c), v = n => cheio ? String(n) : '', p = iso => partes(iso);
+  const dt = p(c.data), cid = (c.cidade || '').trim() || CIDADE_PADRAO;
+  const titulo = `${cid}, ${dt ? `${dt.d} de ${MESES[dt.m - 1]} de ${dt.y}` : '____ de ____________ de ______'}`.toUpperCase();
+  const f = (x, lg) => esc(String(x || '').trim()) || '_'.repeat(lg || 10);
+  const txt = `Iniciou-se este Ensaio Regional Musical em Nome do Senhor Jesus com uma oração, sendo presidida pelo irmão ${f(c.presidente, 30)}, após cantar o hino ${f(c.hino, 4)}, Deus revelou sua Bendita Palavra no capítulo ${f(c.capitulo, 4)} do livro de ${f(c.livro, 12)}.<br>Regente: ${f(c.regente, 30)}`;
+  // lado esquerdo
+  const L = d.inst.map(r => ({ cls: 'i', rot: r.rot, v: v(r.n) }));
+  const fixos = [{ cls: 'g1', rot: 'MÚSICOS (TOTAL)', v: v(d.mus) }, { cls: 'g1', rot: 'ORGANISTAS (TOTAL)', v: v(d.org) }, { cls: 'g2', rot: 'TOTAL (MÚSICOS E ORGANISTAS)', v: v(d.tot) }]
+    .concat(d.min.map(r => ({ cls: '', rot: r.rot, v: v(r.n) })), [{ cls: 'g2', rot: 'MINISTÉRIO (TOTAL)', v: v(d.minT) }, { cls: 'g2 gg', rot: 'TOTAL GERAL', v: v(d.geral) }]);
+  // lado direito: hinos, total de hinos (3 linhas), % famílias
+  const vagas = Math.max(L.length - 3, d.hinos.length);
+  const R = [];
+  for (let k = 0; k < vagas; k++) R.push({ h: `<td class="r">${esc(d.hinos[k] || '')}</td>` });
+  R.push({ h: `<td class="th" rowspan="3">TOTAL DE HINOS<b>${cheio && d.hinos.length ? d.hinos.length : '&nbsp;'}</b></td>`, n: 3 });
+  const fam = [['CORDAS', d.fam.c], ['MADEIRAS', d.fam.m], ['METAIS', d.fam.b]];
+  R.push({ h: '<td class="rh">% FAMÍLIAS</td>' });
+  fam.forEach(([r, x]) => { R.push({ h: '<td class="r"></td>' }, { h: `<td class="rh">${r}</td>` }, { h: `<td class="r p">${cheio ? x : ''}</td>` }); });
+  const usadas = R.reduce((a, x) => a + (x.n || 1), 0);
+  while (L.length + fixos.length < usadas + 1) L.push({ cls: 'i', rot: '', v: '' });
+  const E = L.concat(fixos), N = E.length;
+  R.push({ h: `<td class="r" rowspan="${N - usadas}"></td>`, n: N - usadas });
+  const ini = new Map(); let r0 = 0; R.forEach(x => { ini.set(r0, x.h); r0 += x.n || 1; });
+  const corpo = E.map((e, k) => `<tr class="${e.cls}"><td class="l">${esc(e.rot)}</td><td class="v">${e.v}</td>${ini.get(k) || ''}</tr>`).join('');
+  return `<table class="rel"><colgroup><col style="width:55.4%"><col style="width:11.4%"><col></colgroup><tbody>
+<tr class="t1"><td colspan="3" style="border-top:1px solid #000">CONGREGAÇÃO CRISTÃ NO BRASIL</td></tr>
+<tr class="t2"><td colspan="3">ENSAIO REGIONAL MUSICAL</td></tr>
+<tr class="t3"><td colspan="3" style="border-bottom:1px solid #000">${esc(titulo)}</td></tr>
+<tr class="sec"><td colspan="3">Atendimento</td></tr>
+<tr class="txt"><td colspan="3">${txt}</td></tr>
+<tr class="sec"><td colspan="2">Resumo</td><td class="hd">HINOS ENSAIADOS</td></tr>
+${corpo}</tbody></table>`;
+}
+function relatorioRegionalHTML(c) {
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Ensaio Regional ${esc(dataBR(c.data))}</title><style>
+@page{size:A4 portrait;margin:17mm 22mm 14mm 17mm}
+*{box-sizing:border-box}
+body{margin:0;padding:1px 2px 0 1px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+${REL_CSS}
+.rel tr{break-inside:avoid}
+</style></head><body>${relTabelaHTML(c, true)}</body></html>`;
+}
+
 /* ---------- listas de sugestões ---------- */
 function atualizarDatalists() {
   const set = (id, vals) => { let d = document.getElementById(id); if (!d) { d = document.createElement('datalist'); d.id = id; document.body.appendChild(d); } d.innerHTML = vals.map(v => `<option value="${esc(v)}">`).join(''); };
@@ -936,6 +1102,7 @@ function atualizarDatalists() {
   set('dlInstr', [...new Set(INSTRUMENTOS.concat(uniq('instrumento')))]);
   set('dlCidades', uniq('cidade')); set('dlBairros', uniq('bairro'));
   set('dlGrupos', [...new Set(GRUPOS.concat(uniq('grupo')))]);
+  set('dlLivros', LIVROS);
   set('dlCargos', CARGOS_MIN.map(x => x[0]).concat(['Instrutor', 'Instrutora', 'Examinadora', 'Organista', 'Músico']));
   const locs = new Set();
   (REL_IGR || []).forEach(g => locs.add(g));
@@ -961,7 +1128,7 @@ function atualizarDatalists() {
 const VIVO = { modo: 'ligando', ws: null, seq: 0, fila: [], gente: [], tent: 0, abriu: false, falhas: 0, tRec: null, tEnvio: null, tPing: null, primeira: true };
 const SEQ_KEY = KEY + '_seq', FILA_KEY = KEY + '_fila';
 const CLIENTE = (() => { try { let c = sessionStorage.getItem('pm_cliente'); if (!c) { c = novoId(); sessionStorage.setItem('pm_cliente', c); } return c; } catch (e) { return novoId(); } })();
-const CAMPOS_I = ['nome', 'instrumento', 'cidade', 'bairro', 'cargo', 'grupo'], CAMPOS_C = ['data', 'ocasiao', 'local', 'obs', 'tipo', 'grupos'];
+const CAMPOS_I = ['nome', 'instrumento', 'cidade', 'bairro', 'cargo', 'grupo'], CAMPOS_C = ['data', 'ocasiao', 'local', 'obs', 'tipo', 'grupos', 'cidade', 'presidente', 'hino', 'capitulo', 'livro', 'regente', 'hinos'];
 let ESPELHO = null;
 const copia = o => JSON.parse(JSON.stringify(o));
 const aoVivo = () => VIVO.modo !== 'manual';
@@ -984,6 +1151,8 @@ function aplicarOp(db, op) {
       return;
     }
     case 'l-': { const c = ch(op.c); if (!c) return; const k = c.locais.findIndex(x => x.id === op.id); if (k >= 0) c.locais.splice(k, 1); return; }
+    case 'link': { const c = ch(op.c); if (c) c.link = op.code; return; }
+    case 'link-': { const c = ch(op.c); if (c) delete c.link; return; }
     case 'c-': { const k = db.chamadas.findIndex(c => c.id === op.id); if (k >= 0) db.chamadas.splice(k, 1); return; }
   }
 }
@@ -1069,6 +1238,7 @@ function mostrarMudancas(ops) {
     }
     else if (op.t === 'i-') { linhas = true; contagem = true; irmLinhas = true; res = true; lista = true; }
     else if (op.t === 'c') { lista = true; if (c && op.id === c.id) { heroi = op; if ('tipo' in (op.campos || {}) || 'grupos' in (op.campos || {})) refazer = true; } res = true; dl = true; }
+    else if (op.t === 'link' || op.t === 'link-') { if (c && op.c === c.id) refazer = true; }
     else if (op.t === 'l' || op.t === 'l-') {
       lista = true;
       if (c && op.c === c.id && c.tipo === 'regional') {
@@ -1103,6 +1273,7 @@ function mostrarMudancas(ops) {
       const cc = CHAM(), h = document.querySelector('.heroi');
       if (cc && h) { h.querySelector('.h-tit small').textContent = diaSemana(cc.data); h.querySelector('h2').textContent = dataLonga(cc.data); h.querySelector('.h-sub').textContent = [cc.ocasiao, cc.local].filter(Boolean).join(' · ') || 'Chamada'; }
       Object.keys(heroi.campos || {}).forEach(k => { const inp = document.querySelector(`[data-c="${k}"]`); if (inp && !focado(inp) && cc) inp.value = cc[k] || ''; });
+      if (!totais) atualizarTotais();
     }
     if (linhas) semPular(desenharLinhas);
     else if (linhasMarcar.size) {
@@ -1159,7 +1330,7 @@ function receber(msg) {
     if (msg.seq) VIVO.seq = msg.seq;
     // do meu lote, só valem as correções: presença que eu tirei sem internet e que continua valendo
     const deOutros = meu ? (msg.ops || []).filter(op => op.corr) : (msg.ops || []);
-    if (meu && deOutros.length) {
+    if (meu && deOutros.some(op => op.t === 'm' || op.t === 'mc')) {
       // junta num aviso só (podem vir vários lotes seguidos quando a internet volta)
       VIVO.corrigidos = (VIVO.corrigidos || 0) + deOutros.reduce((k, op) => k + (op.t === 'm' ? 1 : 0), 0);
       clearTimeout(VIVO.tCorr); VIVO.tCorr = setTimeout(() => {
