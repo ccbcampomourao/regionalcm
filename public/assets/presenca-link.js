@@ -32,7 +32,7 @@
   const CLIENTE = (() => { try { let c = localStorage.getItem('pm_link_cliente'); if (!c) { c = novoId() + novoId(); localStorage.setItem('pm_link_cliente', c); } return c.slice(0, 40); } catch (e) { return novoId(); } })();
   const FILA_KEY = 'pm_link_fila_' + CODIGO;
 
-  let S = null, ABA = 'min', BUSCA = '', ws = null, aberto = false, tent = 0, tRec = null, tPing = null, fim = false, gente = 0;
+  let S = null, ABA = 'min', BUSCA = '', LOC = '', BUSCA_L = '', ws = null, aberto = false, tent = 0, tRec = null, tPing = null, fim = false, gente = 0;
   let fila = []; try { fila = JSON.parse(localStorage.getItem(FILA_KEY) || '[]') || []; } catch (e) { fila = []; }
   try { const a = localStorage.getItem('pm_link_aba'); if (a === 'mus') ABA = a; } catch (e) {}
   const gravarFila = () => { try { localStorage.setItem(FILA_KEY, JSON.stringify(fila)); } catch (e) {} };
@@ -176,7 +176,8 @@
     const el = document.getElementById('corpo'); if (!el) return;
     if (ABA === 'min') {
       el.innerHTML = `<div class="cont" id="contMin"></div>
-        <div class="busca">${ICO('search')}<input id="busca" type="search" placeholder="Procurar nome ou cidade" value="${esc(BUSCA)}" autocomplete="off"></div>
+        <div class="busca">${ICO('search')}<input id="busca" type="search" placeholder="Procurar nome ou localidade" value="${esc(BUSCA)}" autocomplete="off"></div>
+        <select id="fLoc" class="floc" aria-label="Localidade">${opcoesLoc()}</select>
         <div class="lista" id="lista"></div>
         <form class="novo" id="novo"><h2>Não está na lista? Acrescente</h2>
           <input class="s2" id="nNome" placeholder="Nome" autocomplete="off" required aria-label="Nome">
@@ -189,14 +190,18 @@
         <datalist id="dlCid">${[...new Set(S.irmaos.map(i => i.cidade).filter(Boolean))].map(v => `<option value="${esc(v)}">`).join('')}</datalist>
         <datalist id="dlBai">${[...new Set(S.irmaos.map(i => i.bairro).filter(Boolean))].map(v => `<option value="${esc(v)}">`).join('')}</datalist>`;
       document.getElementById('busca').addEventListener('input', e => { BUSCA = e.target.value; desenharLista(); });
+      document.getElementById('fLoc').addEventListener('change', e => { LOC = e.target.value; desenharLista(); });
       document.getElementById('novo').addEventListener('submit', e => { e.preventDefault(); acrescentar(); });
       desenharLista();
     } else {
-      el.innerHTML = `<div class="cont" id="contMus"></div><div id="locais"></div>
+      el.innerHTML = `<div class="cont" id="contMus"></div>
+        <div class="busca">${ICO('search')}<input id="buscaLoc" type="search" placeholder="Procurar localidade" value="${esc(BUSCA_L)}" autocomplete="off" aria-label="Procurar localidade"></div>
+        <div id="locais"></div>
         <button type="button" class="primary" id="addLoc" style="width:100%">${ICO('plus')}Acrescentar localidade</button>
         <div class="dica" id="tots"></div>
         <datalist id="dlLoc">${[...new Set(S.locais.map(l => l.nome).filter(Boolean))].map(v => `<option value="${esc(v)}">`).join('')}</datalist>`;
-      document.getElementById('addLoc').addEventListener('click', addLocal);
+      document.getElementById('addLoc').addEventListener('click', () => addLocal(BUSCA_L));
+      document.getElementById('buscaLoc').addEventListener('input', e => { BUSCA_L = e.target.value; desenharLocais(); });
       desenharLocais(); desenharTotais();
     }
   }
@@ -212,13 +217,21 @@
       : `<span class="toca trav">${ICO('music')}${esc(ins || 'Não tocou')}</span>`;
     return `<div class="row${m ? ' v' : ''}" data-id="${i.id}"><div><b>${esc(i.nome)}</b><small>${esc(loc || i.cargo || '')}</small></div>${bt}${toca}</div>`;
   }
+  const locDe = i => [i.cidade, i.bairro].map(x => String(x || '').trim()).filter(Boolean).join(' - ');
+  const palavras = q => norm(q).replace(/[-–·,/]+/g, ' ').split(' ').filter(Boolean);
+  function opcoesLoc() {
+    const m = new Map(); S.irmaos.forEach(i => { const l = locDe(i); if (l) { const k = norm(l); m.set(k, { nome: (m.get(k) || {}).nome || l, n: ((m.get(k) || {}).n || 0) + 1 }); } });
+    if (LOC && !m.has(norm(LOC))) LOC = '';
+    return `<option value="">Todas as localidades</option>${[...m.values()].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')).map(x => `<option value="${esc(x.nome)}"${norm(x.nome) === norm(LOC) ? ' selected' : ''}>${esc(x.nome)} (${x.n})</option>`).join('')}`;
+  }
   function desenharLista() {
     const el = document.getElementById('lista'); if (!el) return;
-    const q = norm(BUSCA), todos = ministerio();
-    const lst = todos.filter(i => !q || norm(i.nome + ' ' + i.cidade + ' ' + i.bairro + ' ' + i.cargo).includes(q));
+    const ps = palavras(BUSCA), todos = ministerio(), fl = norm(LOC);
+    const lst = todos.filter(i => (!fl || norm(locDe(i)) === fl) && (!ps.length || ps.every(p => norm([i.nome, i.cidade, i.bairro, i.cargo].join(' ')).replace(/[-–·,/]+/g, ' ').includes(p))));
     let h = '', g0 = null;
     lst.forEach(i => { const g = plural(i.cargo); if (g !== g0) { g0 = g; h += `<div class="gh">${esc(g)} <em>${todos.filter(x => plural(x.cargo) === g).length}</em></div>`; } h += linha(i); });
     el.innerHTML = h || `<div class="vazio">${todos.length ? 'Ninguém com essa busca. Acrescente abaixo.' : 'Ninguém na lista ainda. Acrescente abaixo quem veio.'}</div>`;
+    const f = document.getElementById('fLoc'); if (f && f !== document.activeElement) f.innerHTML = opcoesLoc();
     contMin();
   }
   function contMin() {
@@ -237,7 +250,10 @@
   }
   function desenharLocais() {
     const el = document.getElementById('locais'); if (!el) return;
-    el.innerHTML = S.locais.length ? S.locais.map(localHTML).join('') : '<div class="vazio">Nenhuma localidade ainda. Acrescente a primeira.</div>';
+    const ps = palavras(BUSCA_L), lst = S.locais.filter(l => !ps.length || ps.every(p => norm(l.nome).replace(/[-–·,/]+/g, ' ').includes(p)));
+    el.innerHTML = lst.length ? lst.map(localHTML).join('')
+      : `<div class="vazio">${S.locais.length ? `Nenhuma localidade com “${esc(BUSCA_L)}”. Use o botão abaixo para acrescentar.` : 'Nenhuma localidade ainda. Acrescente a primeira.'}</div>`;
+    const b = document.getElementById('addLoc'); if (b) b.innerHTML = `${ICO('plus')}${ps.length && !lst.length ? `Acrescentar “${esc(bonito(BUSCA_L))}”` : 'Acrescentar localidade'}`;
   }
   function desenharTotais() {
     const inst = {}; S.locais.forEach(l => Object.keys(l.inst).forEach(k => { inst[k] = (inst[k] || 0) + l.inst[k]; }));
@@ -307,9 +323,12 @@
     document.getElementById('nNome').focus({ preventScroll: true });
     toast(ops.some(o => o.t === 'i') ? `${i.nome} acrescentado e marcado presente.` : `${i.nome} já estava na lista: marcado presente.`);
   }
-  function addLocal() {
-    const l = { id: novoId(), nome: '', total: '', inst: {}, ord: Date.now() };
-    S.locais.push(l); enviar([{ t: 'l', c: S.chamada.id, id: l.id, campos: { nome: '', total: '' }, inst: {}, ord: l.ord }]);
+  function addLocal(nome) {
+    // procurando e não achou: já cria com o nome procurado
+    nome = palavras(nome || '').length && !S.locais.some(x => norm(x.nome) === norm(nome)) && !document.querySelector('#locais .loc') ? bonito(nome) : '';
+    const l = { id: novoId(), nome, total: '', inst: {}, ord: Date.now() };
+    S.locais.push(l); enviar([{ t: 'l', c: S.chamada.id, id: l.id, campos: { nome, total: '' }, inst: {}, ord: l.ord }]);
+    if (!nome) { BUSCA_L = ''; const bl = document.getElementById('buscaLoc'); if (bl) bl.value = ''; }
     desenharLocais(); desenharTotais();
     const f = document.querySelector(`[data-ln="${l.id}"]`); if (f) { f.focus(); f.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
   }

@@ -56,7 +56,7 @@ const ordemNome = (a, b) => norm(a.nome).localeCompare(norm(b.nome), 'pt-BR');
 
 /* ---------- dados ---------- */
 let DB, ABA = 'cham', SEL = null, PENDENTE = false, NUVEM_EM = null;
-let FILTRO = { q: '', instr: '', so: '' }, BUSCA_IRM = '', RES_ANO = '';
+let FILTRO = { q: '', instr: '', so: '', loc: '' }, BUSCA_IRM = '', RES_ANO = '';
 function normalizar(d) {
   d = d && typeof d === 'object' ? d : {};
   const antiga = (d.versao || 1) < 2;
@@ -420,7 +420,7 @@ function mudarAba(a) {
   ABA = a;
   document.querySelectorAll('.abas [data-aba]').forEach(b => b.classList.toggle('on', b.dataset.aba === a));
   document.getElementById('abaCham').hidden = !EM_CHAM();
-  if (EM_CHAM()) { const c = CHAM(); if (!c || c.tipo !== TIPO_ABA()) SEL = maisRecente(); FILTRO.instr = ''; }
+  if (EM_CHAM()) { const c = CHAM(); if (!c || c.tipo !== TIPO_ABA()) SEL = maisRecente(); FILTRO.instr = ''; FILTRO.loc = ''; }
   document.getElementById('abaIrm').hidden = a !== 'irm';
   document.getElementById('abaRes').hidden = a !== 'res';
   try { localStorage.setItem(KEY + '_aba', a); } catch (e) {}
@@ -469,13 +469,26 @@ async function excluirChamada() {
 }
 
 /* ---------- chamada ---------- */
+// busca por palavras (em qualquer ordem) no nome, cargo, instrumento e localidade
+const palavras = q => norm(q).replace(/[-–·,/]+/g, ' ').split(' ').filter(Boolean);
+const casaBusca = (txt, ps) => { const t = norm(txt).replace(/[-–·,/]+/g, ' '); return ps.every(p => t.includes(p)); };
+const locDoIrmao = (c, i) => (c && c.tipo === 'regional' && ((c.toca || {})[i.id] || {}).loc) || locPadrao(i);
 function filtrar(lst, c) {
-  const q = norm(FILTRO.q);
+  const ps = palavras(FILTRO.q), fl = norm(FILTRO.loc);
   return lst.filter(i => (!FILTRO.instr || i.instrumento === FILTRO.instr)
-    && (!q || norm(i.nome + ' ' + i.cidade + ' ' + i.bairro + ' ' + i.instrumento).includes(q))
+    && (!fl || norm(locDoIrmao(c, i)) === fl)
+    && (!ps.length || casaBusca([i.nome, i.cargo, i.instrumento, i.cidade, i.bairro, locDoIrmao(c, i)].join(' '), ps))
     && (!FILTRO.so || (FILTRO.so === 'v' ? c.marcas[i.id] === 'v' : c.marcas[i.id] !== 'v')));
 }
 const instrumentosUsados = () => [...new Set(DB.irmaos.map(i => i.instrumento).filter(Boolean))].sort((a, b) => { const ia = INSTRUMENTOS.indexOf(a), ib = INSTRUMENTOS.indexOf(b); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.localeCompare(b, 'pt-BR'); });
+// localidades de quem está na chamada (para filtrar e marcar por localidade)
+function opcoesLoc(c) {
+  const base = c.tipo === 'regional' ? DB.irmaos.filter(i => catDe(i) >= 0) : irmaosDa(c);
+  const m = new Map(); base.forEach(i => { const l = locDoIrmao(c, i); if (l) { const k = norm(l); m.set(k, { nome: (m.get(k) || {}).nome || l, n: ((m.get(k) || {}).n || 0) + 1 }); } });
+  const l = [...m.values()].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  if (FILTRO.loc && !m.has(norm(FILTRO.loc))) FILTRO.loc = '';
+  return `<option value="">Todas as localidades</option>${l.map(x => `<option value="${esc(x.nome)}"${norm(x.nome) === norm(FILTRO.loc) ? ' selected' : ''}>${esc(x.nome)} (${x.n})</option>`).join('')}`;
+}
 const opcoesInst = sel => `<option value="">Não tocou</option>${[...new Set(INSTRUMENTOS.concat(instrumentosUsados(), sel ? [sel] : []))].map(x => `<option${x === sel ? ' selected' : ''}>${esc(x)}</option>`).join('')}`;
 function linhaHTML(i, n, c) {
   const p = c.marcas[i.id] === 'v', trav = p && !podeMexer(c, i.id);
@@ -526,7 +539,8 @@ function desenharChamada() {
     ${reg && !k.t ? `<div class="pm-imp">${ICO('users')}<div><b>Ainda não há ministério na lista</b><small>Puxe os anciães, diáconos, cooperadores e encarregados do Relatório de Igrejas (ou acrescente um por um).</small></div><button type="button" class="primary" onclick="puxarMinisterio()">${ICO('refresh')}Puxar do Relatório</button></div>` : ''}
     ${reg ? '<div class="pm-cats" id="pmCats" role="tablist" aria-label="Ministério"></div>' : ''}
     <div class="pm-filtros">
-      <div class="pm-busca">${ICO('search')}<input id="busca" type="search" placeholder="Procurar nome, cidade, bairro…" value="${esc(FILTRO.q)}" oninput="FILTRO.q=this.value;desenharLinhas()"></div>
+      <div class="pm-busca">${ICO('search')}<input id="busca" type="search" placeholder="Procurar nome ou localidade…" value="${esc(FILTRO.q)}" oninput="FILTRO.q=this.value;desenharLinhas()"></div>
+      <select id="fLoc" aria-label="Localidade" onchange="FILTRO.loc=this.value;desenharLinhas()">${opcoesLoc(c)}</select>
       ${instrs.length ? `<select id="fInstr" onchange="FILTRO.instr=this.value;desenharLinhas()"><option value="">Todos os instrumentos</option>${instrs.map(x => `<option${FILTRO.instr === x ? ' selected' : ''}>${esc(x)}</option>`).join('')}</select>` : ''}
       <div class="pm-seg" role="group">${[['', 'Todos'], ['v', 'Presentes'], ['n', 'Ausentes']].map(([v, r]) => `<button type="button" class="${FILTRO.so === v ? 'on' : ''}" onclick="FILTRO.so='${v}';desenharLinhas()">${r}</button>`).join('')}</div>
     </div>
@@ -562,6 +576,7 @@ function desenharChamada() {
       <div class="campo"><label for="lQtd">Quantidade</label><input id="lQtd" type="number" min="1" max="999" value="1" inputmode="numeric"></div>
       <button type="submit" class="primary">${ICO('plus')}Lançar</button>
     </form>
+    <div class="pm-busca" style="margin:0 0 10px">${ICO('search')}<input id="buscaLocais" type="search" placeholder="Procurar localidade lançada…" value="${esc(FILTRO.locMus || '')}" oninput="FILTRO.locMus=this.value;desenharLocais()" aria-label="Procurar localidade"></div>
     <div class="pm-locs" id="locais"></div>
     <div class="linha-b"><button type="button" onclick="gerarLocaisPDF()">${ICO('print')}Relatório por localidade</button><button type="button" onclick="addLocal()">${ICO('plus')}Localidade em branco</button></div>
   </section>
@@ -597,7 +612,7 @@ function desenharCats() {
   el.innerHTML = CATS_MIN.map(([nm], k) => { const t = daCat(k), v = t.filter(i => c.marcas[i.id] === 'v').length; return `<button type="button" role="tab" class="pm-cat${k === MIN_CAT ? ' on' : ''}" aria-selected="${k === MIN_CAT}" onclick="escolherCat(${k})"><span>${esc(nm)}</span><em>${v} de ${t.length}</em></button>`; }).join('');
 }
 function escolherCat(k) {
-  MIN_CAT = k; FILTRO.q = ''; const b = document.getElementById('busca'); if (b) b.value = '';
+  MIN_CAT = k; FILTRO.q = ''; FILTRO.loc = ''; const b = document.getElementById('busca'); if (b) b.value = ''; const fl = document.getElementById('fLoc'); if (fl) fl.value = '';
   const sel = document.getElementById('rCargo'); if (sel) sel.value = CATS_MIN[k][1];
   desenharLinhas();
 }
@@ -607,15 +622,22 @@ function setToca(id, campo, val) {
   const t = Object.assign({ inst: '', loc: '' }, c.toca[id] || {}); t[campo] = String(val || '').trim();
   if (t.inst || t.loc) c.toca[id] = t; else delete c.toca[id];
   guardar(); atualizarTotais(); desenharLista();
+  if (campo === 'loc') { const f = document.getElementById('fLoc'); if (f && f !== document.activeElement) f.innerHTML = opcoesLoc(c); }
 }
 document.addEventListener('change', e => { const el = e.target; if (el.dataset && el.dataset.xi) { setToca(el.dataset.xi, 'inst', el.value); if (el.value) window.__ultInstMin = el.value; } });
 document.addEventListener('input', e => { const el = e.target; if (el.dataset && el.dataset.xl) setToca(el.dataset.xl, 'loc', el.value); });
 function desenharLinhas() {
   const c = CHAM(), el = document.getElementById('linhas'); if (!c || !el) return;
   if (c.tipo === 'regional') {
-    const todos = daCat(MIN_CAT), num = new Map(todos.map((i, n) => [i.id, n + 1])), lst = filtrar(todos, c);
-    el.innerHTML = lst.length ? lst.map(i => linhaHTML(i, num.get(i.id), c)).join('') : `<div class="vazio">${todos.length ? 'Ninguém com esse filtro.' : `Nenhum irmão em ${esc(CATS_MIN[MIN_CAT][0])} no cadastro. Puxe do Relatório de Igrejas ou acrescente abaixo.`}</div>`;
-    const em = document.getElementById('emFiltro'); if (em) em.textContent = `${lst.length} de ${todos.length}`;
+    // procurando (nome ou localidade): mostra de todos os ministérios, separados por cargo
+    const geral = !!(palavras(FILTRO.q).length || FILTRO.loc);
+    const todos = geral ? DB.irmaos.filter(i => catDe(i) >= 0).sort((a, b) => catDe(a) - catDe(b) || ordemNome(a, b)) : daCat(MIN_CAT);
+    const num = new Map(todos.map((i, n) => [i.id, n + 1])), lst = filtrar(todos, c);
+    let h = '', g0 = -1;
+    lst.forEach(i => { const k = catDe(i); if (geral && k !== g0) { g0 = k; const nesta = lst.filter(x => catDe(x) === k); h += `<div class="pm-gh">${esc(CATS_MIN[k][0])} <em>${nesta.filter(x => c.marcas[x.id] === 'v').length} de ${nesta.length} presentes</em></div>`; } h += linhaHTML(i, num.get(i.id), c); });
+    el.innerHTML = lst.length ? h : `<div class="vazio">${todos.length ? 'Ninguém com essa busca.' + (geral ? ' Acrescente abaixo quem veio e não está na lista.' : '') : `Nenhum irmão em ${esc(CATS_MIN[MIN_CAT][0])} no cadastro. Puxe do Relatório de Igrejas ou acrescente abaixo.`}</div>`;
+    const em = document.getElementById('emFiltro'); if (em) em.textContent = geral ? `${lst.length} encontrados em todos os ministérios` : `${lst.length} de ${todos.length}`;
+    const cs = document.getElementById('pmCats'); if (cs) cs.classList.toggle('busca', geral);
     document.querySelectorAll('.pm-seg button').forEach((b, i) => b.classList.toggle('on', ['', 'v', 'n'][i] === FILTRO.so));
     desenharCats(); return;
   }
@@ -703,7 +725,8 @@ function localHTML(l) {
 }
 function desenharLocais() {
   const c = CHAM(), el = document.getElementById('locais'); if (!c || !el) return;
-  el.innerHTML = c.locais.length ? c.locais.map(localHTML).join('') : '<div class="vazio">Nenhuma localidade ainda. Use “Acrescentar localidade”.</div>';
+  const ps = palavras(FILTRO.locMus || ''), lst = c.locais.filter(l => !ps.length || casaBusca(l.nome, ps));
+  el.innerHTML = lst.length ? lst.map(localHTML).join('') : `<div class="vazio">${c.locais.length ? 'Nenhuma localidade lançada com esse nome. Lance acima para criar.' : 'Nenhuma localidade ainda. Lance os músicos acima.'}</div>`;
 }
 function atualizarTotais() {
   const c = CHAM(), el = document.getElementById('pmTotais'); if (!c || !el || c.tipo !== 'regional') return;
@@ -794,6 +817,8 @@ function marcar(id) {
     const n = row.querySelector('.pm-n').textContent;
     const tmp = document.createElement('div'); tmp.innerHTML = linhaHTML(i, n, c); row.replaceWith(tmp.firstElementChild);
     if (FILTRO.so) setTimeout(desenharLinhas, 450);
+    // procurando em todos os ministérios: atualiza também a contagem de cada cargo
+    else if (c.tipo === 'regional' && (palavras(FILTRO.q).length || FILTRO.loc)) semPular(desenharLinhas);
   }
   atualizarContagem();
 }
