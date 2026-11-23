@@ -40,6 +40,20 @@ const grupoDe = d => d.grupo || grupoDoCargo(d.cargo);
 const normal = v => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
 const txt = (v, max) => String(v == null ? '' : v).slice(0, max || 200);
 const idOk = v => typeof v === 'string' && /^[A-Za-z0-9_-]{1,40}$/.test(v);
+// Quem marcou a presença é o "dono" dela: só ele (mesmo usuário logado ou mesmo aparelho)
+// ou um administrador tira a presença ou troca o instrumento. Guardado em marcas.por como
+// "email|aparelho" (pelo link: "|aparelho"). Marcas antigas sem dono continuam livres.
+const donoDe = eu => (eu.link ? '' : String(eu.email || '')) + '|' + String(eu.cliente || '');
+function ehDono(por, eu) {
+  if (!por) return true;
+  if (eu.admin) return true;
+  const k = String(por).indexOf('|');
+  if (k < 0) return por === eu.cliente;   // marcação antiga feita pelo link
+  const email = por.slice(0, k), apar = por.slice(k + 1);
+  return (!eu.link && !!email && email === eu.email) || (!!apar && apar === eu.cliente);
+}
+// para a tela do link: "meu" só quando a marcação tem dono e é deste aparelho
+const meuNoLink = (por, eu) => !!por && ehDono(por, Object.assign({}, eu, { admin: false }));
 function so(campos, lista) {
   const o = {};
   if (campos && typeof campos === 'object') lista.forEach(k => { if (k in campos) o[k] = txt(campos[k], k === 'obs' || k === 'hinos' ? 500 : 200); });
@@ -97,7 +111,8 @@ export class SalaPresencaMusical extends DurableObject {
 
   tudo() {
     const marcas = {};
-    for (const r of this.sql.exec('SELECT c, i FROM marcas')) (marcas[r.c] = marcas[r.c] || {})[r.i] = 'v';
+    const donos = {};
+    for (const r of this.sql.exec('SELECT c, i, por FROM marcas')) { (marcas[r.c] = marcas[r.c] || {})[r.i] = 'v'; if (r.por) (donos[r.c] = donos[r.c] || {})[r.i] = r.por; }
     const irmaos = [...this.sql.exec('SELECT id, dados FROM irmaos')].map(r => Object.assign({ id: r.id }, JSON.parse(r.dados)));
     const locais = {};
     for (const r of this.sql.exec('SELECT c, id, dados FROM locais')) (locais[r.c] = locais[r.c] || []).push(Object.assign({ id: r.id }, JSON.parse(r.dados)));
@@ -105,13 +120,13 @@ export class SalaPresencaMusical extends DurableObject {
     const links = {};
     for (const r of this.sql.exec('SELECT code, c FROM links')) links[r.c] = r.code;
     const toca = {};
-    for (const r of this.sql.exec('SELECT c, i, dados FROM toca')) (toca[r.c] = toca[r.c] || {})[r.i] = JSON.parse(r.dados);
-    const chamadas = [...this.sql.exec('SELECT id, dados FROM chamadas')].map(r => Object.assign({ id: r.id }, JSON.parse(r.dados), { marcas: marcas[r.id] || {}, locais: locais[r.id] || [], toca: toca[r.id] || {} }, links[r.id] ? { link: links[r.id] } : {}));
+    for (const r of this.sql.exec('SELECT c, i, dados FROM toca')) { const d = JSON.parse(r.dados); (toca[r.c] = toca[r.c] || {})[r.i] = { inst: d.inst || '', loc: d.loc || '' }; }
+    const chamadas = [...this.sql.exec('SELECT id, dados FROM chamadas')].map(r => Object.assign({ id: r.id }, JSON.parse(r.dados), { marcas: marcas[r.id] || {}, donos: donos[r.id] || {}, locais: locais[r.id] || [], toca: toca[r.id] || {} }, links[r.id] ? { link: links[r.id] } : {}));
     return { versao: 2, atualizado: +(this.meta('atualizado') || 0), irmaos, chamadas };
   }
 
   // o que quem entra pelo link vê: só aquela chamada e o ministério (nada dos músicos por nome)
-  tudoLink(c, cliente) {
+  tudoLink(c, eu) {
     const r = this.sql.exec('SELECT dados FROM chamadas WHERE id = ?', c).toArray();
     if (!r.length) return null;
     const ch = JSON.parse(r[0].dados);
@@ -119,10 +134,10 @@ export class SalaPresencaMusical extends DurableObject {
       .filter(i => GRUPOS_MIN.includes(grupoDe(i)))
       .map(i => ({ id: i.id, nome: i.nome, cargo: i.cargo || '', cidade: i.cidade || '', bairro: i.bairro || '', grupo: grupoDe(i) }));
     const marcas = {};
-    for (const m of this.sql.exec('SELECT i, por FROM marcas WHERE c = ?', c)) marcas[m.i] = m.por && m.por === cliente ? 'meu' : 'v';
+    for (const m of this.sql.exec('SELECT i, por FROM marcas WHERE c = ?', c)) marcas[m.i] = meuNoLink(m.por, eu) ? 'meu' : 'v';
     const locais = [...this.sql.exec('SELECT id, dados FROM locais WHERE c = ?', c)].map(x => Object.assign({ id: x.id }, JSON.parse(x.dados))).sort((a, b) => (a.ord || 0) - (b.ord || 0));
     const toca = {};
-    for (const t of this.sql.exec('SELECT i, dados FROM toca WHERE c = ?', c)) toca[t.i] = JSON.parse(t.dados);
+    for (const t of this.sql.exec('SELECT i, dados FROM toca WHERE c = ?', c)) { const d = JSON.parse(t.dados); toca[t.i] = { inst: d.inst || '', loc: d.loc || '' }; }
     return { chamada: { id: c, data: ch.data || '', ocasiao: ch.ocasiao || '', local: ch.local || '', tipo: ch.tipo || 'nomes' }, irmaos, marcas, locais, toca };
   }
 
@@ -135,7 +150,8 @@ export class SalaPresencaMusical extends DurableObject {
       if (op.c !== eu.c || !idOk(i)) return null;
       if (!op.v) {
         const m = this.sql.exec('SELECT por FROM marcas WHERE c = ? AND i = ?', op.c, i).toArray();
-        if (!m.length || m[0].por !== eu.cliente) return m.length ? { t: 'm', c: op.c, i, v: 1, corr: 1 } : null;
+        if (!m.length) return null;
+        if (!meuNoLink(m[0].por, eu)) return { t: 'm', c: op.c, i, v: 1, pc: m[0].por || '', corr: 1, dono: 1 };
       }
       if (op.v) (troca['#marcados'] = troca['#marcados'] || new Set()).add(i);
       return { t: 'm', c: op.c, i, v: op.v ? 1 : 0 };
@@ -161,12 +177,13 @@ export class SalaPresencaMusical extends DurableObject {
       const r = this.sql.exec('SELECT dados FROM irmaos WHERE id = ?', i).toArray();
       if (!novo && (!r.length || !GRUPOS_MIN.includes(grupoDe(JSON.parse(r[0].dados))))) return null;
       let m = this.sql.exec('SELECT por FROM marcas WHERE c = ? AND i = ?', op.c, i).toArray();
-      if (!m.length && marcadoAgora) m = [{ por: eu.cliente }];
+      if (marcadoAgora && (!m.length || !m[0].por)) m = [{ por: donoDe(eu) }];
       if (!m.length) return null;
       const t = this.sql.exec('SELECT dados FROM toca WHERE c = ? AND i = ?', op.c, i).toArray();
       const atual = t.length ? JSON.parse(t[0].dados) : { inst: '', loc: '' };
       const inst = txt(op.inst, 40).trim();
-      if (atual.inst && atual.inst !== inst && m[0].por !== eu.cliente) return { t: 'x', c: op.c, i, inst: atual.inst, loc: atual.loc || '', corr: 1 };
+      // só quem marcou a presença dele (neste aparelho) escolhe ou troca o instrumento
+      if (!meuNoLink(m[0].por, eu)) return (atual.inst || '') === inst ? null : { t: 'x', c: op.c, i, inst: atual.inst || '', loc: atual.loc || '', corr: 1, dono: 1 };
       return { t: 'x', c: op.c, i, inst, loc: atual.loc || '' };
     }
     return null;
@@ -176,7 +193,7 @@ export class SalaPresencaMusical extends DurableObject {
     const out = [];
     let fechar = false;
     ops.forEach(op => {
-      if ((op.t === 'm' || op.t === 'mc' || op.t === 'l' || op.t === 'l-' || op.t === 'x') && op.c === eu.c) out.push(op.t === 'm' ? Object.assign({}, op, { meu: op.pc && op.pc === eu.cliente ? 1 : 0 }) : op);
+      if ((op.t === 'm' || op.t === 'mc' || op.t === 'l' || op.t === 'l-' || op.t === 'x') && op.c === eu.c) out.push(op.t === 'm' ? Object.assign({}, op, { meu: meuNoLink(op.pc, eu) ? 1 : 0, pc: undefined }) : op.t === 'mc' ? Object.assign({}, op, { donos: undefined, meus: (op.lista || []).filter(i => meuNoLink((op.donos || {})[i], eu)) }) : op);
       else if (op.t === 'c' && op.id === eu.c) out.push({ t: 'c', id: op.id, campos: so(op.campos, ['data', 'ocasiao', 'local', 'tipo']) });
       else if (op.t === 'i') {
         const r = this.sql.exec('SELECT dados FROM irmaos WHERE id = ?', op.id).toArray();
@@ -220,28 +237,33 @@ export class SalaPresencaMusical extends DurableObject {
     switch (op.t) {
       case 'm': {   // marca / desmarca presente
         if (!idOk(op.c) || !idOk(op.i) || !this.existe('chamadas', op.c)) return null;
-        if (!op.v && semRede) {
-          const tem = this.sql.exec('SELECT 1 FROM marcas WHERE c = ? AND i = ?', op.c, op.i).toArray().length > 0;
-          return tem ? { t: 'm', c: op.c, i: op.i, v: 1, corr: 1 } : null;
-        }
-        const pc = eu.link ? eu.cliente : '';
-        if (op.v) this.sql.exec("INSERT OR IGNORE INTO marcas (c, i, por) VALUES (?, ?, ?)", op.c, op.i, pc);
+        const ant = this.sql.exec('SELECT por FROM marcas WHERE c = ? AND i = ?', op.c, op.i).toArray();
+        if (!op.v && semRede) return ant.length ? { t: 'm', c: op.c, i: op.i, v: 1, pc: ant[0].por || '', corr: 1 } : null;
+        // tirar a presença: só quem marcou (mesmo usuário ou aparelho) ou um administrador
+        if (!op.v && ant.length && !ehDono(ant[0].por, eu)) return { t: 'm', c: op.c, i: op.i, v: 1, pc: ant[0].por || '', corr: 1, dono: 1 };
+        if (op.v) this.sql.exec('INSERT OR IGNORE INTO marcas (c, i, por) VALUES (?, ?, ?)', op.c, op.i, donoDe(eu));
         else this.sql.exec('DELETE FROM marcas WHERE c = ? AND i = ?', op.c, op.i);
-        // pc = quem fica como "dono" da marcação (o primeiro que marcou pelo link)
+        // pc = quem ficou como "dono" (o primeiro que marcou)
         const dono = op.v ? ((this.sql.exec('SELECT por FROM marcas WHERE c = ? AND i = ?', op.c, op.i).toArray()[0] || {}).por || '') : '';
         return { t: 'm', c: op.c, i: op.i, v: op.v ? 1 : 0, pc: dono };
       }
       case 'mc': {  // todas as marcações de uma chamada (limpar / desfazer)
         if (!idOk(op.c) || !this.existe('chamadas', op.c)) return null;
         const lista = (Array.isArray(op.lista) ? op.lista : []).filter(idOk);
+        const eu2 = donoDe(eu);
+        const comoFicou = corr => { const donos = {}, l = []; for (const x of this.sql.exec('SELECT i, por FROM marcas WHERE c = ?', op.c)) { l.push(x.i); if (x.por) donos[x.i] = x.por; } return Object.assign({ t: 'mc', c: op.c, lista: l, donos }, corr ? { corr: 1 } : {}); };
         if (semRede) {   // sem internet: só acrescenta; devolve como a chamada ficou
-          lista.forEach(i => this.sql.exec('INSERT OR IGNORE INTO marcas (c, i) VALUES (?, ?)', op.c, i));
-          const atual = [...this.sql.exec('SELECT i FROM marcas WHERE c = ?', op.c)].map(x => x.i);
-          return { t: 'mc', c: op.c, lista: atual, corr: 1 };
+          lista.forEach(i => this.sql.exec('INSERT OR IGNORE INTO marcas (c, i, por) VALUES (?, ?, ?)', op.c, i, eu2));
+          return comoFicou(true);
         }
-        this.sql.exec('DELETE FROM marcas WHERE c = ?', op.c);
-        lista.forEach(i => this.sql.exec('INSERT OR IGNORE INTO marcas (c, i) VALUES (?, ?)', op.c, i));
-        return { t: 'mc', c: op.c, lista };
+        // tira só o que pode (o que é seu, ou tudo se for administrador); acrescenta o resto
+        const quer = new Set(lista); let barrou = false;
+        for (const x of [...this.sql.exec('SELECT i, por FROM marcas WHERE c = ?', op.c)]) {
+          if (quer.has(x.i)) continue;
+          if (ehDono(x.por, eu)) this.sql.exec('DELETE FROM marcas WHERE c = ? AND i = ?', op.c, x.i); else barrou = true;
+        }
+        lista.forEach(i => this.sql.exec('INSERT OR IGNORE INTO marcas (c, i, por) VALUES (?, ?, ?)', op.c, i, eu2));
+        return Object.assign(comoFicou(barrou), barrou ? { dono: 1 } : {});
       }
       case 'i': {   // irmão: novo ou só os campos que mudaram
         if (!idOk(op.id)) return null;
@@ -287,6 +309,12 @@ export class SalaPresencaMusical extends DurableObject {
       case 'x': {   // Ensaio Regional: instrumento/localidade de quem é do ministério (vazio = tira)
         if (!idOk(op.c) || !idOk(op.i) || !this.existe('chamadas', op.c)) return null;
         const inst = txt(op.inst, 40).trim(), loc = txt(op.loc, 120).trim();
+        // instrumento de quem está presente: só quem marcou a presença dele (ou um administrador)
+        const m = this.sql.exec('SELECT por FROM marcas WHERE c = ? AND i = ?', op.c, op.i).toArray();
+        if (m.length && !ehDono(m[0].por, eu)) {
+          const t = this.sql.exec('SELECT dados FROM toca WHERE c = ? AND i = ?', op.c, op.i).toArray(), a = t.length ? JSON.parse(t[0].dados) : {};
+          return { t: 'x', c: op.c, i: op.i, inst: a.inst || '', loc: a.loc || '', corr: 1, dono: 1 };
+        }
         if (inst || loc) this.sql.exec('INSERT INTO toca (c, i, dados) VALUES (?, ?, ?) ON CONFLICT(c, i) DO UPDATE SET dados = excluded.dados', op.c, op.i, JSON.stringify({ inst, loc }));
         else this.sql.exec('DELETE FROM toca WHERE c = ? AND i = ?', op.c, op.i);
         return { t: 'x', c: op.c, i: op.i, inst, loc };
@@ -327,7 +355,7 @@ export class SalaPresencaMusical extends DurableObject {
     this.ctx.acceptWebSocket(servidor);
     servidor.serializeAttachment(codigo
       ? { email: 'pelo link', link: codigo, c, cliente: txt(url.searchParams.get('cliente'), 40), desde: Date.now() }
-      : { email, cliente: txt(url.searchParams.get('cliente'), 40), desde: Date.now() });
+      : { email, admin: request.headers.get('X-Admin') === '1', cliente: txt(url.searchParams.get('cliente'), 40), desde: Date.now() });
     return new Response(null, { status: 101, webSocket: cliente });
   }
 
@@ -345,7 +373,7 @@ export class SalaPresencaMusical extends DurableObject {
         if (msg.t === 'gente') { ws.send(JSON.stringify({ t: 'gente', n: msg.lista.length })); continue; }
         if (msg.t !== 'mudou') continue;
         const { out, fechar } = this.paraLink(msg.ops || [], a);
-        if (fechar === 'tudo') { const d = this.tudoLink(a.c, a.cliente); if (d) ws.send(JSON.stringify(Object.assign({ t: 'tudo' }, d))); else ws.close(4410, 'link'); continue; }
+        if (fechar === 'tudo') { const d = this.tudoLink(a.c, a); if (d) ws.send(JSON.stringify(Object.assign({ t: 'tudo' }, d))); else ws.close(4410, 'link'); continue; }
         if (fechar) { ws.send(JSON.stringify({ t: 'fim' })); ws.close(4410, 'link'); continue; }
         if (out.length || (msg.cliente && msg.cliente === a.cliente)) ws.send(JSON.stringify({ t: 'mudou', lote: msg.cliente === a.cliente ? msg.lote : null, ops: out }));
       } catch (e) {}
@@ -361,7 +389,7 @@ export class SalaPresencaMusical extends DurableObject {
       const ok = this.sql.exec('SELECT c FROM links WHERE code = ?', eu.link).toArray();
       if (!ok.length) { ws.send(JSON.stringify({ t: 'fim' })); ws.close(4410, 'link'); return; }
       if (msg.t === 'ola') {
-        const d = this.tudoLink(eu.c, eu.cliente);
+        const d = this.tudoLink(eu.c, eu);
         if (!d) { ws.send(JSON.stringify({ t: 'fim' })); ws.close(4410, 'link'); return; }
         ws.send(JSON.stringify(Object.assign({ t: 'tudo' }, d)));
         this.espalhar({ t: 'gente', lista: this.gente() });
@@ -374,7 +402,10 @@ export class SalaPresencaMusical extends DurableObject {
       } else return;
     }
 
+    // correção ("corr") quem cria é a sala, nunca quem manda
+    if (!eu.link && msg.t === 'ops' && Array.isArray(msg.ops)) msg.ops = msg.ops.map(o => (o && typeof o === 'object' && o.corr) ? Object.assign({}, o, { corr: 0 }) : o);
     if (msg.t === 'ola') {
+      ws.send(JSON.stringify({ t: 'eu', email: eu.email || '', admin: !!eu.admin, dono: donoDe(eu) }));
       // quem chega (ou volta): manda só o que mudou desde a última vez, ou a lista inteira
       const seq = this.seq(), desde = +msg.desde || 0;
       const menor = this.sql.exec('SELECT MIN(seq) AS s FROM log').toArray()[0].s;

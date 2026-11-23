@@ -74,6 +74,9 @@ function normalizar(d) {
     n.marcas = {};   // só "presente" é marcado; quem não está aqui é ausente
     Object.keys(m).forEach(k => { if (m[k] === 'v') n.marcas[k] = 'v'; });
     n.tipo = n.tipo === 'regional' ? 'regional' : 'nomes';
+    // quem marcou cada presença ("email|aparelho"; vem da sala, não é enviado por aqui)
+    const d0 = n.donos && typeof n.donos === 'object' ? n.donos : {}; n.donos = {};
+    Object.keys(d0).forEach(k => { if (n.marcas[k] && typeof d0[k] === 'string') n.donos[k] = d0[k]; });
     // Ensaio Regional: instrumento (e localidade) de quem é do ministério e tocou
     const t0 = n.toca && typeof n.toca === 'object' ? n.toca : {}; n.toca = {};
     Object.keys(t0).forEach(k => { const x = t0[k] || {}, inst = String(x.inst || '').trim(), loc = String(x.loc || '').trim(); if (inst || loc) n.toca[k] = { inst, loc }; });
@@ -465,20 +468,21 @@ function filtrar(lst, c) {
 const instrumentosUsados = () => [...new Set(DB.irmaos.map(i => i.instrumento).filter(Boolean))].sort((a, b) => { const ia = INSTRUMENTOS.indexOf(a), ib = INSTRUMENTOS.indexOf(b); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.localeCompare(b, 'pt-BR'); });
 const opcoesInst = sel => `<option value="">Não tocou</option>${[...new Set(INSTRUMENTOS.concat(instrumentosUsados(), sel ? [sel] : []))].map(x => `<option${x === sel ? ' selected' : ''}>${esc(x)}</option>`).join('')}`;
 function linhaHTML(i, n, c) {
-  const p = c.marcas[i.id] === 'v';
+  const p = c.marcas[i.id] === 'v', trav = p && !podeMexer(c, i.id);
+  const btP = `<button type="button" class="b-v${p ? ' on' : ''}${trav ? ' trav' : ''}" onclick="marcar('${i.id}')" aria-pressed="${p}"${trav ? ` title="Marcado por ${esc(quemMarcou(c, i.id))}"` : ''}>${ICO(trav ? 'lock' : 'check')}<span>Presente</span></button>`;
   if (c.tipo === 'regional') {
     const t = c.toca[i.id] || {};
     return `<div class="pm-row${p ? ' v' : ''}" data-id="${i.id}">
     <span class="pm-n">${n}</span>
     <div class="pm-nm"><b>${esc(i.nome)}</b><small>${esc(locPadrao(i) || i.cargo) || '&nbsp;'}</small></div>
-    <div class="pm-bt">${p ? '' : '<em class="pm-aus">Ausente</em>'}<button type="button" class="b-v${p ? ' on' : ''}" onclick="marcar('${i.id}')" aria-pressed="${p}">${ICO('check')}<span>Presente</span></button></div>
-    ${p ? `<div class="pm-toca"><select data-xi="${i.id}" aria-label="Instrumento de ${esc(i.nome)}">${opcoesInst(t.inst || '')}</select><input data-xl="${i.id}" list="dlLocalidades" value="${esc(t.loc || locPadrao(i))}" placeholder="Localidade" aria-label="Localidade de ${esc(i.nome)}"></div>` : ''}
+    <div class="pm-bt">${p ? '' : '<em class="pm-aus">Ausente</em>'}${btP}</div>
+    ${p ? `<div class="pm-toca"><select data-xi="${i.id}" aria-label="Instrumento de ${esc(i.nome)}"${trav ? ' disabled' : ''}>${opcoesInst(t.inst || '')}</select><input data-xl="${i.id}" list="dlLocalidades" value="${esc(t.loc || locPadrao(i))}" placeholder="Localidade" aria-label="Localidade de ${esc(i.nome)}"${trav ? ' disabled' : ''}>${trav ? `<span class="tag">${ICO('lock')}marcado por ${esc(quemMarcou(c, i.id))}</span>` : ''}</div>` : ''}
   </div>`;
   }
   return `<div class="pm-row${p ? ' v' : ''}" data-id="${i.id}">
     <span class="pm-n">${n}</span>
     <div class="pm-nm"><b>${esc(i.nome)}</b><small>${esc(c.tipo === 'regional' ? (localTxt(i) || i.cargo) : [i.instrumento, localTxt(i)].filter(Boolean).join(' · ')) || '&nbsp;'}</small></div>
-    <div class="pm-bt">${p ? '' : '<em class="pm-aus">Ausente</em>'}<button type="button" class="b-v${p ? ' on' : ''}" onclick="marcar('${i.id}')" aria-pressed="${p}">${ICO('check')}<span>Presente</span></button></div>
+    <div class="pm-bt">${p ? '' : '<em class="pm-aus">Ausente</em>'}${btP}</div>
   </div>`;
 }
 function desenharChamada() {
@@ -589,6 +593,7 @@ function escolherCat(k) {
 }
 function setToca(id, campo, val) {
   const c = CHAM(); if (!c) return;
+  if (!podeMexer(c, id)) { UI.toast(`Presença marcada por ${quemMarcou(c, id)}. Só quem marcou (ou um administrador) troca o instrumento.`, 'info'); semPular(desenharLinhas); return; }
   const t = Object.assign({ inst: '', loc: '' }, c.toca[id] || {}); t[campo] = String(val || '').trim();
   if (t.inst || t.loc) c.toca[id] = t; else delete c.toca[id];
   guardar(); atualizarTotais(); desenharLista();
@@ -768,7 +773,9 @@ function atualizarContagem() {
 }
 function marcar(id) {
   const c = CHAM(); if (!c) return;
-  if (c.marcas[id] === 'v') delete c.marcas[id]; else c.marcas[id] = 'v';
+  if (c.marcas[id] === 'v' && !podeMexer(c, id)) { UI.toast(`Presença marcada por ${quemMarcou(c, id)}. Só quem marcou (ou um administrador) pode tirar.`, 'info'); return; }
+  c.donos = c.donos || {};
+  if (c.marcas[id] === 'v') { delete c.marcas[id]; delete c.donos[id]; } else { c.marcas[id] = 'v'; c.donos[id] = meuDono(); }
   guardar();
   const row = document.querySelector(`.pm-row[data-id="${id}"]`);
   const i = DB.irmaos.find(x => x.id === id);
@@ -782,9 +789,12 @@ function marcar(id) {
 }
 async function limparMarcas() {
   const c = CHAM(); if (!c || !Object.keys(c.marcas).length) return;
-  if (!(await UI.confirm('Limpar as marcações?', 'Todos ficam como ausentes nesta chamada.', { ok: 'Limpar', danger: true }))) return;
-  const antes = Object.assign({}, c.marcas); c.marcas = {}; guardar(); desenharLinhas(); atualizarContagem();
-  UI.toast('Marcações limpas.', { action: { label: 'Desfazer', icon: 'undo', fn: () => { c.marcas = antes; guardar(); desenharLinhas(); atualizarContagem(); } } });
+  const minhas = Object.keys(c.marcas).filter(id => podeMexer(c, id)), outras = Object.keys(c.marcas).length - minhas.length;
+  if (!minhas.length) { UI.toast('As presenças desta chamada foram marcadas por outras pessoas. Só elas (ou um administrador) podem tirar.', 'info'); return; }
+  if (!(await UI.confirm('Limpar as marcações?', outras ? `As ${minhas.length} presenças que você marcou ficam como ausentes. As ${outras} marcadas por outras pessoas continuam.` : 'Todos ficam como ausentes nesta chamada.', { ok: 'Limpar', danger: true }))) return;
+  const antes = Object.assign({}, c.marcas), antesD = Object.assign({}, c.donos || {});
+  minhas.forEach(id => { delete c.marcas[id]; if (c.donos) delete c.donos[id]; }); guardar(); desenharLinhas(); atualizarContagem();
+  UI.toast('Marcações limpas.', { action: { label: 'Desfazer', icon: 'undo', fn: () => { c.marcas = antes; c.donos = antesD; guardar(); desenharLinhas(); atualizarContagem(); } } });
 }
 // Ensaio Regional: acrescenta alguém do ministério direto na chamada (só nome e cargo,
 // sem localidade) e já marca presente; o campo fica pronto para o próximo
@@ -1317,17 +1327,28 @@ const CLIENTE = (() => { try { let c = sessionStorage.getItem('pm_cliente'); if 
 const CAMPOS_I = ['nome', 'instrumento', 'cidade', 'bairro', 'cargo', 'grupo'], CAMPOS_C = ['data', 'ocasiao', 'local', 'obs', 'tipo', 'grupos', 'cidade', 'presidente', 'hino', 'capitulo', 'livro', 'regente', 'hinos'];
 let ESPELHO = null;
 const copia = o => JSON.parse(JSON.stringify(o));
+// Quem marcou a presença é o "dono" dela: só ele (mesmo usuário ou aparelho) ou um administrador
+// tira a presença ou troca o instrumento. A sala confere; aqui é só para a tela já mostrar travado.
+const meuDono = () => (VIVO.eu ? VIVO.eu.email : '') + '|' + CLIENTE;
+function podeMexer(c, id) {
+  if (!c || !c.marcas[id] || !aoVivo() || !VIVO.eu || VIVO.eu.admin) return true;
+  const d = (c.donos || {})[id]; if (!d) return true;
+  const k = d.indexOf('|'); if (k < 0) return false;   // marcado pelo link
+  const email = d.slice(0, k), apar = d.slice(k + 1);
+  return (!!email && email === VIVO.eu.email) || apar === CLIENTE;
+}
+const quemMarcou = (c, id) => { const d = (c.donos || {})[id] || ''; const k = d.indexOf('|'); const e = k < 0 ? '' : d.slice(0, k); return e ? e.split('@')[0] : 'alguém pelo link'; };
 const aoVivo = () => VIVO.modo !== 'manual';
 
 // aplica uma mudança numa lista (DB ou ESPELHO), mexendo no próprio objeto
 function aplicarOp(db, op) {
   const ch = id => db.chamadas.find(c => c.id === id), ir = id => db.irmaos.find(i => i.id === id);
   switch (op.t) {
-    case 'm': { const c = ch(op.c); if (!c) return; if (op.v) c.marcas[op.i] = 'v'; else delete c.marcas[op.i]; return; }
-    case 'mc': { const c = ch(op.c); if (!c) return; c.marcas = {}; (op.lista || []).forEach(i => { c.marcas[i] = 'v'; }); return; }
+    case 'm': { const c = ch(op.c); if (!c) return; c.donos = c.donos || {}; if (op.v) { c.marcas[op.i] = 'v'; if (op.pc != null) { if (op.pc) c.donos[op.i] = op.pc; else delete c.donos[op.i]; } else if (!c.donos[op.i]) c.donos[op.i] = meuDono(); } else { delete c.marcas[op.i]; delete c.donos[op.i]; } return; }
+    case 'mc': { const c = ch(op.c); if (!c) return; c.marcas = {}; (op.lista || []).forEach(i => { c.marcas[i] = 'v'; }); if (op.donos) c.donos = Object.assign({}, op.donos); else { c.donos = c.donos || {}; Object.keys(c.donos).forEach(i => { if (!c.marcas[i]) delete c.donos[i]; }); (op.lista || []).forEach(i => { if (!c.donos[i]) c.donos[i] = meuDono(); }); } return; }
     case 'i': { let i = ir(op.id); if (!i) { i = { id: op.id, nome: '', instrumento: '', cidade: '', bairro: '', cargo: '', grupo: '' }; db.irmaos.push(i); } Object.assign(i, op.campos || {}); if (!i.grupo) i.grupo = grupoDoCargo(i.cargo); return; }
     case 'i-': { const k = db.irmaos.findIndex(i => i.id === op.id); if (k >= 0) db.irmaos.splice(k, 1); db.chamadas.forEach(c => { delete c.marcas[op.id]; if (c.toca) delete c.toca[op.id]; }); return; }
-    case 'c': { let c = ch(op.id); if (!c) { c = { id: op.id, data: '', ocasiao: '', local: '', obs: '', tipo: 'nomes', grupos: '', marcas: {}, locais: [], toca: {} }; db.chamadas.push(c); } Object.assign(c, op.campos || {}); if (c.tipo !== 'regional') c.tipo = 'nomes'; return; }
+    case 'c': { let c = ch(op.id); if (!c) { c = { id: op.id, data: '', ocasiao: '', local: '', obs: '', tipo: 'nomes', grupos: '', marcas: {}, donos: {}, locais: [], toca: {} }; db.chamadas.push(c); } Object.assign(c, op.campos || {}); if (c.tipo !== 'regional') c.tipo = 'nomes'; return; }
     case 'l': {
       const c = ch(op.c); if (!c) return;
       let l = c.locais.find(x => x.id === op.id);
@@ -1490,6 +1511,7 @@ function mostrarMudancas(ops) {
 }
 
 function receber(msg) {
+  if (msg.t === 'eu') { const antes = JSON.stringify(VIVO.eu || null); VIVO.eu = { email: msg.email || '', admin: !!msg.admin }; if (antes !== JSON.stringify(VIVO.eu) && DB && EM_CHAM()) semPular(desenharLinhas); return; }
   if (msg.t === 'gente') { VIVO.gente = (msg.lista || []).filter(g => g.cliente !== CLIENTE); mostrarEstado(); return; }
   if (msg.t === 'tudo') {
     enviarAgora();   // o que ainda não foi mandado entra na fila antes de trocar
@@ -1531,9 +1553,10 @@ function receber(msg) {
     if (msg.seq) VIVO.seq = msg.seq;
     // do meu lote, só valem as correções: presença que eu tirei sem internet e que continua valendo
     const deOutros = meu ? (msg.ops || []).filter(op => op.corr) : (msg.ops || []);
-    if (meu && deOutros.some(op => op.t === 'm' || op.t === 'mc')) {
+    if (meu && deOutros.some(op => op.dono)) UI.toast('Só quem marcou essa presença (ou um administrador) pode tirar a presença ou trocar o instrumento.', { type: 'info', duration: 7000 });
+    if (meu && deOutros.some(op => (op.t === 'm' || op.t === 'mc') && !op.dono)) {
       // junta num aviso só (podem vir vários lotes seguidos quando a internet volta)
-      VIVO.corrigidos = (VIVO.corrigidos || 0) + deOutros.reduce((k, op) => k + (op.t === 'm' ? 1 : 0), 0);
+      VIVO.corrigidos = (VIVO.corrigidos || 0) + deOutros.reduce((k, op) => k + (op.t === 'm' && !op.dono ? 1 : 0), 0);
       clearTimeout(VIVO.tCorr); VIVO.tCorr = setTimeout(() => {
         const n = VIVO.corrigidos; VIVO.corrigidos = 0;
         UI.toast((n ? `${n === 1 ? '1 irmão que você desmarcou' : n + ' irmãos que você desmarcou'} sem internet ${n === 1 ? 'continua' : 'continuam'} como presente` : 'As presenças marcadas pelos outros continuam valendo')
