@@ -40,13 +40,13 @@ const grupoDe = d => d.grupo || grupoDoCargo(d.cargo);
 const normal = v => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
 const txt = (v, max) => String(v == null ? '' : v).slice(0, max || 200);
 const idOk = v => typeof v === 'string' && /^[A-Za-z0-9_-]{1,40}$/.test(v);
-// Quem marcou a presença é o "dono" dela: só ele (mesmo usuário logado ou mesmo aparelho)
-// ou um administrador tira a presença ou troca o instrumento. Guardado em marcas.por como
-// "email|aparelho" (pelo link: "|aparelho"). Marcas antigas sem dono continuam livres.
+// Quem marcou a presença é o "dono" dela. Pelo link (sem cadastro) só o dono — o mesmo
+// aparelho — tira a presença ou escolhe/troca o instrumento. Quem tem acesso ao sistema
+// (está logado) mexe em tudo. Guardado em marcas.por como "email|aparelho" (pelo link: "|aparelho").
 const donoDe = eu => (eu.link ? '' : String(eu.email || '')) + '|' + String(eu.cliente || '');
 function ehDono(por, eu) {
-  if (!por) return true;
-  if (eu.admin) return true;
+  if (!eu.link) return true;   // logado: mexe em tudo
+  if (!por) return false;      // pelo link: marcação sem dono (feita antes) não é dele
   const k = String(por).indexOf('|');
   if (k < 0) return por === eu.cliente;   // marcação antiga feita pelo link
   const email = por.slice(0, k), apar = por.slice(k + 1);

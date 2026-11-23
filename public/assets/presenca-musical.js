@@ -1327,11 +1327,12 @@ const CLIENTE = (() => { try { let c = sessionStorage.getItem('pm_cliente'); if 
 const CAMPOS_I = ['nome', 'instrumento', 'cidade', 'bairro', 'cargo', 'grupo'], CAMPOS_C = ['data', 'ocasiao', 'local', 'obs', 'tipo', 'grupos', 'cidade', 'presidente', 'hino', 'capitulo', 'livro', 'regente', 'hinos'];
 let ESPELHO = null;
 const copia = o => JSON.parse(JSON.stringify(o));
-// Quem marcou a presença é o "dono" dela: só ele (mesmo usuário ou aparelho) ou um administrador
-// tira a presença ou troca o instrumento. A sala confere; aqui é só para a tela já mostrar travado.
+// Quem marcou a presença é o "dono" dela (guardado pela sala). Aqui todo mundo está logado,
+// e quem tem acesso ao sistema mexe em tudo; a trava por dono vale só pelo link (sem cadastro).
+// (a função fica para, se um dia for preciso, travar também aqui)
 const meuDono = () => (VIVO.eu ? VIVO.eu.email : '') + '|' + CLIENTE;
 function podeMexer(c, id) {
-  if (!c || !c.marcas[id] || !aoVivo() || !VIVO.eu || VIVO.eu.admin) return true;
+  if (!c || !c.marcas[id] || !aoVivo() || !VIVO.eu || VIVO.eu.email) return true;
   const d = (c.donos || {})[id]; if (!d) return true;
   const k = d.indexOf('|'); if (k < 0) return false;   // marcado pelo link
   const email = d.slice(0, k), apar = d.slice(k + 1);

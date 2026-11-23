@@ -45,7 +45,8 @@
       case 'm':
         if (op.c !== S.chamada.id) return;
         // meu = marcado por este aparelho (pode desmarcar); corr = a sala não deixou desmarcar
-        if (op.v) S.marcas[op.i] = op.meu || S.marcas[op.i] === 'meu' ? 'meu' : 'v';
+        // o que vem da sala diz de quem é (meu = 0/1); o que é deste aparelho e ainda não voltou fica "meu"
+        if (op.v) S.marcas[op.i] = ('meu' in op) ? (op.meu ? 'meu' : 'v') : 'meu';
         else delete S.marcas[op.i];
         return;
       case 'mc': if (op.c !== S.chamada.id) return; { const ant = S.marcas, meus = op.meus ? new Set(op.meus) : null; S.marcas = {}; (op.lista || []).forEach(i => { S.marcas[i] = (meus ? meus.has(i) : ant[i] === 'meu') ? 'meu' : 'v'; }); } return;
@@ -128,6 +129,8 @@
       if ((m.ops || []).some(op => op.corr && op.dono)) toast('Essa presença foi marcada por outra pessoa: só ela (ou um administrador) pode tirar ou trocar o instrumento.', 'info');
       else if ((m.ops || []).some(op => op.corr && op.t === 'm')) toast('Sem internet só dá para acrescentar presença; quem já estava presente continua.', 'info');
       atualizar(m.ops || []);
+      // alguém marcou ao mesmo tempo e ficou como dono: a linha volta a ficar travada aqui
+      (m.ops || []).forEach(op => { if (op.t === 'm' && op.v && 'meu' in op && !op.meu) { const row = document.querySelector(`.row[data-id="${op.i}"]`), i = S.irmaos.find(x => x.id === op.i); if (row && i) { const t = document.createElement('div'); t.innerHTML = linha(i); row.replaceWith(t.firstElementChild); } } });
       mostrarVivo();
     }
   }
