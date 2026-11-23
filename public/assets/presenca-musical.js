@@ -151,6 +151,16 @@ function guardar() {
 function quandoTxt(ms) { if (!ms) return ''; const d = new Date(ms), h = new Date(); const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); return d.toDateString() === h.toDateString() ? 'hoje às ' + hora : d.toLocaleDateString('pt-BR') + ' às ' + hora; }
 function mostrarEstado() {
   const el = document.getElementById('estado'); if (!el) return;
+  const bp = document.getElementById('btnPausa');
+  if (bp) { bp.hidden = !aoVivo() || VIVO.modo === 'sessao'; bp.innerHTML = VIVO.pausa ? `${ICO('refresh')}Ligar o tempo real` : `${ICO('pause')}Pausar o tempo real`; }
+  if (aoVivo() && VIVO.pausa) {
+    const n = ESPELHO ? diferencas(ESPELHO, DB).length + VIVO.fila.reduce((k, l) => k + l.ops.length, 0) : 0;
+    el.className = 'estado pend';
+    el.innerHTML = `${ICO('pause')}<span><b>Tempo real pausado</b>${n ? ` · ${n} ${n === 1 ? 'mudança' : 'mudanças'} para enviar` : ''} — toque para ligar</span>`;
+    el.title = 'Pausado: o que você faz fica guardado neste aparelho e não gasta nada do servidor. Ao ligar de novo, vai tudo de uma vez e você recebe o que os outros mudaram.';
+    el.setAttribute('role', 'button'); el.tabIndex = 0;
+    return;
+  }
   if (aoVivo()) {
     const aberto = VIVO.ws && VIVO.ws.readyState === 1 && VIVO.abriu, esp = VIVO.fila.reduce((n, l) => n + l.ops.length, 0);
     const nomes = [...new Set(VIVO.gente.map(g => porTxt(g.email)))];
@@ -179,7 +189,7 @@ function mostrarEstado() {
   const acao = PENDENTE || NOVA;
   el.setAttribute('role', acao ? 'button' : 'status'); el.tabIndex = acao ? 0 : -1;
 }
-function cliqueEstado() { if (!temSessao() || VIVO.modo === 'sessao') { location.href = '/login.html'; return; } if (aoVivo()) { VIVO.tent = 0; ligarVivo(); return; } if (PENDENTE) salvarNuvem(); else if (NOVA) carregarNuvem(true); }
+function cliqueEstado() { if (!temSessao() || VIVO.modo === 'sessao') { location.href = '/login.html'; return; } if (aoVivo() && VIVO.pausa) { pausarVivo(false); return; } if (aoVivo()) { VIVO.tent = 0; ligarVivo(); return; } if (PENDENTE) salvarNuvem(); else if (NOVA) carregarNuvem(true); }
 
 async function api(rota, corpo) {
   const res = await fetch('/api/' + rota, { method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -639,7 +649,7 @@ function blocoLink(c) {
   </section>`;
 }
 function enviarOpsDiretas(ops) {
-  if (!(aoVivo() && VIVO.ws && VIVO.ws.readyState === 1 && VIVO.abriu)) { UI.toast('Para isso é preciso estar ao vivo (com internet).', 'error'); return false; }
+  if (!(aoVivo() && VIVO.ws && VIVO.ws.readyState === 1 && VIVO.abriu)) { UI.toast(VIVO.pausa ? 'Para isso ligue o tempo real (está pausado).' : 'Para isso é preciso estar ao vivo (com internet).', 'error'); return false; }
   enviarAgora();
   const lote = { lote: novoId(), ops, off: false };
   VIVO.fila.push(lote); gravarFila(); VIVO.ws.send(JSON.stringify(Object.assign({ t: 'ops' }, lote)));
@@ -1410,7 +1420,7 @@ function gravarFila() { try { localStorage.setItem(FILA_KEY, JSON.stringify(VIVO
 // junta o que mudou na tela e manda (chamado logo depois de cada mudança, com um pequeno atraso)
 function enviarAgora() {
   clearTimeout(VIVO.tEnvio); VIVO.tEnvio = null;
-  if (!aoVivo() || !ESPELHO) return;
+  if (!aoVivo() || !ESPELHO || VIVO.pausa) { if (VIVO.pausa) mostrarEstado(); return; }
   const ops = diferencas(ESPELHO, DB);
   if (!ops.length) return;
   ops.forEach(op => aplicarOp(ESPELHO, op));
@@ -1583,6 +1593,7 @@ function urlSala() {
 }
 function ligarVivo() {
   if (VIVO.modo === 'manual' || !temSessao()) { if (!temSessao()) mostrarEstado(); return; }
+  if (VIVO.pausa) { mostrarEstado(); return; }
   if (VIVO.ws && (VIVO.ws.readyState === 0 || VIVO.ws.readyState === 1)) return;
   clearTimeout(VIVO.tRec);
   let ws; try { ws = new WebSocket(urlSala()); } catch (e) { return religar(); }
@@ -1592,13 +1603,14 @@ function ligarVivo() {
     document.body.classList.add('ao-vivo');
     ws.send(JSON.stringify({ t: 'ola', desde: VIVO.primeira && PENDENTE ? 0 : VIVO.seq }));
     VIVO.fila.forEach(l => ws.send(JSON.stringify(Object.assign({ t: 'ops' }, l))));
+    enviarAgora();   // o que mudou enquanto estava pausado (ou antes de ligar)
     clearInterval(VIVO.tPing); VIVO.tPing = setInterval(() => { if (ws.readyState === 1) ws.send('ping'); }, 30000);
     mostrarEstado();
   };
   ws.onmessage = e => { if (e.data === 'pong') return; let m; try { m = JSON.parse(e.data); } catch (er) { return; } try { receber(m); } catch (er) { console.error('ao vivo:', er); } };
   ws.onclose = () => {
     clearInterval(VIVO.tPing);
-    if (VIVO.ws !== ws) return;
+    if (VIVO.ws !== ws || VIVO.pausa) return;
     VIVO.ws = null;
     if (!VIVO.abriu) VIVO.falhas++;
     religar();
@@ -1619,6 +1631,32 @@ async function religar() {
   const espera = Math.min(30000, 1000 * Math.pow(2, VIVO.tent++));
   clearTimeout(VIVO.tRec); VIVO.tRec = setTimeout(ligarVivo, espera);
 }
+/* ---------- pausar o tempo real ----------
+   Pausado: desliga a ligação com a sala (não gasta nada do servidor). O que a pessoa faz fica
+   neste aparelho; a "foto" de como a sala estava (ESPELHO) fica guardada para, ao ligar de novo,
+   mandar só o que mudou — de uma vez — e receber o que os outros mudaram nesse meio tempo. */
+const PAUSA_KEY = KEY + '_pausa', ESPELHO_KEY = KEY + '_espelho';
+function pausarVivo(pausar) {
+  if (VIVO.modo === 'manual') return;
+  if (pausar) {
+    enviarAgora();                       // o que já estava pronto vai antes de pausar
+    VIVO.pausa = true;
+    try { localStorage.setItem(PAUSA_KEY, '1'); localStorage.setItem(ESPELHO_KEY, JSON.stringify(ESPELHO)); } catch (e) {}
+    clearTimeout(VIVO.tRec); clearTimeout(VIVO.tEnvio); clearInterval(VIVO.tPing);
+    const ws = VIVO.ws; VIVO.ws = null; VIVO.abriu = false; VIVO.gente = [];
+    if (ws) { try { ws.close(1000, 'pausa'); } catch (e) {} }
+    document.body.classList.remove('ao-vivo'); document.body.classList.add('pausado');
+    mostrarEstado();
+    UI.toast('Tempo real pausado. Pode mexer à vontade: fica guardado neste aparelho e não gasta o servidor. Ligue de novo para enviar.', { type: 'info', duration: 8000 });
+  } else {
+    VIVO.pausa = false;
+    try { localStorage.removeItem(PAUSA_KEY); localStorage.removeItem(ESPELHO_KEY); } catch (e) {}
+    document.body.classList.remove('pausado');
+    VIVO.tent = 0; VIVO.modo = VIVO.modo === 'vivo' ? 'vivo' : 'ligando';
+    ligarVivo();
+    UI.toast('Tempo real ligado: suas mudanças foram enviadas e as dos outros chegaram.', 'ok');
+  }
+}
 function irParaManual() {
   VIVO.modo = 'manual'; clearTimeout(VIVO.tRec); clearTimeout(VIVO.tEnvio);
   document.body.classList.remove('ao-vivo');
@@ -1626,8 +1664,8 @@ function irParaManual() {
   VIVO.fila = []; gravarFila(); gravarLocal();
   mostrarEstado(); carregarNuvem(false);
 }
-window.addEventListener('online', () => { if (aoVivo() && !VIVO.ws) { VIVO.tent = 0; ligarVivo(); } });
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && aoVivo() && !VIVO.ws) { VIVO.tent = 0; ligarVivo(); } });
+window.addEventListener('online', () => { if (aoVivo() && !VIVO.ws && !VIVO.pausa) { VIVO.tent = 0; ligarVivo(); } });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && aoVivo() && !VIVO.ws && !VIVO.pausa) { VIVO.tent = 0; ligarVivo(); } });
 window.addEventListener('pagehide', () => { if (aoVivo()) enviarAgora(); });
 
 /* ---------- atalhos ---------- */
@@ -1645,6 +1683,7 @@ try { PENDENTE = localStorage.getItem(KEY + '_pend') === '1'; } catch (e) {}
 try { VIVO.seq = +(localStorage.getItem(SEQ_KEY) || 0) || 0; VIVO.fila = JSON.parse(localStorage.getItem(FILA_KEY) || '[]') || []; } catch (e) { VIVO.seq = 0; VIVO.fila = []; }
 VIVO.primeira = !VIVO.seq;
 ESPELHO = copia(DB);
+try { if (localStorage.getItem(PAUSA_KEY) === '1') { VIVO.pausa = true; const e = localStorage.getItem(ESPELHO_KEY); if (e) ESPELHO = normalizar(JSON.parse(e)); document.body.classList.add('pausado'); } } catch (e) {}
 try { const s = localStorage.getItem(KEY + '_sel'); SEL = DB.chamadas.some(c => c.id === s) ? s : maisRecente('regional') || maisRecente('nomes'); } catch (e) { SEL = maisRecente('regional') || maisRecente('nomes'); }
 window.__aoEntrar = function () {
   if (window.__pmIniciado) return; window.__pmIniciado = true;

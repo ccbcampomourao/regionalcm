@@ -91,7 +91,7 @@ label small{font-weight:500;text-transform:none;letter-spacing:0;color:#a39a85}
 .estado[role=button]{cursor:pointer}
 .estado.salv b{color:#46628a}
 /* ao vivo: várias pessoas na mesma lista */
-body.ao-vivo .so-manual{display:none!important}
+body.ao-vivo .so-manual,body.pausado .so-manual{display:none!important}
 .estado.vivo b{color:var(--ok)}
 .estado.vivo .pt{width:8px;height:8px;border-radius:50%;background:var(--ok);flex:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 22%,transparent)}
 .estado.lig .pt{width:8px;height:8px;border-radius:50%;background:#a46a12;flex:none;animation:piscar 1.2s ease-in-out infinite}
@@ -568,6 +568,7 @@ body.ao-vivo .so-manual{display:none!important}
     <div class="menu-box">
       <button type="button" id="btnNuvemSalvar" class="so-manual" onclick="salvarNuvem()"><svg class="ic"><use href="/assets/icons.svg#i-cloud-up"></use></svg>Salvar na nuvem</button>
       <button type="button" id="btnNuvemCarregar" class="so-manual" onclick="carregarNuvem(true)"><svg class="ic"><use href="/assets/icons.svg#i-cloud-down"></use></svg>Carregar da nuvem</button>
+      <button type="button" id="btnPausa" hidden onclick="pausarVivo(!VIVO.pausa)"><svg class="ic"><use href="/assets/icons.svg#i-pause"></use></svg>Pausar o tempo real</button>
       <hr>
       <button type="button" onclick="document.getElementById('arqPDF').click()"><svg class="ic"><use href="/assets/icons.svg#i-upload"></use></svg>Importar relatório de membros (PDF)</button>
       <button type="button" onclick="baixarBackup()"><svg class="ic"><use href="/assets/icons.svg#i-download"></use></svg>Baixar backup (.json)</button>
