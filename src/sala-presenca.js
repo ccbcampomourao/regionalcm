@@ -58,6 +58,8 @@ export class SalaPresencaMusical extends DurableObject {
       // Ensaio Regional: músicos contados por localidade (total e quantidade de cada instrumento)
       this.sql.exec('CREATE TABLE IF NOT EXISTS locais (c TEXT NOT NULL, id TEXT NOT NULL, dados TEXT NOT NULL, PRIMARY KEY (c, id))');
       // links de chamada para quem não tem cadastro (código -> chamada)
+      // Ensaio Regional: instrumento (e localidade) de quem é do ministério e tocou
+      this.sql.exec('CREATE TABLE IF NOT EXISTS toca (c TEXT NOT NULL, i TEXT NOT NULL, dados TEXT NOT NULL, PRIMARY KEY (c, i))');
       this.sql.exec('CREATE TABLE IF NOT EXISTS links (code TEXT PRIMARY KEY, c TEXT NOT NULL, criado INTEGER)');
       // quem marcou (pelo link): só quem marcou pelo link pode desmarcar a própria marcação
       try { this.sql.exec("ALTER TABLE marcas ADD COLUMN por TEXT DEFAULT ''"); } catch (e) { /* já tem */ }
@@ -79,7 +81,7 @@ export class SalaPresencaMusical extends DurableObject {
 
   importar(db) {
     db = db && typeof db === 'object' ? db : {};
-    this.sql.exec('DELETE FROM irmaos'); this.sql.exec('DELETE FROM chamadas'); this.sql.exec('DELETE FROM marcas'); this.sql.exec('DELETE FROM locais');
+    this.sql.exec('DELETE FROM irmaos'); this.sql.exec('DELETE FROM chamadas'); this.sql.exec('DELETE FROM marcas'); this.sql.exec('DELETE FROM locais'); this.sql.exec('DELETE FROM toca');
     (Array.isArray(db.irmaos) ? db.irmaos : []).forEach(i => {
       if (!i || !idOk(i.id)) return;
       this.sql.exec('INSERT OR REPLACE INTO irmaos (id, dados) VALUES (?, ?)', i.id, JSON.stringify(so(i, CAMPOS_I)));
@@ -89,6 +91,7 @@ export class SalaPresencaMusical extends DurableObject {
       this.sql.exec('INSERT OR REPLACE INTO chamadas (id, dados) VALUES (?, ?)', c.id, JSON.stringify(so(c, CAMPOS_C)));
       Object.keys(c.marcas || {}).forEach(i => { if (idOk(i) && c.marcas[i] === 'v') this.sql.exec('INSERT OR IGNORE INTO marcas (c, i) VALUES (?, ?)', c.id, i); });
       (Array.isArray(c.locais) ? c.locais : []).forEach((l, n) => { if (l && idOk(l.id)) this.gravarLocal(c.id, l.id, so(l, CAMPOS_L), l.inst, n); });
+      Object.keys(c.toca && typeof c.toca === 'object' ? c.toca : {}).forEach(i => { const x = c.toca[i] || {}; if (idOk(i) && (x.inst || x.loc)) this.sql.exec('INSERT OR REPLACE INTO toca (c, i, dados) VALUES (?, ?, ?)', c.id, i, JSON.stringify({ inst: txt(x.inst, 40), loc: txt(x.loc, 120) })); });
     });
   }
 
@@ -101,7 +104,9 @@ export class SalaPresencaMusical extends DurableObject {
     Object.values(locais).forEach(l => l.sort((a, b) => (a.ord || 0) - (b.ord || 0)));
     const links = {};
     for (const r of this.sql.exec('SELECT code, c FROM links')) links[r.c] = r.code;
-    const chamadas = [...this.sql.exec('SELECT id, dados FROM chamadas')].map(r => Object.assign({ id: r.id }, JSON.parse(r.dados), { marcas: marcas[r.id] || {}, locais: locais[r.id] || [] }, links[r.id] ? { link: links[r.id] } : {}));
+    const toca = {};
+    for (const r of this.sql.exec('SELECT c, i, dados FROM toca')) (toca[r.c] = toca[r.c] || {})[r.i] = JSON.parse(r.dados);
+    const chamadas = [...this.sql.exec('SELECT id, dados FROM chamadas')].map(r => Object.assign({ id: r.id }, JSON.parse(r.dados), { marcas: marcas[r.id] || {}, locais: locais[r.id] || [], toca: toca[r.id] || {} }, links[r.id] ? { link: links[r.id] } : {}));
     return { versao: 2, atualizado: +(this.meta('atualizado') || 0), irmaos, chamadas };
   }
 
@@ -226,6 +231,7 @@ export class SalaPresencaMusical extends DurableObject {
         if (!idOk(op.id)) return null;
         this.sql.exec('DELETE FROM irmaos WHERE id = ?', op.id);
         this.sql.exec('DELETE FROM marcas WHERE i = ?', op.id);
+        this.sql.exec('DELETE FROM toca WHERE i = ?', op.id);
         return { t: 'i-', id: op.id };
       }
       case 'c': {   // chamada: nova ou só os campos que mudaram
@@ -240,6 +246,7 @@ export class SalaPresencaMusical extends DurableObject {
         this.sql.exec('DELETE FROM marcas WHERE c = ?', op.id);
         this.sql.exec('DELETE FROM locais WHERE c = ?', op.id);
         this.sql.exec('DELETE FROM links WHERE c = ?', op.id);
+        this.sql.exec('DELETE FROM toca WHERE c = ?', op.id);
         return { t: 'c-', id: op.id };
       }
       case 'l': {   // localidade do Ensaio Regional: nome, total e instrumentos (só o que mudou)
@@ -254,6 +261,13 @@ export class SalaPresencaMusical extends DurableObject {
         if (!idOk(op.c) || !idOk(op.id)) return null;
         this.sql.exec('DELETE FROM locais WHERE c = ? AND id = ?', op.c, op.id);
         return { t: 'l-', c: op.c, id: op.id };
+      }
+      case 'x': {   // Ensaio Regional: instrumento/localidade de quem é do ministério (vazio = tira)
+        if (!idOk(op.c) || !idOk(op.i) || !this.existe('chamadas', op.c)) return null;
+        const inst = txt(op.inst, 40).trim(), loc = txt(op.loc, 120).trim();
+        if (inst || loc) this.sql.exec('INSERT INTO toca (c, i, dados) VALUES (?, ?, ?) ON CONFLICT(c, i) DO UPDATE SET dados = excluded.dados', op.c, op.i, JSON.stringify({ inst, loc }));
+        else this.sql.exec('DELETE FROM toca WHERE c = ? AND i = ?', op.c, op.i);
+        return { t: 'x', c: op.c, i: op.i, inst, loc };
       }
       case 'link': {  // cria (ou devolve) o link desta chamada
         if (eu.link || !idOk(op.c) || !this.existe('chamadas', op.c)) return null;
