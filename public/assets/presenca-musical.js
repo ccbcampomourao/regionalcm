@@ -517,6 +517,7 @@ function desenharChamada() {
     return;
   }
   const reg = c.tipo === 'regional';
+  if (reg) return desenharRegional(c, el);
   const k = contar(c), lst = filtrar(irmaosDa(c), c), instrs = reg ? [] : [...new Set(irmaosDa(c).map(i => i.instrumento).filter(Boolean))].sort((a, b) => { const ia = INSTRUMENTOS.indexOf(a), ib = INSTRUMENTOS.indexOf(b); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.localeCompare(b, 'pt-BR'); });
   const grupos = gruposUsados(), sel = gruposDa(c);
   el.innerHTML = `
@@ -725,6 +726,7 @@ function localHTML(l) {
 }
 function desenharLocais() {
   const c = CHAM(), el = document.getElementById('locais'); if (!c || !el) return;
+  if (el.dataset.novo) return desenharMusicos(c, el);
   const ps = palavras(FILTRO.locMus || ''), lst = c.locais.filter(l => !ps.length || casaBusca(l.nome, ps));
   el.innerHTML = lst.length ? lst.map(localHTML).join('') : `<div class="vazio">${c.locais.length ? 'Nenhuma localidade lançada com esse nome. Lance acima para criar.' : 'Nenhuma localidade ainda. Lance os músicos acima.'}</div>`;
 }
@@ -737,6 +739,7 @@ function atualizarTotais() {
   if (pres) pres.innerHTML = DB.irmaos.filter(i => c.marcas[i.id] === 'v' && /ancia|diacon|cooperador/.test(norm(i.cargo))).sort((a, b) => ordemCargo(a.cargo) - ordemCargo(b.cargo) || ordemNome(a, b)).map(i => `<option value="${esc(norm(i.cargo).startsWith('cooperador') ? 'cooperador ' + i.nome : i.cargo.toLowerCase() + ' ' + i.nome)}">`).join('');
   const em = document.getElementById('emLocs'); if (em) em.textContent = `${k.locs} ${k.locs === 1 ? 'localidade' : 'localidades'}`;
   const ct = document.getElementById('contagem'); if (ct) ct.innerHTML = contagemHTML(k, c);
+  atualizarPassos(c); desenharHinos(); sugestoesAtendimento(c); qcLado();
 }
 function atualizarDifLocal(l) {
   const d = document.querySelector(`[data-dif="${l.id}"]`), soma = somaInst(l);
@@ -1326,6 +1329,394 @@ ${REL_CSS}
 </style></head><body>${relTabelaHTML(c, true)}</body></html>`;
 }
 
+/* =====================================================================
+   Ensaio Regional — preenchimento rápido, em passos:
+   1 Atendimento · 2 Ministério ("Quem chegou?") · 3 Músicos (planilha ou contador)
+   · 4 Hinos (etiquetas) · 5 Relatório. Os números ficam sempre no topo.
+   ===================================================================== */
+const PASSOS = ['Atendimento', 'Ministério', 'Músicos', 'Hinos', 'Relatório'];
+// altura da barra fixa do topo (para as barras "grudadas" ficarem logo abaixo dela)
+function medirTopo() { const t = document.querySelector('.topo'); if (t) document.documentElement.style.setProperty('--pm-topo', t.offsetHeight + 'px'); }
+window.addEventListener('resize', medirTopo); window.addEventListener('load', medirTopo); setTimeout(medirTopo, 300);
+let PASSO = {}; try { PASSO = JSON.parse(localStorage.getItem(KEY + '_passos') || '{}') || {}; } catch (e) { PASSO = {}; }
+const passoDe = c => PASSO[c.id] || (Object.keys(c.marcas).length || c.locais.length ? 2 : 1);
+function irPasso(n, foco) {
+  const c = CHAM(); if (!c) return;
+  n = Math.max(1, Math.min(5, n)); PASSO[c.id] = n;
+  try { localStorage.setItem(KEY + '_passos', JSON.stringify(PASSO)); } catch (e) {}
+  document.querySelectorAll('.pm-passo').forEach(d => d.classList.toggle('on', +d.dataset.p === n));
+  document.querySelectorAll('#pmPassos [data-ir]').forEach(b => { b.classList.toggle('on', +b.dataset.ir === n); b.setAttribute('aria-current', +b.dataset.ir === n ? 'step' : 'false'); });
+  const nav = document.getElementById('pmPassoNav'); if (nav) nav.innerHTML = navPassoHTML(n);
+  const top = document.getElementById('pmPassos'); if (top && foco !== false && top.getBoundingClientRect().top < 0) top.scrollIntoView({ block: 'start' });
+  if (foco === false) return;
+  setTimeout(() => {
+    const alvo = n === 2 ? document.getElementById('qc') : n === 4 ? document.getElementById('hinoIn') : null;
+    if (alvo && matchMedia('(min-width: 761px)').matches) alvo.focus({ preventScroll: true });
+  }, 30);
+}
+const navPassoHTML = n => `${n > 1 ? `<button type="button" onclick="irPasso(${n - 1})">${ICO('chevron-left')}${PASSOS[n - 2]}</button>` : '<span></span>'}${n < 5 ? `<button type="button" class="primary" onclick="irPasso(${n + 1})">Próximo: ${PASSOS[n]}${ICO('chevron-right')}</button>` : ''}`;
+// o ensaio regional anterior (para sugerir localidades, regente e instrumento de cada um)
+function ensaioAnterior(c) {
+  return DB.chamadas.filter(x => x.tipo === 'regional' && x.id !== c.id && String(x.data || '') <= String(c.data || '9999-99-99'))
+    .sort((a, b) => String(b.data || '').localeCompare(String(a.data || '')))[0] || null;
+}
+function atualizarPassos(c) {
+  c = c || CHAM(); if (!c || c.tipo !== 'regional') return;
+  const d = relDados(c), at = ['presidente', 'hino', 'livro', 'regente'].every(k => String(c[k] || '').trim());
+  const cont = { 1: at ? '✓' : '', 2: d.minT ? `${d.minT}` : '', 3: d.tot ? `${d.tot}` : '', 4: d.hinos.length ? `${d.hinos.length}` : '', 5: '' };
+  document.querySelectorAll('#pmPassos [data-ir]').forEach(b => { const e = b.querySelector('em'); if (e) { e.textContent = cont[b.dataset.ir]; e.hidden = !cont[b.dataset.ir]; } b.classList.toggle('feito', b.dataset.ir === '1' && at); });
+  const so = document.getElementById('pmSoma');
+  if (so) so.innerHTML = `<span><small>Músicos</small><b>${d.mus}</b></span><span><small>Organistas</small><b>${d.org}</b></span><span><small>Ministério</small><b>${d.minT}</b></span><span class="g"><small>Total geral</small><b>${d.geral}</b></span>`;
+}
+function desenharRegional(c, el) {
+  const k = contar(c), n = passoDe(c);
+  el.innerHTML = `
+  <section class="heroi heroi-reg">
+    <div class="h-l1"><div class="h-tit"><small>${esc(diaSemana(c.data))}</small><h2>${esc(dataLonga(c.data))}</h2><div class="h-sub">${esc([c.ocasiao, c.local].filter(Boolean).join(' · ') || 'Ensaio Regional')}</div></div>
+      <div class="h-acoes"><button type="button" class="danger" onclick="excluirChamada()">${ICO('trash')}<span class="lbl-md">Excluir</span></button></div></div>
+    <div class="pm-cont" id="contagem" hidden>${contagemHTML(k, c)}</div>
+  </section>
+  <div class="pm-passos-w" id="pmPassos">
+    <nav class="pm-passos" aria-label="Passos do ensaio">${PASSOS.map((p, i) => `<button type="button" data-ir="${i + 1}" class="${i + 1 === n ? 'on' : ''}" onclick="irPasso(${i + 1})"><b>${i + 1}</b><span>${p}</span><em hidden></em></button>`).join('')}</nav>
+    <div class="pm-soma" id="pmSoma"></div>
+  </div>
+
+  <div class="pm-passo${n === 1 ? ' on' : ''}" data-p="1">
+    <section class="bloco"><h3><span class="bi">${ICO('calendar')}</span><span>Dados e atendimento<br><small>Pode preencher no começo ou no fim · o que vem do ensaio anterior aparece como sugestão</small></span></h3>
+      <div class="grid g4 pm-ata">
+        <div class="campo"><label>Data</label><input type="date" data-c="data" value="${esc(c.data)}"></div>
+        <div class="campo"><label>Cidade</label><input data-c="cidade" list="dlCidades" value="${esc(c.cidade)}" placeholder="${esc(CIDADE_PADRAO)}"></div>
+        <div class="campo s2"><label>Local</label><input data-c="local" value="${esc(c.local)}" placeholder="ex.: Casa de Oração Central"></div>
+        <div class="campo s4"><label>Presidido pelo irmão</label><input data-c="presidente" list="dlPresidente" value="${esc(c.presidente)}" placeholder="ex.: ancião Daniel Castanheira Lopes da Silva"><div class="pm-sug" id="sugPres"></div></div>
+        <div class="campo"><label>Hino cantado</label><input data-c="hino" inputmode="numeric" value="${esc(c.hino)}" placeholder="ex.: 1"></div>
+        <div class="campo"><label>Capítulo</label><input data-c="capitulo" inputmode="numeric" value="${esc(c.capitulo)}" placeholder="ex.: 1"></div>
+        <div class="campo s2"><label>Livro</label><input data-c="livro" list="dlLivros" value="${esc(c.livro)}" placeholder="ex.: Josué"></div>
+        <div class="campo s4"><label>Regente</label><input data-c="regente" value="${esc(c.regente)}" placeholder="ex.: Jonas Mafra - Ribeirão Preto"><div class="pm-sug" id="sugReg"></div></div>
+        <div class="campo s4"><label>Observação <small>(sai no PDF da lista)</small></label><input data-c="obs" value="${esc(c.obs)}" placeholder="Opcional"></div>
+      </div>
+    </section>
+    ${blocoLink(c)}
+  </div>
+
+  <div class="pm-passo${n === 2 ? ' on' : ''}" data-p="2">
+    <section class="bloco pm-qc-b">
+      <div class="pm-qc">
+        <div class="pm-qc-e">
+          <label class="pm-qc-l" for="qc">Quem chegou?</label>
+          <div class="pm-qc-in">${ICO('search')}<input id="qc" autocomplete="off" placeholder="2 ou 3 letras do nome, cargo ou localidade" value="${esc(QC.q)}" aria-describedby="qcDica"></div>
+          <div class="pm-qc-res" id="qcRes" role="listbox"></div>
+          <div class="pm-qc-inst" id="qcInst" hidden></div>
+          <p class="dica" id="qcDica"><b>Enter</b> marca o primeiro (↑↓ escolhem outro) e a caixa fica pronta para o próximo. Se ele tocou, toque no instrumento${matchMedia('(min-width: 761px)').matches ? ' (ou aperte o número)' : ''}.</p>
+        </div>
+        <div class="pm-qc-d">
+          <h4>Por cargo</h4><div class="pm-qc-cargos" id="qcCargos"></div>
+          <h4>Marcados agora</h4><div class="pm-qc-feed" id="qcFeed"></div>
+        </div>
+      </div>
+    </section>
+    <section class="bloco"><h3><span class="bi">${ICO('users')}</span><span>Lista completa por cargo<br><small>Para conferir ou marcar sem digitar</small></span><em id="emFiltro"></em></h3>
+      ${!k.t ? `<div class="pm-imp">${ICO('users')}<div><b>Ainda não há ministério na lista</b><small>Puxe os anciães, diáconos, cooperadores e encarregados do Relatório de Igrejas (ou acrescente um por um).</small></div><button type="button" class="primary" onclick="puxarMinisterio()">${ICO('refresh')}Puxar do Relatório</button></div>` : ''}
+      <div class="pm-cats" id="pmCats" role="tablist" aria-label="Ministério"></div>
+      <div class="pm-filtros">
+        <div class="pm-busca">${ICO('search')}<input id="busca" type="search" placeholder="Procurar nome ou localidade…" value="${esc(FILTRO.q)}" oninput="FILTRO.q=this.value;desenharLinhas()"></div>
+        <select id="fLoc" aria-label="Localidade" onchange="FILTRO.loc=this.value;desenharLinhas()">${opcoesLoc(c)}</select>
+        <div class="pm-seg" role="group">${[['', 'Todos'], ['v', 'Presentes'], ['n', 'Ausentes']].map(([v, r]) => `<button type="button" class="${FILTRO.so === v ? 'on' : ''}" onclick="FILTRO.so='${v}';desenharLinhas()">${r}</button>`).join('')}</div>
+      </div>
+      <div class="pm-lista" id="linhas"></div>
+      <form class="pm-rapido" onsubmit="event.preventDefault();addMinisterio()" aria-label="Acrescentar alguém do ministério">
+        <input id="rNome" placeholder="Nome de quem veio e não está na lista" autocomplete="off" aria-label="Nome">
+        <select id="rCargo" aria-label="Cargo">${CATS_MIN.map(([, cg]) => `<option${cg === CATS_MIN[MIN_CAT][1] ? ' selected' : ''}>${esc(cg)}</option>`).join('')}</select>
+        <input id="rCid" list="dlCidades" placeholder="Cidade" autocomplete="off" aria-label="Cidade">
+        <input id="rBai" list="dlBairros" placeholder="Bairro" autocomplete="off" aria-label="Bairro">
+        <button type="submit" class="primary">${ICO('check')}Acrescentar presente</button>
+      </form>
+      <div class="linha-b"><button type="button" onclick="puxarMinisterio()">${ICO('refresh')}Atualizar do Relatório de Igrejas</button><button type="button" onclick="limparMarcas()">${ICO('undo')}Limpar marcações</button></div>
+    </section>
+  </div>
+
+  <div class="pm-passo${n === 3 ? ' on' : ''}" data-p="3">
+    <section class="bloco"><h3><span class="bi">${ICO('music')}</span><span>Músicos e organistas por localidade<br><small>Quem é do ministério e tocou não entra aqui: o instrumento dele é marcado no passo 2</small></span><em id="emLocs">${k.locs} ${k.locs === 1 ? 'localidade' : 'localidades'}</em></h3>
+      <div class="pm-mus-bar" id="musBar"></div>
+      <div id="locais" data-novo="1"></div>
+      <div class="linha-b"><button type="button" onclick="gerarLocaisPDF()">${ICO('print')}Relatório por localidade</button></div>
+    </section>
+  </div>
+
+  <div class="pm-passo${n === 4 ? ' on' : ''}" data-p="4">
+    <section class="bloco"><h3><span class="bi">${ICO('music')}</span><span>Hinos ensaiados<br><small>Na ordem em que foram ensaiados</small></span><em id="emHinos"></em></h3>
+      <div class="pm-hin-in">${ICO('music')}<input id="hinoIn" inputmode="numeric" autocomplete="off" placeholder="Número do hino e Enter (dá para colar vários)" aria-label="Número do hino" value="${esc(DIGITANDO.hinoIn)}"><button type="button" class="primary" onclick="addHinos()">${ICO('plus')}Pôr</button></div>
+      <div class="pm-hin" id="hinoChips"></div>
+      <p class="dica">Toque no × para tirar um hino. Para mudar a ordem, arraste (no computador) ou use as setinhas.</p>
+    </section>
+  </div>
+
+  <div class="pm-passo${n === 5 ? ' on' : ''}" data-p="5">
+    <section class="bloco"><h3><span class="bi">${ICO('file')}</span><span>Relatório do ensaio<br><small>Confira antes de imprimir</small></span></h3>
+      <div class="linha-b" style="margin:0 0 12px"><button type="button" class="primary" onclick="gerarRelatorioPDF()">${ICO('print')}Relatório do ensaio</button><button type="button" onclick="gerarLocaisPDF()">${ICO('print')}Por localidade</button><button type="button" onclick="abrirImpressao(documentoRegionalHTML(CHAM(), true))">${ICO('print')}Lista de presença</button></div>
+      <div class="pm-rel-wrap" id="pmTotais"></div>
+    </section>
+  </div>
+  <div class="pm-passo-nav" id="pmPassoNav">${navPassoHTML(n)}</div>`;
+  desenharLinhas(); desenharLocais(); atualizarTotais(); qcDesenhar(); carregarRelatorio(false);
+}
+
+/* ---------- passo 1: sugestões ---------- */
+function sugestoesAtendimento(c) {
+  const sp = document.getElementById('sugPres'), sr = document.getElementById('sugReg'); if (!sp && !sr) return;
+  const fmt = i => (norm(i.cargo).startsWith('cooperador') ? 'cooperador ' : String(i.cargo || '').toLowerCase() + ' ') + i.nome;
+  if (sp) { const l = DB.irmaos.filter(i => c.marcas[i.id] === 'v' && /ancia|diacon/.test(norm(i.cargo))).sort((a, b) => ordemCargo(a.cargo) - ordemCargo(b.cargo) || ordemNome(a, b)).slice(0, 6).filter(i => fmt(i) !== c.presidente);
+    sp.innerHTML = l.map(i => `<button type="button" data-sug="presidente" data-v="${esc(fmt(i))}">${esc(i.nome.split(' ').slice(0, 2).join(' '))}</button>`).join(''); }
+  if (sr) { const a = ensaioAnterior(c); sr.innerHTML = a && a.regente && a.regente !== c.regente ? `<button type="button" data-sug="regente" data-v="${esc(a.regente)}">último ensaio: ${esc(a.regente)}</button>` : ''; }
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-sug]'); if (!b) return;
+  const c = CHAM(); if (!c) return;
+  c[b.dataset.sug] = b.dataset.v; const inp = document.querySelector(`[data-c="${b.dataset.sug}"]`); if (inp) inp.value = b.dataset.v;
+  guardar(); atualizarTotais();
+});
+
+/* ---------- passo 2: "Quem chegou?" ---------- */
+const QC = { q: '', sel: 0, res: [], ult: null, feed: [] };
+const CARGO_CURTO = ['ANCIÃO', 'DIÁCONO', 'COOP. OFÍCIO', 'COOP. JOVENS', 'ENC. REGIONAL', 'ENC. LOCAL', 'EXAMINADORA'];
+function qcBuscar() {
+  const c = CHAM(), ps = palavras(QC.q); if (!c || !ps.length) { QC.res = []; return; }
+  const comeca = i => palavras(i.nome).some(w => w.startsWith(ps[0])) ? 0 : 1;
+  QC.res = DB.irmaos.filter(i => catDe(i) >= 0 && casaBusca([i.nome, i.cargo, locDoIrmao(c, i)].join(' '), ps))
+    .sort((a, b) => (c.marcas[a.id] ? 1 : 0) - (c.marcas[b.id] ? 1 : 0) || comeca(a) - comeca(b) || ordemNome(a, b)).slice(0, 7);
+  if (QC.sel >= QC.res.length) QC.sel = 0;
+}
+function qcDesenhar() {
+  const el = document.getElementById('qcRes'), c = CHAM(); if (!el || !c) return;
+  qcBuscar();
+  const ps = palavras(QC.q);
+  el.innerHTML = !ps.length ? '' : QC.res.length ? QC.res.map((i, k) => { const p = c.marcas[i.id] === 'v'; return `<button type="button" role="option" class="pm-qc-r${k === QC.sel ? ' sel' : ''}${p ? ' ja' : ''}" data-qc="${i.id}" aria-selected="${k === QC.sel}"><span class="cg">${CARGO_CURTO[catDe(i)] || ''}</span><span class="nm"><b>${esc(i.nome)}</b><small>${esc(locDoIrmao(c, i) || i.cargo)}${p ? ' · ✓ já presente' : ''}</small></span>${k === QC.sel ? '<kbd>Enter</kbd>' : ''}</button>`; }).join('')
+    : `<div class="pm-qc-nada">Ninguém com “${esc(QC.q)}”. <button type="button" onclick="qcNovo()">${ICO('plus')}Acrescentar “${esc(nomeBonito(QC.q.trim()))}”</button></div>`;
+  qcLado();
+}
+function qcLado() {
+  const c = CHAM(), ca = document.getElementById('qcCargos'), fe = document.getElementById('qcFeed'); if (!c || (!ca && !fe)) return;
+  if (ca) ca.innerHTML = CATS_MIN.map(([nm], k) => { const t = daCat(k), v = t.filter(i => c.marcas[i.id] === 'v').length; return `<button type="button" onclick="escolherCat(${k});document.getElementById('pmCats').scrollIntoView({block:'center',behavior:'smooth'})"><span>${esc(nm)}</span><b>${v} / ${t.length}</b></button>`; }).join('');
+  if (fe) fe.innerHTML = QC.feed.length ? QC.feed.map(id => { const i = DB.irmaos.find(x => x.id === id); if (!i) return ''; const p = c.marcas[id] === 'v', t = (c.toca || {})[id] || {};
+    return `<div class="${p ? '' : 'tirado'}"><span class="ck">${p ? ICO('check') : ''}</span><span><b>${esc(i.nome)}</b><small>${esc([i.cargo, p ? (t.inst || 'não tocou') : 'tirado', locDoIrmao(c, i)].filter(Boolean).join(' · '))}</small></span>${p && podeMexer(c, id) ? `<button type="button" onclick="qcDesfazer('${id}')">desfazer</button>` : ''}</div>`; }).join('') : '<p class="dica" style="margin:0">Quem você marcar aparece aqui, com o instrumento.</p>';
+}
+function qcMarcar(id) {
+  const c = CHAM(); if (!c) return;
+  if (c.marcas[id] !== 'v') marcar(id);
+  QC.ult = id; QC.feed = [id].concat(QC.feed.filter(x => x !== id)).slice(0, 12);
+  QC.q = ''; QC.sel = 0; const inp = document.getElementById('qc'); if (inp) { inp.value = ''; inp.focus({ preventScroll: true }); }
+  qcDesenhar(); qcInstDesenhar();
+}
+function qcDesfazer(id) { const c = CHAM(); if (c && c.marcas[id] === 'v') marcar(id); if (QC.ult === id) { QC.ult = null; qcInstDesenhar(); } qcLado(); const q = document.getElementById('qc'); if (q) q.focus({ preventScroll: true }); }
+function qcNovo() {
+  const n = document.getElementById('rNome'); if (!n) return;
+  n.value = nomeBonito(QC.q.trim()); QC.q = ''; const q = document.getElementById('qc'); if (q) q.value = ''; qcDesenhar();
+  n.closest('form').scrollIntoView({ block: 'center', behavior: 'smooth' }); setTimeout(() => document.getElementById('rCargo').focus(), 300);
+}
+// instrumentos sugeridos: o do ensaio anterior, os mais usados agora pelo ministério e os comuns
+function qcOpcoes(c, id) {
+  const ant = ensaioAnterior(c), doAnt = ant && ((ant.toca || {})[id] || {}).inst;
+  const uso = {}; Object.values(c.toca || {}).forEach(t => { if (t.inst) uso[t.inst] = (uso[t.inst] || 0) + 1; });
+  const l = [...new Set([doAnt].concat(Object.keys(uso).sort((a, b) => uso[b] - uso[a]), ['Violino', 'Trompete', 'Trombone', 'Órgão', 'Tuba', 'Clarinete', 'Saxofone Alto', 'Euphonium']).filter(Boolean))].slice(0, 8);
+  return { l, doAnt };
+}
+function qcInstDesenhar() {
+  const el = document.getElementById('qcInst'), c = CHAM(); if (!el || !c) return;
+  const id = QC.ult, i = id && DB.irmaos.find(x => x.id === id);
+  if (!i || c.marcas[id] !== 'v') { el.hidden = true; el.innerHTML = ''; return; }
+  const atual = ((c.toca || {})[id] || {}).inst || '', { l, doAnt } = qcOpcoes(c, id), pode = podeMexer(c, id);
+  el.hidden = false;
+  el.innerHTML = `<p>${ICO('check')}<b>${esc(i.nome)}</b> está presente. Tocou?${doAnt ? ` <span class="tag">último ensaio: ${esc(doAnt)}</span>` : ''}</p>
+    <div class="pm-qc-chips">${[''].concat(l).map((x, k) => `<button type="button" data-qci="${esc(x)}" class="${x === atual ? 'on' : ''}${x && x === doAnt ? ' ant' : ''}"${pode ? '' : ' disabled'}>${x ? esc(x) : 'Não tocou'}<kbd>${k}</kbd></button>`).join('')}
+      <select data-qci-s aria-label="Outro instrumento"${pode ? '' : ' disabled'}><option value="">outro…</option>${[...new Set(INSTRUMENTOS.concat(instrumentosUsados()))].filter(x => !l.includes(x)).map(x => `<option${x === atual ? ' selected' : ''}>${esc(x)}</option>`).join('')}</select></div>`;
+}
+function qcInst(x) {
+  const id = QC.ult, c = CHAM(); if (!id || !c || c.marcas[id] !== 'v') return;
+  setToca(id, 'inst', x); qcInstDesenhar(); qcLado();
+  const r = document.querySelector(`.pm-row[data-id="${id}"] [data-xi]`); if (r) r.value = x;
+  const q = document.getElementById('qc'); if (q) q.focus({ preventScroll: true });
+}
+document.addEventListener('input', e => { if (e.target.id === 'qc') { QC.q = e.target.value; QC.sel = 0; qcDesenhar(); } });
+document.addEventListener('keydown', e => {
+  if (e.target.id !== 'qc') return;
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { if (QC.res.length) { e.preventDefault(); QC.sel = (QC.sel + (e.key === 'ArrowDown' ? 1 : -1) + QC.res.length) % QC.res.length; qcDesenhar(); } return; }
+  if (e.key === 'Enter') { e.preventDefault(); if (QC.res.length) qcMarcar(QC.res[QC.sel].id); else if (palavras(QC.q).length) qcNovo(); return; }
+  if (e.key === 'Escape') { if (QC.q) { QC.q = ''; e.target.value = ''; qcDesenhar(); } else if (QC.ult) { QC.ult = null; qcInstDesenhar(); } return; }
+  // caixa vazia: o número escolhe o instrumento de quem acabou de ser marcado
+  if (!e.target.value && /^[0-9]$/.test(e.key) && QC.ult) { const b = document.querySelectorAll('#qcInst [data-qci]')[+e.key]; if (b && !b.disabled) { e.preventDefault(); qcInst(b.dataset.qci); } }
+});
+document.addEventListener('click', e => {
+  const r = e.target.closest('[data-qc]'); if (r) { qcMarcar(r.dataset.qc); return; }
+  const b = e.target.closest('[data-qci]'); if (b && !b.disabled) qcInst(b.dataset.qci);
+});
+document.addEventListener('change', e => { if (e.target.matches && e.target.matches('[data-qci-s]') && e.target.value) qcInst(e.target.value); });
+
+/* ---------- passo 3: músicos (planilha ou contador) ---------- */
+let MUS_MODO = (() => { try { return localStorage.getItem(KEY + '_musmodo') || ''; } catch (e) { return ''; } })() || (matchMedia('(max-width: 760px)').matches ? 'contador' : 'planilha');
+let CT_LOC = null; const COLS_EXTRA = {}; const DIGITANDO = { plNova: '', ctNova: '', hinoIn: '' };
+document.addEventListener('input', e => { if (e.target.id in DIGITANDO) DIGITANDO[e.target.id] = e.target.value; });
+const ABREV = { 'Violino': 'Vl', 'Viola': 'Va', 'Violoncelo': 'Vc', 'Flauta': 'Fl', 'Clarinete': 'Cl', 'Clarinete Alto': 'Cl.A', 'Clarinete Baixo': 'Cl.B', 'Oboé': 'Ob', "Oboé d'Amore": 'Ob.A', 'Corne Inglês': 'C.I', 'Fagote': 'Fg', 'Saxofone Soprano': 'Sx.S', 'Saxofone Alto': 'Sx.A', 'Saxofone Tenor': 'Sx.T', 'Saxofone Barítono': 'Sx.B', 'Saxofone Baixo': 'Sx.Bx', 'Trompete': 'Tpt', 'Cornet': 'Cor', 'Flugelhorn': 'Flg', 'Trompa': 'Tpa', 'Trombone': 'Tbn', 'Trombonito': 'Tbt', 'Euphonium': 'Euf', 'Tuba': 'Tba', 'Acordeon': 'Acd', 'Órgão': 'Org' };
+const COLS_BASE = ['Violino', 'Viola', 'Violoncelo', 'Flauta', 'Clarinete', 'Saxofone Alto', 'Saxofone Tenor', 'Trompete', 'Trombone', 'Euphonium', 'Tuba', 'Órgão'];
+function famInst(k) { if (norm(k) === 'orgao') return 'o'; const r = REL_INST.find(([, al]) => al.some(a => norm(a) === norm(k))); return r ? (r[2] || 'x') : 'x'; }
+const FAM_NOME = { c: 'Cordas', m: 'Madeiras', b: 'Metais', x: 'Outros', o: 'Órgão' };
+function colunasMus(c) {
+  const usados = new Set(COLS_BASE.concat(COLS_EXTRA[c.id] || [])); c.locais.forEach(l => Object.keys(l.inst).forEach(k => usados.add(k)));
+  const ord = { c: 0, m: 1, b: 2, x: 3, o: 4 };
+  return [...usados].sort((a, b) => ord[famInst(a)] - ord[famInst(b)] || ordInst(a, b));
+}
+function locaisVisiveis(c) { const ps = palavras(FILTRO.locMus || ''); return c.locais.filter(l => !ps.length || casaBusca(l.nome, ps)); }
+function antLoc(c) { const a = ensaioAnterior(c), m = new Map(); if (a) a.locais.forEach(l => m.set(norm(l.nome), totalLocal(l))); return { a, m }; }
+function musBar(c) {
+  const el = document.getElementById('musBar'); if (!el) return;
+  const { a } = antLoc(c), tem = new Set(c.locais.map(l => norm(l.nome)));
+  const faltam = a ? a.locais.filter(l => l.nome.trim() && !tem.has(norm(l.nome))).length : 0;
+  const cols = colunasMus(c), outros = [...new Set(INSTRUMENTOS.concat(instrumentosUsados()))].filter(x => !cols.includes(x));
+  el.innerHTML = `${faltam ? `<button type="button" class="primary" onclick="copiarLocais()">${ICO('copy')}Copiar ${faltam} ${faltam === 1 ? 'localidade' : 'localidades'} do último ensaio</button>` : ''}
+    <div class="pm-busca">${ICO('search')}<input id="buscaLocais" type="search" placeholder="Procurar localidade…" value="${esc(FILTRO.locMus || '')}" aria-label="Procurar localidade"></div>
+    ${MUS_MODO === 'planilha' ? `<select id="addCol" aria-label="Acrescentar instrumento"><option value="">+ Instrumento</option>${outros.map(x => `<option>${esc(x)}</option>`).join('')}</select>` : ''}
+    <div class="pm-seg pm-modo" role="group" aria-label="Jeito de lançar"><button type="button" class="${MUS_MODO === 'planilha' ? 'on' : ''}" onclick="modoMus('planilha')">${ICO('grid')}Planilha</button><button type="button" class="${MUS_MODO === 'contador' ? 'on' : ''}" onclick="modoMus('contador')">${ICO('plus')}Contador</button></div>`;
+}
+function modoMus(m) { MUS_MODO = m; try { localStorage.setItem(KEY + '_musmodo', m); } catch (e) {} const c = CHAM(); if (c) { musBar(c); desenharMusicos(c, document.getElementById('locais'), true); } }
+function copiarLocais() {
+  const c = CHAM(), { a } = antLoc(c); if (!c || !a) return;
+  const tem = new Set(c.locais.map(l => norm(l.nome))); let n = 0, ord = Date.now();
+  a.locais.forEach(l => { if (l.nome.trim() && !tem.has(norm(l.nome))) { c.locais.push({ id: novoId(), nome: l.nome, total: '', inst: {}, ord: ord++ }); tem.add(norm(l.nome)); n++; } });
+  guardar(); musBar(c); desenharMusicos(c, document.getElementById('locais'), true); atualizarTotais(); desenharLista();
+  UI.toast(`${n} ${n === 1 ? 'localidade copiada' : 'localidades copiadas'} do ensaio de ${dataBR(a.data)} (vazias).`, 'ok');
+}
+function novaLocal(nome) {
+  const c = CHAM(); nome = String(nome || '').trim().replace(/\s+/g, ' '); if (!c || !nome) return null;
+  let l = c.locais.find(x => norm(x.nome) === norm(nome));
+  if (!l) { l = { id: novoId(), nome: nomeBonito(nome), total: '', inst: {}, ord: Date.now() }; c.locais.push(l); guardar(); }
+  return l;
+}
+function setInst(id, inst, n) {
+  const c = CHAM(), l = LOC(id); if (!l) return;
+  n = Math.max(0, Math.min(9999, n | 0));
+  if (n) l.inst[inst] = n; else delete l.inst[inst];
+  if (String(l.total).trim() !== '') l.total = '';   // aqui o total é sempre a soma
+  guardar(); musTotais(c); atualizarTotais(); desenharLista();
+}
+function musTotais(c) {
+  c = c || CHAM(); if (!c) return;
+  c.locais.forEach(l => { document.querySelectorAll(`[data-pt="${l.id}"]`).forEach(t => { t.textContent = totalLocal(l) || '—'; }); });
+  colunasMus(c).forEach(k => { const t = document.querySelector(`[data-ps="${CSS.escape(k)}"]`); if (t) t.textContent = c.locais.reduce((a, l) => a + (+l.inst[k] || 0), 0) || ''; });
+  const g = document.getElementById('psTot'); if (g) g.textContent = c.locais.reduce((a, l) => a + totalLocal(l), 0);
+  document.querySelectorAll('[data-tn]').forEach(b => { const l = LOC(b.dataset.tl); if (l && b.tagName !== 'INPUT') { const v = +l.inst[b.dataset.tn] || 0; b.textContent = v; b.closest('.pm-tile').classList.toggle('z', !v); } });
+  document.querySelectorAll('[data-ctt]').forEach(t => { const l = LOC(t.dataset.ctt); if (l) t.textContent = totalLocal(l); });
+}
+function desenharMusicos(c, el, forcar) {
+  if (!el) return;
+  if (!document.querySelector('#musBar > *')) musBar(c);
+  if (MUS_MODO === 'contador') return desenharContador(c, el, forcar);
+  const cols = colunasMus(c), vis = locaisVisiveis(c), assin = vis.map(l => l.id).join(',') + '|' + cols.join(',');
+  // mesma estrutura: só troca os números (sem tirar o foco de quem está digitando)
+  if (!forcar && el.dataset.assin === assin && el.querySelector('table')) {
+    vis.forEach(l => { cols.forEach((k, j) => { const inp = document.getElementById(`pl-${l.id}-${j}`); if (inp && !focado(inp)) inp.value = l.inst[k] || ''; });
+      const nm = document.querySelector(`[data-ln="${l.id}"]`); if (nm && !focado(nm)) nm.value = l.nome; });
+    musTotais(c); return;
+  }
+  el.dataset.assin = assin;
+  const { m } = antLoc(c), ordF = ['c', 'm', 'b', 'x', 'o'];
+  const fams = ordF.map(f => [f, cols.filter(k => famInst(k) === f).length]).filter(x => x[1]);
+  semPular(() => { el.innerHTML = `<div class="pm-plan-w"><table class="pm-plan">
+    <thead><tr><th class="l"></th>${fams.map(([f, n]) => `<th class="f f-${f}" colspan="${n}">${FAM_NOME[f]}</th>`).join('')}<th></th><th></th></tr>
+    <tr><th class="l">Localidade</th>${cols.map(k => `<th title="${esc(k)}">${esc(ABREV[k] || k.slice(0, 4))}</th>`).join('')}<th>Total</th><th></th></tr></thead>
+    <tbody>${vis.map(l => `<tr data-l="${l.id}"><th class="l"><input data-ln="${l.id}" value="${esc(l.nome)}" placeholder="Nome da localidade" list="dlLocalidades" aria-label="Localidade">${m.has(norm(l.nome)) ? `<small>último: ${m.get(norm(l.nome))}</small>` : ''}</th>${cols.map((k, j) => `<td><input id="pl-${l.id}-${j}" data-pl="${l.id}" data-pk="${esc(k)}" data-pc="${j}" inputmode="numeric" autocomplete="off" value="${l.inst[k] || ''}" aria-label="${esc(l.nome)} · ${esc(k)}"></td>`).join('')}<td class="t" data-pt="${l.id}">${totalLocal(l) || '—'}</td><td class="x"><button type="button" class="x" title="Relatório desta localidade" data-acao="pdfLocal" data-l="${l.id}">${ICO('print')}</button><button type="button" class="x" title="Tirar" data-acao="tirarLocal" data-l="${l.id}">${ICO('trash')}</button></td></tr>`).join('')}
+    <tr class="nova"><th class="l"><input id="plNova" list="dlLocalidades" placeholder="+ Nova localidade e Enter" autocomplete="off" aria-label="Nova localidade" value="${esc(DIGITANDO.plNova)}"></th><td colspan="${cols.length + 2}"></td></tr></tbody>
+    <tfoot><tr><th class="l">Total</th>${cols.map(k => `<td data-ps="${esc(k)}"></td>`).join('')}<td id="psTot"></td><td></td></tr></tfoot></table></div>
+    <p class="dica">Digite o número e aperte <b>Enter</b> para ir ao próximo instrumento (↑↓ trocam de localidade). É igual à folha que cada localidade entrega.</p>`; });
+  musTotais(c);
+}
+function desenharContador(c, el, forcar) {
+  const vis = locaisVisiveis(c);
+  if (!CT_LOC || !c.locais.some(l => l.id === CT_LOC)) CT_LOC = (vis[0] || c.locais[0] || {}).id || null;
+  const l = LOC(CT_LOC), cols = colunasMus(c), assin = 'ct|' + vis.map(x => x.id + ':' + x.nome).join(',') + '|' + cols.join(',') + '|' + CT_LOC;
+  if (!forcar && el.dataset.assin === assin && el.querySelector('.pm-ct')) { musTotais(c); return; }
+  el.dataset.assin = assin;
+  const ordF = ['c', 'm', 'b', 'x', 'o'];
+  semPular(() => { el.innerHTML = `<div class="pm-ct">
+    <div class="pm-ct-locs">${vis.map(x => `<button type="button" class="${x.id === CT_LOC ? 'on' : ''}" onclick="CT_LOC='${x.id}';desenharContador(CHAM(),document.getElementById('locais'),true)">${esc(x.nome || 'Sem nome')} <em data-ctt="${x.id}">${totalLocal(x)}</em></button>`).join('')}
+      <input id="ctNova" list="dlLocalidades" placeholder="+ Nova localidade" autocomplete="off" aria-label="Nova localidade" value="${esc(DIGITANDO.ctNova)}"></div>
+    ${l ? `<div class="pm-ct-h"><b>${esc(l.nome || 'Sem nome')}</b><span>total <b data-ctt="${l.id}">${totalLocal(l)}</b></span></div>
+    ${ordF.map(f => { const ks = cols.filter(k => famInst(k) === f); return ks.length ? `<div class="pm-ct-f">${FAM_NOME[f]}</div><div class="pm-ct-g">${ks.map(k => { const v = +l.inst[k] || 0; return `<div class="pm-tile${v ? '' : ' z'}"><span>${esc(k)}</span><b data-tl="${l.id}" data-tn="${esc(k)}" role="button" tabindex="0" title="Toque para digitar">${v}</b><div class="pm-tile-b"><button type="button" data-ct="-1" data-l="${l.id}" data-k="${esc(k)}" aria-label="Menos ${esc(k)}">−</button><button type="button" data-ct="1" data-l="${l.id}" data-k="${esc(k)}" aria-label="Mais ${esc(k)}">+</button></div></div>`; }).join('')}</div>` : ''; }).join('')}
+    <div class="pm-ct-mais"><select id="ctOutro" aria-label="Outro instrumento"><option value="">+ Outro instrumento</option>${[...new Set(INSTRUMENTOS.concat(instrumentosUsados()))].filter(x => !cols.includes(x)).map(x => `<option>${esc(x)}</option>`).join('')}</select></div>`
+    : `<div class="vazio">${c.locais.length ? 'Nenhuma localidade com esse nome.' : 'Nenhuma localidade ainda. Escreva o nome acima (ou copie do último ensaio).'}</div>`}
+  </div>`; });
+}
+// planilha: digitar, Enter vai para o próximo; ↑↓ trocam de linha
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (t.dataset && t.dataset.pl) { const v = t.value.replace(/\D/g, '').slice(0, 4); if (v !== t.value) t.value = v; setInst(t.dataset.pl, t.dataset.pk, +v || 0); return; }
+  if (t.dataset && t.dataset.ln) { const l = LOC(t.dataset.ln); if (l) { l.nome = t.value; guardar(); desenharLista(); } return; }
+  if (t.id === 'buscaLocais') { FILTRO.locMus = t.value; const c = CHAM(); if (c) desenharMusicos(c, document.getElementById('locais')); }
+});
+// seleciona o número ao entrar na célula (só se ela ainda estiver com o foco: select() puxaria o foco de volta)
+document.addEventListener('focusin', e => { const t = e.target; if (t.dataset && t.dataset.pl) setTimeout(() => { if (document.activeElement === t) { try { t.select(); } catch (x) {} } }, 0); });
+document.addEventListener('keydown', e => {
+  const t = e.target;
+  if (t.dataset && t.dataset.pl) {
+    const tr = t.closest('tr'), j = +t.dataset.pc;
+    let alvo = null;
+    if (e.key === 'Enter' || (e.key === 'ArrowRight' && t.selectionStart === t.value.length)) { alvo = tr.querySelector(`[data-pc="${j + 1}"]`); if (!alvo && e.key === 'Enter') { const p = tr.nextElementSibling; alvo = p && (p.querySelector('[data-pc="0"]') || p.querySelector('#plNova')); } }
+    else if (e.key === 'ArrowLeft' && t.selectionStart === 0) alvo = tr.querySelector(`[data-pc="${j - 1}"]`);
+    else if (e.key === 'ArrowDown') { const p = tr.nextElementSibling; alvo = p && (p.querySelector(`[data-pc="${j}"]`) || p.querySelector('#plNova')); }
+    else if (e.key === 'ArrowUp') { const p = tr.previousElementSibling; alvo = p && p.querySelector(`[data-pc="${j}"]`); }
+    if (alvo) { e.preventDefault(); alvo.focus(); }
+    return;
+  }
+  if ((t.id === 'plNova' || t.id === 'ctNova') && e.key === 'Enter') {
+    e.preventDefault(); const l = novaLocal(t.value); if (!l) return; const c = CHAM();
+    FILTRO.locMus = ''; t.value = ''; DIGITANDO[t.id] = ''; CT_LOC = l.id; musBar(c); desenharMusicos(c, document.getElementById('locais'), true); atualizarTotais(); desenharLista();
+    const f = document.getElementById(`pl-${l.id}-0`); if (f) f.focus(); else { const n = document.getElementById('ctNova'); if (n && !matchMedia('(max-width: 760px)').matches) n.focus(); }
+  }
+  if (t.dataset && t.dataset.tn && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); digitarTile(t); }
+});
+document.addEventListener('change', e => {
+  const t = e.target, c = CHAM(); if (!c) return;
+  if (t.id === 'addCol' && t.value) { (COLS_EXTRA[c.id] = COLS_EXTRA[c.id] || []).push(t.value); const v = t.value; musBar(c); desenharMusicos(c, document.getElementById('locais'), true); const j = colunasMus(c).indexOf(v); const vis = locaisVisiveis(c); const f = vis[0] && document.getElementById(`pl-${vis[0].id}-${j}`); if (f) f.focus(); }
+  if (t.id === 'ctOutro' && t.value) { (COLS_EXTRA[c.id] = COLS_EXTRA[c.id] || []).push(t.value); if (CT_LOC) setInst(CT_LOC, t.value, 1); desenharMusicos(c, document.getElementById('locais'), true); }
+});
+// contador: + e − em cada instrumento; tocar no número deixa digitar
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-ct]'); if (b) { const l = LOC(b.dataset.l); if (l) setInst(l.id, b.dataset.k, (+l.inst[b.dataset.k] || 0) + (+b.dataset.ct)); return; }
+  const n = e.target.closest('b[data-tn]'); if (n) digitarTile(n);
+});
+function digitarTile(b) {
+  const l = LOC(b.dataset.tl); if (!l) return;
+  const inp = document.createElement('input'); inp.inputMode = 'numeric'; inp.value = l.inst[b.dataset.tn] || ''; inp.className = 'pm-tile-in'; inp.setAttribute('aria-label', b.dataset.tn);
+  const k = b.dataset.tn; b.replaceWith(inp); inp.focus(); inp.select();
+  const fim = () => { setInst(l.id, k, parseInt(inp.value.replace(/\D/g, ''), 10) || 0); desenharContador(CHAM(), document.getElementById('locais'), true); };
+  inp.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); inp.blur(); } if (ev.key === 'Escape') { inp.value = l.inst[k] || ''; inp.blur(); } });
+  inp.addEventListener('blur', fim, { once: true });
+}
+
+/* ---------- passo 4: hinos em etiquetas ---------- */
+function desenharHinos() {
+  const el = document.getElementById('hinoChips'), c = CHAM(); if (!el || !c) return;
+  const l = listaHinos(c), em = document.getElementById('emHinos'); if (em) em.textContent = `${l.length} ${l.length === 1 ? 'hino' : 'hinos'}`;
+  el.innerHTML = l.length ? l.map((h, k) => `<span class="pm-hc" draggable="true" data-hk="${k}"><small>${k + 1}</small><b>${esc(h)}</b><span class="pm-hc-b">${k ? `<button type="button" data-hm="${k}" data-d="-1" aria-label="Para trás">‹</button>` : ''}${k < l.length - 1 ? `<button type="button" data-hm="${k}" data-d="1" aria-label="Para frente">›</button>` : ''}<button type="button" data-hx="${k}" aria-label="Tirar ${esc(h)}">×</button></span></span>`).join('') : '<p class="dica" style="margin:0">Nenhum hino ainda.</p>';
+}
+function setHinos(l) { const c = CHAM(); if (!c) return; c.hinos = l.join(' '); guardar(); atualizarTotais(); }
+function addHinos() {
+  const inp = document.getElementById('hinoIn'), c = CHAM(); if (!inp || !c) return;
+  const novos = inp.value.split(/[\s,;/]+/).map(x => x.trim()).filter(Boolean); if (!novos.length) return;
+  setHinos(listaHinos(c).concat(novos)); inp.value = ''; DIGITANDO.hinoIn = ''; inp.focus();
+}
+document.addEventListener('keydown', e => { if (e.target.id === 'hinoIn' && e.key === 'Enter') { e.preventDefault(); addHinos(); } });
+document.addEventListener('click', e => {
+  const c = CHAM(); if (!c) return;
+  const x = e.target.closest('[data-hx]'); if (x) { const l = listaHinos(c); l.splice(+x.dataset.hx, 1); setHinos(l); return; }
+  const m = e.target.closest('[data-hm]'); if (m) { const l = listaHinos(c), k = +m.dataset.hm, j = k + (+m.dataset.d); [l[k], l[j]] = [l[j], l[k]]; setHinos(l); }
+});
+let HIN_ARR = null;
+document.addEventListener('dragstart', e => { const h = e.target.closest && e.target.closest('[data-hk]'); if (h) { HIN_ARR = +h.dataset.hk; e.dataTransfer.effectAllowed = 'move'; } });
+document.addEventListener('dragover', e => { if (HIN_ARR != null && e.target.closest && e.target.closest('[data-hk]')) e.preventDefault(); });
+document.addEventListener('drop', e => {
+  const h = e.target.closest && e.target.closest('[data-hk]'); if (HIN_ARR == null || !h) return; e.preventDefault();
+  const c = CHAM(), l = listaHinos(c), [x] = l.splice(HIN_ARR, 1); l.splice(+h.dataset.hk, 0, x); HIN_ARR = null; setHinos(l);
+});
+document.addEventListener('dragend', () => { HIN_ARR = null; });
+
 /* ---------- listas de sugestões ---------- */
 function atualizarDatalists() {
   const set = (id, vals) => { let d = document.getElementById(id); if (!d) { d = document.createElement('datalist'); d.id = id; document.body.appendChild(d); } d.innerHTML = vals.map(v => `<option value="${esc(v)}">`).join(''); };
@@ -1524,6 +1915,7 @@ function mostrarMudancas(ops) {
       Object.keys(heroi.campos || {}).forEach(k => { const inp = document.querySelector(`[data-c="${k}"]`); if (inp && !focado(inp) && cc) inp.value = cc[k] || ''; });
       if (!totais) atualizarTotais();
     }
+    if ((linhas || linhasMarcar.size) && QC.q) qcDesenhar();
     if (linhas) semPular(desenharLinhas);
     else if (linhasMarcar.size) {
       const cc = CHAM();

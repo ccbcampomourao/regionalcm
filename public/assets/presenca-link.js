@@ -141,7 +141,7 @@
     if (m.t === 'gente') { gente = Math.max(0, (m.n || 1) - 1); mostrarVivo(); return; }
     if (m.t === 'tudo') {
       const primeira = !S;
-      S = { chamada: m.chamada, irmaos: m.irmaos || [], marcas: m.marcas || {}, toca: m.toca || {}, locais: (m.locais || []).map(l => Object.assign({ nome: '', total: '', inst: {} }, l)) };
+      S = { chamada: m.chamada, irmaos: m.irmaos || [], marcas: m.marcas || {}, toca: m.toca || {}, antes: m.antes || {}, antesLocs: m.antesLocs || [], locais: (m.locais || []).map(l => Object.assign({ nome: '', total: '', inst: {} }, l)) };
       fila.forEach(l => l.ops.forEach(aplicar));   // o que ainda não foi confirmado continua valendo na tela
       if (primeira) montar(); else semPular(desenhar);
       return;
@@ -199,6 +199,12 @@
     const el = document.getElementById('corpo'); if (!el) return;
     if (ABA === 'min') {
       el.innerHTML = `<div class="cont" id="contMin"></div>
+        <div class="qc"><label for="qc">Quem chegou?</label>
+          <div class="busca grande">${ICO('search')}<input id="qc" type="search" placeholder="Poucas letras do nome ou da localidade" value="${esc(QC.q)}" autocomplete="off"></div>
+          <div class="qc-res" id="qcRes"></div>
+          <div class="qc-inst" id="qcInst" hidden></div>
+          <div class="qc-feed" id="qcFeed"></div></div>
+        <h2 class="sec">Lista completa</h2>
         <div class="busca">${ICO('search')}<input id="busca" type="search" placeholder="Procurar nome ou localidade" value="${esc(BUSCA)}" autocomplete="off"></div>
         <select id="fLoc" class="floc" aria-label="Localidade">${opcoesLoc()}</select>
         <div class="lista" id="lista"></div>
@@ -213,17 +219,16 @@
         <datalist id="dlCid">${[...new Set(S.irmaos.map(i => i.cidade).filter(Boolean))].map(v => `<option value="${esc(v)}">`).join('')}</datalist>
         <datalist id="dlBai">${[...new Set(S.irmaos.map(i => i.bairro).filter(Boolean))].map(v => `<option value="${esc(v)}">`).join('')}</datalist>`;
       document.getElementById('busca').addEventListener('input', e => { BUSCA = e.target.value; desenharLista(); });
+      document.getElementById('qc').addEventListener('input', e => { QC.q = e.target.value; qcDesenhar(); });
       document.getElementById('fLoc').addEventListener('change', e => { LOC = e.target.value; desenharLista(); });
       document.getElementById('novo').addEventListener('submit', e => { e.preventDefault(); acrescentar(); });
-      desenharLista();
+      desenharLista(); qcDesenhar(); qcInstDesenhar(); qcFeed();
     } else {
       el.innerHTML = `<div class="cont" id="contMus"></div>
         <div class="busca">${ICO('search')}<input id="buscaLoc" type="search" placeholder="Procurar localidade" value="${esc(BUSCA_L)}" autocomplete="off" aria-label="Procurar localidade"></div>
         <div id="locais"></div>
-        <button type="button" class="primary" id="addLoc" style="width:100%">${ICO('plus')}Acrescentar localidade</button>
         <div class="dica" id="tots"></div>
-        <datalist id="dlLoc">${[...new Set(S.locais.map(l => l.nome).filter(Boolean))].map(v => `<option value="${esc(v)}">`).join('')}</datalist>`;
-      document.getElementById('addLoc').addEventListener('click', () => addLocal(BUSCA_L));
+        <datalist id="dlLoc">${[...new Set(S.locais.map(l => l.nome).concat(S.antesLocs).filter(Boolean))].map(v => `<option value="${esc(v)}">`).join('')}</datalist>`;
       document.getElementById('buscaLoc').addEventListener('input', e => { BUSCA_L = e.target.value; desenharLocais(); });
       desenharLocais(); desenharTotais();
     }
@@ -271,13 +276,109 @@
         <select data-add="${l.id}" aria-label="Acrescentar instrumento"><option value="">+ Instrumento</option>${INSTRUMENTOS.filter(x => !usados.has(x)).map(x => `<option>${esc(x)}</option>`).join('')}</select></div>
       <small class="dif" data-dif="${l.id}"${dif ? '' : ' hidden'}>A soma dos instrumentos dá ${sm}.</small></div>`;
   }
+  /* ---------- Músicos: contador (escolhe a localidade; + e − em cada instrumento) ---------- */
+  const COLS_BASE = ['Violino', 'Viola', 'Violoncelo', 'Flauta', 'Clarinete', 'Saxofone Alto', 'Saxofone Tenor', 'Trompete', 'Trombone', 'Euphonium', 'Tuba', 'Órgão'];
+  const FAM = [['Cordas', ['Violino', 'Viola', 'Violoncelo']], ['Madeiras', ['Flauta', 'Clarinete', 'Clarinete Alto', 'Clarinete Baixo', 'Oboé', "Oboé d'Amore", 'Corne Inglês', 'Fagote', 'Saxofone Soprano', 'Saxofone Alto', 'Saxofone Tenor', 'Saxofone Barítono', 'Saxofone Baixo']], ['Metais', ['Trompete', 'Cornet', 'Flugelhorn', 'Trompa', 'Trombone', 'Trombonito', 'Euphonium', 'Tuba']], ['Órgão', ['Órgão']]];
+  const famDe = k => { const f = FAM.find(([, l]) => l.includes(k)); return f ? f[0] : 'Outros'; };
+  let CT = null, NOVA_LOC = ''; const EXTRA = [];
   function desenharLocais() {
     const el = document.getElementById('locais'); if (!el) return;
+    if (el.querySelector('.tile-in')) return;   // digitando um número: não redesenha agora
     const ps = palavras(BUSCA_L), lst = S.locais.filter(l => !ps.length || ps.every(p => norm(l.nome).replace(/[-–·,/]+/g, ' ').includes(p)));
-    el.innerHTML = lst.length ? lst.map(localHTML).join('')
-      : `<div class="vazio">${S.locais.length ? `Nenhuma localidade com “${esc(BUSCA_L)}”. Use o botão abaixo para acrescentar.` : 'Nenhuma localidade ainda. Acrescente a primeira.'}</div>`;
-    const b = document.getElementById('addLoc'); if (b) b.innerHTML = `${ICO('plus')}${ps.length && !lst.length ? `Acrescentar “${esc(bonito(BUSCA_L))}”` : 'Acrescentar localidade'}`;
+    if (!CT || !S.locais.some(l => l.id === CT) || (ps.length && !lst.some(l => l.id === CT))) CT = (lst[0] || {}).id || null;
+    const l = S.locais.find(x => x.id === CT);
+    const cols = [...new Set(COLS_BASE.concat(EXTRA, l ? Object.keys(l.inst) : []))];
+    const tem = new Set(S.locais.map(x => norm(x.nome))), sug = S.antesLocs.filter(n => !tem.has(norm(n)) && (!ps.length || ps.every(p => norm(n).replace(/[-–·,/]+/g, ' ').includes(p)))).slice(0, 8);
+    semPular(() => { el.innerHTML = `
+      <div class="ct-locs">${lst.map(x => `<button type="button" class="${x.id === CT ? 'on' : ''}" data-ct="${x.id}">${esc(x.nome || 'Sem nome')} <em>${total(x)}</em></button>`).join('')}</div>
+      ${sug.length ? `<div class="ct-sug"><small>Do último ensaio:</small>${sug.map(n => `<button type="button" data-sugloc="${esc(n)}">${ICO('plus')}${esc(n)}</button>`).join('')}</div>` : ''}
+      <form class="ct-nova" id="ctNovaF"><input id="ctNova" list="dlLoc" placeholder="Nova localidade (ex.: Peabiru - Central)" autocomplete="off" value="${esc(NOVA_LOC || (ps.length && !lst.length ? bonito(BUSCA_L) : ''))}" aria-label="Nova localidade"><button type="submit" class="primary">${ICO('plus')}Pôr</button></form>
+      ${l ? `<div class="ct-h"><b>${esc(l.nome || 'Sem nome')}</b><span>total <b>${total(l)}</b></span></div>
+      ${FAM.concat([['Outros', []]]).map(([f]) => { const ks = cols.filter(k => famDe(k) === f).sort(ordInst); return ks.length ? `<div class="ct-f">${f}</div><div class="ct-g">${ks.map(k => { const v = +l.inst[k] || 0; return `<div class="tile${v ? '' : ' z'}"><span>${esc(k)}</span><b data-tn="${esc(k)}" role="button" tabindex="0" aria-label="${esc(k)}: ${v}. Toque para digitar">${v}</b><div class="tile-b"><button type="button" data-menos="${l.id}" data-k="${esc(k)}" aria-label="Menos ${esc(k)}">−</button><button type="button" data-mais="${l.id}" data-k="${esc(k)}" aria-label="Mais ${esc(k)}">+</button></div></div>`; }).join('')}</div>` : ''; }).join('')}
+      <select id="ctOutro" class="floc" aria-label="Outro instrumento"><option value="">+ Outro instrumento</option>${INSTRUMENTOS.filter(x => !cols.includes(x)).map(x => `<option>${esc(x)}</option>`).join('')}</select>`
+      : `<div class="vazio">${S.locais.length ? 'Nenhuma localidade com essa busca. Escreva o nome acima e toque em Pôr.' : 'Nenhuma localidade ainda. Escreva o nome acima (ou toque numa do último ensaio).'}</div>`}`; });
   }
+  function novaLocalidade(nome) {
+    nome = bonito(String(nome || '').trim().replace(/\s+/g, ' ')); if (!nome) return;
+    let l = S.locais.find(x => norm(x.nome) === norm(nome));
+    if (!l) { l = { id: novoId(), nome, total: '', inst: {}, ord: Date.now() }; S.locais.push(l); enviar([{ t: 'l', c: S.chamada.id, id: l.id, campos: { nome, total: '' }, inst: {}, ord: l.ord }]); }
+    CT = l.id; NOVA_LOC = ''; BUSCA_L = ''; const bl = document.getElementById('buscaLoc'); if (bl) bl.value = '';
+    desenharLocais(); desenharTotais();
+  }
+  function digitarTile(b) {
+    const l = S.locais.find(x => x.id === CT); if (!l) return;
+    const k = b.dataset.tn, inp = document.createElement('input'); inp.inputMode = 'numeric'; inp.className = 'tile-in'; inp.value = l.inst[k] || ''; inp.setAttribute('aria-label', k);
+    b.replaceWith(inp); inp.focus(); inp.select();
+    const fim = () => { const n = parseInt(inp.value.replace(/\D/g, ''), 10) || 0; inp.remove(); mudarInst(l.id, k, n); desenharLocais(); };
+    inp.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); inp.blur(); } });
+    inp.addEventListener('blur', fim, { once: true });
+  }
+  document.addEventListener('submit', e => { if (e.target.id === 'ctNovaF') { e.preventDefault(); novaLocalidade(document.getElementById('ctNova').value); } });
+  document.addEventListener('click', e => {
+    if (!S) return;
+    const c = e.target.closest('[data-ct]'); if (c) { CT = c.dataset.ct; desenharLocais(); return; }
+    const s = e.target.closest('[data-sugloc]'); if (s) { novaLocalidade(s.dataset.sugloc); return; }
+    const t = e.target.closest('b[data-tn]'); if (t) digitarTile(t);
+  });
+  document.addEventListener('keydown', e => { const t = e.target; if (t.dataset && t.dataset.tn && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); digitarTile(t); } });
+  document.addEventListener('input', e => { if (e.target.id === 'ctNova') NOVA_LOC = e.target.value; });
+  document.addEventListener('change', e => { if (e.target.id === 'ctOutro' && e.target.value && CT) { const k = e.target.value; if (!EXTRA.includes(k)) EXTRA.push(k); mudarInst(CT, k, 1); desenharLocais(); } });
+
+  /* ---------- Ministério: "Quem chegou?" ---------- */
+  const QC = { q: '', ult: null, feed: [] };
+  function qcDesenhar() {
+    const el = document.getElementById('qcRes'); if (!el || !S) return;
+    const ps = palavras(QC.q);
+    if (!ps.length) { el.innerHTML = ''; return; }
+    const comeca = i => palavras(i.nome).some(w => w.startsWith(ps[0])) ? 0 : 1;
+    const res = S.irmaos.filter(i => ps.every(p => norm([i.nome, i.cargo, i.cidade, i.bairro].join(' ')).replace(/[-–·,/]+/g, ' ').includes(p)))
+      .sort((a, b) => (S.marcas[a.id] ? 1 : 0) - (S.marcas[b.id] ? 1 : 0) || comeca(a) - comeca(b) || norm(a.nome).localeCompare(norm(b.nome), 'pt-BR')).slice(0, 6);
+    el.innerHTML = res.length ? res.map(i => { const m = S.marcas[i.id]; return `<button type="button" class="qc-r${m ? ' ja' : ''}" data-qc="${i.id}"><span><b>${esc(i.nome)}</b><small>${esc([i.cargo, locDe(i)].filter(Boolean).join(' · '))}</small></span><em>${m === 'meu' ? 'presente' : m ? 'já marcado' : 'marcar'}</em></button>`; }).join('')
+      : `<div class="vazio">Ninguém com “${esc(QC.q)}”. Acrescente na lista completa, abaixo.</div>`;
+  }
+  function qcMarcar(id) {
+    const m = S.marcas[id];
+    if (m && m !== 'meu') { toast('Essa presença foi marcada por outra pessoa.', 'info'); return; }
+    if (!m) marcar(id);
+    QC.ult = id; QC.feed = [id].concat(QC.feed.filter(x => x !== id)).slice(0, 10);
+    QC.q = ''; const q = document.getElementById('qc'); if (q) q.value = '';
+    qcDesenhar(); qcInstDesenhar(); qcFeed();
+  }
+  function qcOpcoes(id) {
+    const ant = S.antes[id], uso = {};
+    Object.values(S.toca).forEach(t => { if (t.inst) uso[t.inst] = (uso[t.inst] || 0) + 1; });
+    return { ant, l: [...new Set([ant].concat(Object.keys(uso).sort((a, b) => uso[b] - uso[a]), ['Violino', 'Trompete', 'Trombone', 'Órgão', 'Tuba', 'Clarinete', 'Saxofone Alto', 'Euphonium']).filter(Boolean))].slice(0, 8) };
+  }
+  function qcInstDesenhar() {
+    const el = document.getElementById('qcInst'); if (!el || !S) return;
+    const id = QC.ult, i = id && S.irmaos.find(x => x.id === id);
+    if (!i || S.marcas[id] !== 'meu') { el.hidden = true; el.innerHTML = ''; return; }
+    const atual = (S.toca[id] || {}).inst || '', { ant, l } = qcOpcoes(id);
+    el.hidden = false;
+    el.innerHTML = `<p>${ICO('check')}<b>${esc(i.nome)}</b> presente. Tocou?${ant ? `<span class="tag">último ensaio: ${esc(ant)}</span>` : ''}</p>
+      <div class="chips">${[''].concat(l).map(x => `<button type="button" data-qci="${esc(x)}" class="${x === atual ? 'on' : ''}${x && x === ant ? ' ant' : ''}">${x ? esc(x) : 'Não tocou'}</button>`).join('')}
+        <select data-qcs aria-label="Outro instrumento"><option value="">outro…</option>${INSTRUMENTOS.filter(x => !l.includes(x)).map(x => `<option${x === atual ? ' selected' : ''}>${esc(x)}</option>`).join('')}</select></div>`;
+  }
+  function qcInst(x) {
+    const id = QC.ult; if (!id || S.marcas[id] !== 'meu') return;
+    if (x) S.toca[id] = Object.assign({ loc: '' }, S.toca[id] || {}, { inst: x }); else if (S.toca[id]) S.toca[id].inst = '';
+    enviar([{ t: 'x', c: S.chamada.id, i: id, inst: x }]);
+    qcInstDesenhar(); qcFeed();
+    const row = document.querySelector(`.row[data-id="${id}"]`), i = S.irmaos.find(y => y.id === id); if (row && i) { const t = document.createElement('div'); t.innerHTML = linha(i); row.replaceWith(t.firstElementChild); }
+  }
+  function qcFeed() {
+    const el = document.getElementById('qcFeed'); if (!el || !S) return;
+    const l = QC.feed.map(id => S.irmaos.find(x => x.id === id)).filter(Boolean);
+    el.innerHTML = l.length ? `<h3>Marcados agora</h3>${l.map(i => { const m = S.marcas[i.id] === 'meu', t = (S.toca[i.id] || {}).inst; return `<div class="${m ? '' : 'tirado'}"><span><b>${esc(i.nome)}</b><small>${esc([i.cargo, m ? (t || 'não tocou') : 'tirado'].join(' · '))}</small></span>${m ? `<button type="button" data-qcx="${i.id}">desfazer</button>` : ''}</div>`; }).join('')}` : '';
+  }
+  document.addEventListener('click', e => {
+    if (!S) return;
+    const r = e.target.closest('[data-qc]'); if (r) { qcMarcar(r.dataset.qc); return; }
+    const b = e.target.closest('[data-qci]'); if (b) { qcInst(b.dataset.qci); return; }
+    const x = e.target.closest('[data-qcx]'); if (x) { if (S.marcas[x.dataset.qcx] === 'meu') marcar(x.dataset.qcx); if (QC.ult === x.dataset.qcx) { QC.ult = null; qcInstDesenhar(); } qcFeed(); qcDesenhar(); }
+  });
+  document.addEventListener('change', e => { if (e.target.matches && e.target.matches('[data-qcs]') && e.target.value) qcInst(e.target.value); });
+  document.addEventListener('keydown', e => { if (e.target.id === 'qc' && e.key === 'Enter') { e.preventDefault(); const f = document.querySelector('#qcRes [data-qc]'); if (f) qcMarcar(f.dataset.qc); } });
   function desenharTotais() {
     const inst = {}; S.locais.forEach(l => Object.keys(l.inst).forEach(k => { inst[k] = (inst[k] || 0) + l.inst[k]; }));
     const c = document.getElementById('contMus'); if (c) c.innerHTML = `<span><b>${musicos()}</b>músicos</span><span><b>${nLocs()}</b>localidades</span>`;
@@ -296,16 +397,9 @@
         if (row && i) { const t = document.createElement('div'); t.innerHTML = linha(i); const n = t.firstElementChild; if (!op.meu) n.classList.add('novo-r'); row.replaceWith(n); }
       });
       contMin();
+      if (ops.some(op => op.t === 'm' || op.t === 'x' || op.t === 'i' || op.t === 'mc')) { qcDesenhar(); qcInstDesenhar(); qcFeed(); }
     } else {
-      const ls = ops.filter(op => op.t === 'l' || op.t === 'l-');
-      const estrutura = ls.some(op => { const box = document.querySelector(`.loc[data-l="${op.id}"]`); return op.t === 'l-' || !box || Object.keys(op.inst || {}).some(k => !box.querySelector(`[data-li="${op.id}"][data-k="${CSS.escape(k)}"]`) || !(op.inst[k] > 0)); });
-      if (estrutura) semPular(desenharLocais);
-      else ls.forEach(op => {
-        const l = S.locais.find(x => x.id === op.id); if (!l) return;
-        Object.keys(op.campos || {}).forEach(k => { const inp = document.querySelector(k === 'nome' ? `[data-ln="${op.id}"]` : `[data-lt="${op.id}"]`); if (inp && inp !== document.activeElement) inp.value = l[k]; });
-        Object.keys(op.inst || {}).forEach(k => { const inp = document.querySelector(`[data-li="${op.id}"][data-k="${CSS.escape(k)}"]`); if (inp && inp !== document.activeElement) inp.value = l.inst[k] || ''; });
-        difLocal(l);
-      });
+      if (ops.some(op => op.t === 'l' || op.t === 'l-')) desenharLocais();
       desenharTotais();
     }
     if (ops.some(op => op.t === 'm' || op.t === 'mc' || op.t === 'i' || op.t === 'i-')) cabecalho();
@@ -360,9 +454,9 @@
     n = Math.max(0, Math.min(9999, n | 0));
     const tinha = k in l.inst;
     if (n) l.inst[k] = n; else delete l.inst[k];
-    enviar([{ t: 'l', c: S.chamada.id, id, campos: {}, inst: { [k]: n } }]);
-    if (!n || !tinha) semPular(desenharLocais); else { const inp = document.querySelector(`[data-li="${id}"][data-k="${CSS.escape(k)}"]`); if (inp && inp !== document.activeElement) inp.value = n; }
-    difLocal(l); desenharTotais();
+    const campos = String(l.total || '').trim() !== '' ? { total: '' } : {}; if (campos.total === '') l.total = '';
+    enviar([{ t: 'l', c: S.chamada.id, id, campos, inst: { [k]: n } }]);
+    desenharLocais(); desenharTotais();
   }
   // digitar: junta e manda depois de uma pausa curta
   const tCampo = {};

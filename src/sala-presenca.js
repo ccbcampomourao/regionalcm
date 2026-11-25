@@ -138,7 +138,15 @@ export class SalaPresencaMusical extends DurableObject {
     const locais = [...this.sql.exec('SELECT id, dados FROM locais WHERE c = ?', c)].map(x => Object.assign({ id: x.id }, JSON.parse(x.dados))).sort((a, b) => (a.ord || 0) - (b.ord || 0));
     const toca = {};
     for (const t of this.sql.exec('SELECT i, dados FROM toca WHERE c = ?', c)) { const d = JSON.parse(t.dados); toca[t.i] = { inst: d.inst || '', loc: d.loc || '' }; }
-    return { chamada: { id: c, data: ch.data || '', ocasiao: ch.ocasiao || '', local: ch.local || '', tipo: ch.tipo || 'nomes' }, irmaos, marcas, locais, toca };
+    // do ensaio regional anterior: instrumento de cada um e as localidades (só para sugerir)
+    let ant = null;
+    for (const x of this.sql.exec('SELECT id, dados FROM chamadas')) { if (x.id === c) continue; const d = JSON.parse(x.dados); if (d.tipo === 'regional' && String(d.data || '') <= String(ch.data || '9999') && (!ant || String(d.data || '') > ant.data)) ant = { id: x.id, data: String(d.data || '') }; }
+    const antes = {}, antesLocs = [];
+    if (ant) {
+      for (const t of this.sql.exec('SELECT i, dados FROM toca WHERE c = ?', ant.id)) { const d = JSON.parse(t.dados); if (d.inst) antes[t.i] = d.inst; }
+      for (const x of this.sql.exec('SELECT dados FROM locais WHERE c = ?', ant.id)) { const d = JSON.parse(x.dados); if (d.nome) antesLocs.push(d.nome); }
+    }
+    return { chamada: { id: c, data: ch.data || '', ocasiao: ch.ocasiao || '', local: ch.local || '', tipo: ch.tipo || 'nomes' }, irmaos, marcas, locais, toca, antes, antesLocs };
   }
 
   // pelo link só vale: marcar presença (desmarcar só o que o próprio aparelho marcou),
