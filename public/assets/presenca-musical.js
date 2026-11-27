@@ -1563,7 +1563,8 @@ function colunasMus(c) {
   const ord = { c: 0, m: 1, b: 2, x: 3, o: 4 };
   return [...usados].sort((a, b) => ord[famInst(a)] - ord[famInst(b)] || ordInst(a, b));
 }
-function locaisVisiveis(c) { const ps = palavras(FILTRO.locMus || ''); return c.locais.filter(l => !ps.length || casaBusca(l.nome, ps)); }
+// localidades em ordem alfabética (as sem nome por último)
+function locaisVisiveis(c) { const ps = palavras(FILTRO.locMus || ''); return c.locais.filter(l => !ps.length || casaBusca(l.nome, ps)).sort((a, b) => (!String(a.nome).trim()) - (!String(b.nome).trim()) || String(a.nome).localeCompare(String(b.nome), 'pt-BR', { sensitivity: 'base' })); }
 function antLoc(c) { const a = ensaioAnterior(c), m = new Map(); if (a) a.locais.forEach(l => m.set(norm(l.nome), totalLocal(l))); return { a, m }; }
 function musBar(c) {
   const el = document.getElementById('musBar'); if (!el) return;
@@ -1603,6 +1604,7 @@ function musTotais(c) {
   const g = document.getElementById('psTot'); if (g) g.textContent = c.locais.reduce((a, l) => a + totalLocal(l), 0);
   document.querySelectorAll('[data-tn]').forEach(b => { const l = LOC(b.dataset.tl); if (l && b.tagName !== 'INPUT') { const v = +l.inst[b.dataset.tn] || 0; b.textContent = v; b.closest('.pm-tile').classList.toggle('z', !v); } });
   document.querySelectorAll('[data-ctt]').forEach(t => { const l = LOC(t.dataset.ctt); if (l) t.textContent = totalLocal(l); });
+  document.querySelectorAll('#ctSel option').forEach(o => { const l = LOC(o.value); if (l) o.textContent = `${l.nome || 'Sem nome'} — ${totalLocal(l)}`; });
 }
 function desenharMusicos(c, el, forcar) {
   if (!el) return;
@@ -1635,8 +1637,8 @@ function desenharContador(c, el, forcar) {
   el.dataset.assin = assin;
   const ordF = ['c', 'm', 'b', 'x', 'o'];
   semPular(() => { el.innerHTML = `<div class="pm-ct">
-    <div class="pm-ct-locs">${vis.map(x => `<button type="button" class="${x.id === CT_LOC ? 'on' : ''}" onclick="CT_LOC='${x.id}';desenharContador(CHAM(),document.getElementById('locais'),true)">${esc(x.nome || 'Sem nome')} <em data-ctt="${x.id}">${totalLocal(x)}</em></button>`).join('')}
-      <input id="ctNova" list="dlLocalidades" placeholder="+ Nova localidade" autocomplete="off" aria-label="Nova localidade" value="${esc(DIGITANDO.ctNova)}"></div>
+    <div class="pm-ct-locs">${vis.length ? `<select id="ctSel" aria-label="Localidade">${vis.map(x => `<option value="${x.id}"${x.id === CT_LOC ? ' selected' : ''}>${esc(x.nome || 'Sem nome')} — ${totalLocal(x)}</option>`).join('')}</select>` : ''}
+      <input id="ctNova" list="dlLocalidades" placeholder="+ Nova localidade e Enter" autocomplete="off" aria-label="Nova localidade" value="${esc(DIGITANDO.ctNova)}"></div>
     ${l ? `<div class="pm-ct-h"><b>${esc(l.nome || 'Sem nome')}</b><span>total <b data-ctt="${l.id}">${totalLocal(l)}</b></span></div>
     ${ordF.map(f => { const ks = cols.filter(k => famInst(k) === f); return ks.length ? `<div class="pm-ct-f">${FAM_NOME[f]}</div><div class="pm-ct-g">${ks.map(k => { const v = +l.inst[k] || 0; return `<div class="pm-tile${v ? '' : ' z'}"><span>${esc(k)}</span><b data-tl="${l.id}" data-tn="${esc(k)}" role="button" tabindex="0" title="Toque para digitar">${v}</b><div class="pm-tile-b"><button type="button" data-ct="-1" data-l="${l.id}" data-k="${esc(k)}" aria-label="Menos ${esc(k)}">−</button><button type="button" data-ct="1" data-l="${l.id}" data-k="${esc(k)}" aria-label="Mais ${esc(k)}">+</button></div></div>`; }).join('')}</div>` : ''; }).join('')}
     <div class="pm-ct-mais"><select id="ctOutro" aria-label="Outro instrumento"><option value="">+ Outro instrumento</option>${[...new Set(INSTRUMENTOS.concat(instrumentosUsados()))].filter(x => !cols.includes(x)).map(x => `<option>${esc(x)}</option>`).join('')}</select></div>`
@@ -1674,6 +1676,7 @@ document.addEventListener('keydown', e => {
 document.addEventListener('change', e => {
   const t = e.target, c = CHAM(); if (!c) return;
   if (t.id === 'addCol' && t.value) { (COLS_EXTRA[c.id] = COLS_EXTRA[c.id] || []).push(t.value); const v = t.value; musBar(c); desenharMusicos(c, document.getElementById('locais'), true); const j = colunasMus(c).indexOf(v); const vis = locaisVisiveis(c); const f = vis[0] && document.getElementById(`pl-${vis[0].id}-${j}`); if (f) f.focus(); }
+  if (t.id === 'ctSel' && t.value) { CT_LOC = t.value; desenharContador(c, document.getElementById('locais'), true); return; }
   if (t.id === 'ctOutro' && t.value) { (COLS_EXTRA[c.id] = COLS_EXTRA[c.id] || []).push(t.value); if (CT_LOC) setInst(CT_LOC, t.value, 1); desenharMusicos(c, document.getElementById('locais'), true); }
 });
 // contador: + e − em cada instrumento; tocar no número deixa digitar

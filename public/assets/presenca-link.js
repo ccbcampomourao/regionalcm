@@ -284,14 +284,18 @@
   function desenharLocais() {
     const el = document.getElementById('locais'); if (!el) return;
     if (el.querySelector('.tile-in')) return;   // digitando um número: não redesenha agora
-    const ps = palavras(BUSCA_L), lst = S.locais.filter(l => !ps.length || ps.every(p => norm(l.nome).replace(/[-–·,/]+/g, ' ').includes(p)));
+    const alfa = (a, b) => String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR', { sensitivity: 'base' });
+    const ps = palavras(BUSCA_L), lst = S.locais.filter(l => !ps.length || ps.every(p => norm(l.nome).replace(/[-–·,/]+/g, ' ').includes(p))).sort(alfa);
     if (!CT || !S.locais.some(l => l.id === CT) || (ps.length && !lst.some(l => l.id === CT))) CT = (lst[0] || {}).id || null;
     const l = S.locais.find(x => x.id === CT);
     const cols = [...new Set(COLS_BASE.concat(EXTRA, l ? Object.keys(l.inst) : []))];
-    const tem = new Set(S.locais.map(x => norm(x.nome))), sug = S.antesLocs.filter(n => !tem.has(norm(n)) && (!ps.length || ps.every(p => norm(n).replace(/[-–·,/]+/g, ' ').includes(p)))).slice(0, 8);
+    const tem = new Set(S.locais.map(x => norm(x.nome))), sug = [...new Set(S.antesLocs)].filter(n => !tem.has(norm(n)) && (!ps.length || ps.every(p => norm(n).replace(/[-–·,/]+/g, ' ').includes(p)))).sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }));
     semPular(() => { el.innerHTML = `
-      <div class="ct-locs">${lst.map(x => `<button type="button" class="${x.id === CT ? 'on' : ''}" data-ct="${x.id}">${esc(x.nome || 'Sem nome')} <em>${total(x)}</em></button>`).join('')}</div>
-      ${sug.length ? `<div class="ct-sug"><small>Do último ensaio:</small>${sug.map(n => `<button type="button" data-sugloc="${esc(n)}">${ICO('plus')}${esc(n)}</button>`).join('')}</div>` : ''}
+      ${lst.length || sug.length ? `<label class="ct-lab" for="ctSel">Localidade</label><select id="ctSel" class="floc ct-sel">
+        ${CT ? '' : '<option value="" selected>Escolha a localidade…</option>'}
+        ${lst.length ? `<optgroup label="Nesta lista">${lst.map(x => `<option value="${x.id}"${x.id === CT ? ' selected' : ''}>${esc(x.nome || 'Sem nome')} — ${total(x)}</option>`).join('')}</optgroup>` : ''}
+        ${sug.length ? `<optgroup label="Do último ensaio (escolha para pôr)">${sug.map(n => `<option value="sug:${esc(n)}">＋ ${esc(n)}</option>`).join('')}</optgroup>` : ''}
+      </select>` : ''}
       <form class="ct-nova" id="ctNovaF"><input id="ctNova" list="dlLoc" placeholder="Nova localidade (ex.: Peabiru - Central)" autocomplete="off" value="${esc(NOVA_LOC || (ps.length && !lst.length ? bonito(BUSCA_L) : ''))}" aria-label="Nova localidade"><button type="submit" class="primary">${ICO('plus')}Pôr</button></form>
       ${l ? `<div class="ct-h"><b>${esc(l.nome || 'Sem nome')}</b><span>total <b>${total(l)}</b></span></div>
       ${FAM.concat([['Outros', []]]).map(([f]) => { const ks = cols.filter(k => famDe(k) === f).sort(ordInst); return ks.length ? `<div class="ct-f">${f}</div><div class="ct-g">${ks.map(k => { const v = +l.inst[k] || 0; return `<div class="tile${v ? '' : ' z'}"><span>${esc(k)}</span><b data-tn="${esc(k)}" role="button" tabindex="0" aria-label="${esc(k)}: ${v}. Toque para digitar">${v}</b><div class="tile-b"><button type="button" data-menos="${l.id}" data-k="${esc(k)}" aria-label="Menos ${esc(k)}">−</button><button type="button" data-mais="${l.id}" data-k="${esc(k)}" aria-label="Mais ${esc(k)}">+</button></div></div>`; }).join('')}</div>` : ''; }).join('')}
@@ -322,6 +326,7 @@
   });
   document.addEventListener('keydown', e => { const t = e.target; if (t.dataset && t.dataset.tn && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); digitarTile(t); } });
   document.addEventListener('input', e => { if (e.target.id === 'ctNova') NOVA_LOC = e.target.value; });
+  document.addEventListener('change', e => { if (e.target.id !== 'ctSel' || !e.target.value) return; const v = e.target.value; if (v.startsWith('sug:')) novaLocalidade(v.slice(4)); else { CT = v; desenharLocais(); } });
   document.addEventListener('change', e => { if (e.target.id === 'ctOutro' && e.target.value && CT) { const k = e.target.value; if (!EXTRA.includes(k)) EXTRA.push(k); mudarInst(CT, k, 1); desenharLocais(); } });
 
   /* ---------- Ministério: "Quem chegou?" ---------- */

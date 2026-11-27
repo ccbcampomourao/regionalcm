@@ -553,6 +553,29 @@ textarea{width:100%;border:1.5px solid var(--line);border-radius:8px;padding:8px
 }
 @media screen and (max-width:1180px){.anoG{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media screen and (max-width:980px){.anoG{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}}
+
+/* ===== meses (v119): só dias com reunião; hora em coluna, faixa de cor, local · convocados embaixo ===== */
+.dias.v2{display:block}
+.dias.v2 .r2{display:grid;grid-template-columns:2.7em 1fr;border-bottom:.6pt solid #e6dfcf;padding:.2em 0;break-inside:avoid}
+.dias.v2 .r2:first-child{padding-top:.2em}
+.dias.v2 .d2{text-align:center;line-height:1;align-self:start;padding-top:.08em}
+.dias.v2 .d2 b{display:block;font-family:'Fraunces',Georgia,serif;font-weight:700;font-size:1.55em;color:var(--primary)}
+.dias.v2 .d2 span{display:block;font-size:.56em;font-weight:700;letter-spacing:.08em;color:#8a8170;margin-top:.12em}
+.dias.v2 .r2.dom .d2 b,.dias.v2 .r2.dom .d2 span{color:var(--brass)}
+.dias.v2 .r2.fer .d2 b,.dias.v2 .r2.fer .d2 span{color:var(--accent)}
+.dias.v2 .e2{min-width:0}
+.dias.v2 .f2{display:inline-block;background:#fbe9e6;color:var(--accent);font-weight:700;font-size:.82em;border-radius:.35em;padding:.12em .6em;margin:.18em 0 .18em 3.75em}
+.dias.v2 .s2{display:grid;grid-template-columns:3.2em .2em 1fr;gap:0 .55em;padding:.05em 0}
+.dias.v2 .hh{font-weight:700;text-align:right;font-variant-numeric:tabular-nums;color:var(--primary);line-height:1.2;white-space:nowrap}
+.dias.v2 .cb{border-radius:.1em}
+.dias.v2 .t1{font-weight:600;line-height:1.2;color:var(--primary)}
+.dias.v2 .t2{font-size:.78em;line-height:1.25;color:#4a5363;margin-top:.06em}
+.dias.v2 .t2 .lc{font-weight:600;color:var(--primary)}
+.dias.v2 .t2 .at{font-style:italic}
+.dias.v2 .t2 .sep{color:#b5ad98;margin:0 .35em}
+.dias.v2 .vz2{font-size:.62em;color:#a39a85;padding:.38em 0 .38em 4.4em;border-bottom:.6pt solid #e6dfcf;line-height:1;text-box:trim-both cap alphabetic}
+.dias.v2 .vz2 .sep{margin:0 .4em;color:#c9c0aa}
+.dias.v2 .nada2{font-size:.8em;color:#8a8170;font-style:italic;padding:1em 0}
 </style>
 <link rel="stylesheet" href="/assets/ui.css">
 <link rel="stylesheet" href="/assets/editor.css">
@@ -746,25 +769,32 @@ function feriados(y){
 }
 
 /* ---------- Páginas ---------- */
-/* serviço na página do mês: 1ª linha descrição e horário; 2ª linha local · quem atende · convocados */
+/* página do mês: só aparecem os dias com reunião (ou feriado). Cada reunião em uma linha
+   com o horário numa coluna própria, a faixa da cor do tipo e, embaixo, local · quem atende · convocados */
+function cvTexto(e){const a=(e.c||[]).map(code=>{const g=S.cargos.find(x=>x.code==code);return esc((g&&g.useAsterisk===false?'':'*')+code)});if(e.o&&e.o.trim())a.push(esc(e.o.trim()));return a.join('<span class="sep">·</span>')}
+function minutos(h){const m=String(h||'').trim().match(/^(\d{1,2})[:.hH]?(\d{2})?/);return m?(+m[1])*60+(+m[2]||0):9999}
 function servMes(e){
   const p=[];
-  if(e.l&&e.l.trim())p.push(`<span class="lc">${esc(e.l.trim())}</span>`);
+  if(e.l&&e.l.trim())p.push(`<b class="lc">${esc(e.l.trim())}</b>`);
   if(e.a&&e.a.trim())p.push(`<span class="at">Atende ${esc(e.a.trim())}</span>`);
-  const cv=cvHTML(e);if(cv)p.push(cv);
+  const cv=cvTexto(e);if(cv)p.push(cv);
   const h=e.h?hr(e.h).replace(/min$/,''):'';
-  return `<div class="s" style="--c:${TIPOS[e.t][1]}"><div class="l1">${esc(e.x)}${h?` - <i>${esc(h)}</i>`:''}</div>${p.length?`<div class="l2">${p.join('<span class="sep">·</span>')}</div>`:''}</div>`;
+  return `<div class="s2"><span class="hh">${esc(h)}</span><span class="cb" style="background:${TIPOS[e.t][1]}"></span><div class="tx"><div class="t1">${esc(e.x)}</div>${p.length?`<div class="t2">${p.join('<span class="sep">·</span>')}</div>`:''}</div></div>`;
 }
 function paginaMes(m){
-  const y=+S.meta.ano,n=new Date(y,m+1,0).getDate(),fer=feriados(y);let rows='';
-  let temServ=false;
+  const y=+S.meta.ano,n=new Date(y,m+1,0).getDate(),fer=feriados(y);let rows='',vaz=[];
+  // dias seguidos sem nada viram UMA linha pequena: "11 a 15 · sem reuniões"
+  const solta=()=>{if(!vaz.length)return;rows+=`<div class="vz2">${vaz.length>1?`${vaz[0]} a ${vaz[vaz.length-1]}`:vaz[0]}<span class="sep">·</span>sem reuniões</div>`;vaz=[]};
   for(let d=1;d<=n;d++){
-    const w=new Date(y,m,d).getDay(),k=kk(m,d),f=fer[k],es=S.dias[k]||[];
-    if(es.length)temServ=true;
-    rows+=`<div class="r${w==0?' dom':''}${f?' fer':''}${es.length?'':' r-vazio'}"><div class="d"><b>${d}</b><span>${SEM3[w]}</span></div><div class="e">${f?`<div class="f">${esc(f)}</div>`:''}${es.map(servMes).join('')}</div></div>`;
+    const w=new Date(y,m,d).getDay(),k=kk(m,d),f=fer[k];
+    // em ordem de horário (estável: mesmo horário mantém a ordem lançada; sem horário vai para o fim)
+    const es=(S.dias[k]||[]).map((e,i)=>[e,i]).sort((a,b)=>minutos(a[0].h)-minutos(b[0].h)||a[1]-b[1]).map(x=>x[0]);
+    if(!es.length&&!f){vaz.push(d);if(d<n)continue}
+    solta();if(!es.length&&!f)continue;
+    rows+=`<div class="r2${w==0?' dom':''}${f?' fer':''}"><div class="d2"><b>${d}</b><span>${SEM3[w]}</span></div><div class="e2">${f?`<div class="f2">${esc(f)}</div>`:''}${es.map(servMes).join('')}</div></div>`;
   }
   const leg=Object.values(TIPOS).map(t=>`<em><u style="background:${t[1]};--uc:${t[1]}"></u>${t[0]}</em>`).join('')+`<em><u style="background:${HOL};--uc:${HOL}"></u>Feriados</em>`;
-  return `<div class="pg mes"><div class="top"><h2>${MESES[m].toUpperCase()}</h2><span>${esc(S.meta.org)}<br>${esc(S.meta.sub)} · ${esc(S.meta.ano)}</span></div><div class="dias${temServ?'':' sem-serv'}">${rows}</div><div class="leg">${leg}</div><div class="rod">${esc(S.meta.rod)}</div></div>`;
+  return `<div class="pg mes"><div class="top"><h2>${MESES[m].toUpperCase()}</h2><span>${esc(S.meta.org)}<br>${esc(S.meta.sub)} · ${esc(S.meta.ano)}</span></div><div class="dias v2">${rows}</div><div class="leg">${leg}</div><div class="rod">${esc(S.meta.rod)}</div></div>`;
 }
 function garantirCapa(){const m=S.meta;if(m.capaOrg===undefined)m.capaOrg=m.org||'';if(m.capaTitulo===undefined)m.capaTitulo='CALENDÁRIO DE REUNIÕES';if(m.capaSub===undefined)m.capaSub=m.sub||''}
 const MOLDURA_CAPA=(()=>{
