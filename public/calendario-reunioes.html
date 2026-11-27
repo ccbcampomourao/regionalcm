@@ -596,6 +596,7 @@ textarea{width:100%;border:1.5px solid var(--line);border-radius:8px;padding:8px
       <div class="acoes-ed">
         <span class="salvo" id="salvo"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-check-circle"></use></svg><span>Salvo automaticamente</span></span>
         <button type="button" id="btnPrev" title="Abre a pré-visualização das folhas numa nova aba" onclick="abrirPrevia()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-eye"></use></svg>Pré-visualizar</button>
+        <button type="button" id="btnParede" title="Calendário de parede: um mês por folha deitada, com a grade de todos os dias e a lista das reuniões (A4 ou A3)" onclick="abrirParede()"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-grid"></use></svg>Calendário de parede</button>
         <div class="menu" id="menuArq">
           <button type="button" onclick="togMenu(event)"><svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-file"></use></svg>Arquivo<svg class="ic" aria-hidden="true"><use href="/assets/icons.svg#i-chevron-down"></use></svg></button>
           <div class="menu-box">
@@ -715,6 +716,130 @@ function abrirPrevia(){
     '<script>function z(){document.documentElement.style.setProperty("--z",Math.min(1,(innerWidth-24)/794))}z();addEventListener("resize",z)<\/script></body></html>';
   w.document.open();w.document.write(html);w.document.close();w.focus();
 }
+/* ---------- Calendário de parede (alternativo) ----------
+   Um mês por folha deitada: grade com todos os dias (etiquetas com o horário, na cor do tipo)
+   e, ao lado, a lista das reuniões do mês por semana. Abre numa aba própria, com CSS próprio,
+   para não mexer na impressão do calendário em lista. Desenhado em A4; em A3 é só ampliado. */
+const PAREDE_CSS=`
+*{box-sizing:border-box;margin:0}
+body{font-family:Inter,Arial,sans-serif;color:#1b2a41;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.pw{width:297mm;height:209.4mm;padding:8mm 9mm 6mm;display:flex;flex-direction:column;background:#fff;overflow:hidden;break-after:page;break-inside:avoid}
+.pw:last-child{break-after:auto}
+.band{display:flex;align-items:stretch;background:#1b2a41;color:#fff;border-radius:1.5mm;overflow:hidden;position:relative;flex:none}
+.band:after{content:"";position:absolute;left:0;right:0;bottom:0;height:1.1mm;background:#c99a55}
+.band .mes{padding:3mm 7mm 3.2mm;display:flex;align-items:baseline;gap:4mm}
+.band .mes h2{font:700 30pt/1 Fraunces,Georgia,serif;letter-spacing:.06em}
+.band .mes span{font:600 16pt Fraunces,Georgia,serif;color:#e0c48f}
+.band .org{margin-left:auto;padding:0 0 0 7mm;display:flex;flex-direction:column;justify-content:center;text-align:right;max-width:120mm}
+.band .org b{font:600 italic 12pt Fraunces,Georgia,serif;color:#fff}
+.band .org small{font-size:8.5pt;color:#c3cad6;margin-top:.6mm}
+.band .logo{display:flex;align-items:center;padding:1.6mm 6mm 2.8mm 5mm;border-left:.8pt solid rgba(255,255,255,.22);margin-left:5mm}
+.band .logo img{height:16mm;filter:brightness(0) invert(1)}
+.cx{flex:1;display:grid;grid-template-columns:1.18fr 1fr;gap:5mm;margin-top:4mm;min-height:0}
+.esq{display:flex;flex-direction:column;min-height:0}
+.gr{flex:1;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-template-rows:7mm;grid-auto-rows:minmax(0,1fr);border:1pt solid #1b2a41;border-radius:1.2mm;overflow:hidden;min-height:0}
+.h{background:#2c3f5c;color:#fff;font-size:7.8pt;font-weight:700;letter-spacing:.12em;display:flex;align-items:center;justify-content:center;border-right:.6pt solid rgba(255,255,255,.15)}
+.h.dm{background:#a97d3d}
+.c{border-right:.6pt solid #d9d0bc;border-bottom:.6pt solid #d9d0bc;padding:1.2mm 1.4mm;display:flex;flex-direction:column;gap:.6mm;min-height:0;overflow:hidden}
+.c:nth-child(7n+7){border-right:0}
+.c.dm{background:#fbf7ee}
+.c .n{font:700 15pt/1 Fraunces,Georgia,serif;color:#1b2a41}
+.c.dm .n{color:#a97d3d}
+.c.fora{background:repeating-linear-gradient(135deg,#f7f4ed 0 1.2mm,#fff 1.2mm 2.4mm)}
+.c.fora .n{color:#cfc6b2;font-size:11pt}
+.c.fer{background:#fbeceb}.c.fer .n{color:#c0392b}
+.c .fn{font-size:5.8pt;font-weight:700;color:#fff;border-radius:.8mm;padding:.4mm 1mm;line-height:1.15;hyphens:auto;overflow-wrap:anywhere}
+.c .tm{display:flex;flex-wrap:wrap;gap:.6mm;margin-top:auto}
+.c .tm span{font-size:6.4pt;font-weight:700;color:#fff;border-radius:.8mm;padding:.35mm .9mm;line-height:1.1;font-variant-numeric:tabular-nums;white-space:nowrap}
+.c .tm span.sh{color:transparent;width:3mm;padding:.35mm 0}
+.leg{display:flex;flex-wrap:wrap;gap:1mm 3.5mm;font-size:7.3pt;color:#3b4557;margin-top:2.2mm;padding:1.6mm 2.5mm;background:#f6f2e8;border-radius:1mm;flex:none}
+.leg b{font-size:6.8pt;letter-spacing:.1em;color:#8a8170;margin-right:1mm}
+.leg em{font-style:normal;display:flex;align-items:center;gap:1.1mm}
+.leg u{width:3mm;height:2.4mm;border-radius:.6mm;display:inline-block}
+.lado{border:1pt solid #1b2a41;border-radius:1.2mm;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.lado .tt{background:#1b2a41;color:#fff;display:flex;justify-content:space-between;align-items:center;padding:0 3mm;height:7mm;flex:none}
+.lado .tt b{font-size:7.8pt;letter-spacing:.12em}.lado .tt span{font-size:7.5pt;color:#e0c48f;font-weight:700}
+.tab{flex:1;overflow:hidden;padding:0 2.6mm;font-size:var(--fl,7.9pt);min-height:0}
+.sem{font-size:.81em;font-weight:700;letter-spacing:.1em;color:#a97d3d;padding:1.3mm 0 .5mm;border-bottom:.8pt solid #c99a55;text-transform:uppercase}
+.di{display:grid;grid-template-columns:3.6em 1fr;border-bottom:.5pt solid #e6dfcf}
+.di.z{background:#faf8f3}
+.di .d{font:700 1.52em/1 Fraunces,Georgia,serif;color:#1b2a41;padding:.35em 0 0 .3em}
+.di .d small{display:block;font:700 .46em Inter,Arial,sans-serif;letter-spacing:.06em;color:#8a8170;margin-top:.3em}
+.di.dom .d{color:#a97d3d}.di.fer .d,.di.fer .d small{color:#c0392b}
+.di .ev{padding:.25em 0 .25em .6em;border-left:.5pt solid #e6dfcf}
+.e{display:grid;grid-template-columns:3.4em 1fr;gap:0 .5em;line-height:1.18;padding:.05em 0}
+.e b{font-weight:700;color:#fff;border-radius:.7mm;text-align:center;font-size:.87em;padding:.15em 0;align-self:start;margin-top:.05em;font-variant-numeric:tabular-nums}
+.e .lc{color:#6b7380}
+.e.fe span{font-weight:700}
+.nada{color:#8a8170;font-style:italic;padding:3mm 0}
+.rod{display:flex;justify-content:space-between;font:italic 7.6pt Fraunces,Georgia,serif;color:#8a8170;margin-top:1.8mm;border-top:.6pt solid #d9d0bc;padding-top:1.2mm;flex:none}
+`;
+function curtoParede(x){x=String(x||'');const m=x.match(/^([A-ZÁ-Ú]{2,5})\s*[-–]\s*/);return m?m[1]:x.replace(/^Reunião (de |da |do )?/,'').replace(/ [-–] Setor /,' · ')}
+function paginaParede(m){
+  const y=+S.meta.ano,n=new Date(y,m+1,0).getDate(),pri=new Date(y,m,1).getDay(),ultAnt=new Date(y,m,0).getDate();
+  const ff={};feriadosFull(y).forEach(f=>{(ff[f.k]=ff[f.k]||[]).push(f)});
+  const evs=d=>(S.dias[kk(m,d)]||[]).map((e,i)=>[e,i]).sort((a,b)=>minutos(a[0].h)-minutos(b[0].h)||a[1]-b[1]).map(x=>x[0]);
+  const hh=e=>e.h?hr(e.h).replace(/min$/,''):'';
+  const usados=new Set(),fUsados=new Set();
+  let g='<div class="gr">'+SEM.map((s,i)=>`<div class="h${i==0?' dm':''}">${s}</div>`).join('');
+  for(let k=0;k<pri;k++)g+=`<div class="c fora"><div class="n">${ultAnt-pri+k+1}</div></div>`;
+  for(let d=1;d<=n;d++){
+    const w=new Date(y,m,d).getDay(),es=evs(d),fs=ff[kk(m,d)]||[];
+    es.forEach(e=>usados.add(e.t));fs.forEach(f=>fUsados.add(f.t));
+    g+=`<div class="c${w==0?' dm':''}${fs.length?' fer':''}"><div class="n">${d}</div>${fs.map(f=>`<div class="fn" style="background:${CATF[f.t][1]}">${esc(f.n)}</div>`).join('')}<div class="tm">${es.map(e=>`<span class="${hh(e)?'':'sh'}" style="background:${(TIPOS[e.t]||TIPOS.local)[1]}">${esc(hh(e))||'·'}</span>`).join('')}</div></div>`;
+  }
+  const tot=pri+n;for(let k=tot,x=1;k<Math.ceil(tot/7)*7;k++,x++)g+=`<div class="c fora"><div class="n">${x}</div></div>`;
+  g+='</div>';
+  let leg='<div class="leg"><b>LEGENDA</b>'+Object.entries(TIPOS).filter(([k])=>usados.has(k)).map(([k,t])=>`<em><u style="background:${t[1]}"></u>${esc(t[0].replace('Reuniões locais – ','Locais – ').replace(/^Reuniões /,'').replace(/^./,c=>c.toUpperCase()))}</em>`).join('')+Object.entries(CATF).filter(([k])=>fUsados.has(k)).map(([k,c])=>`<em><u style="background:${c[1]}"></u>${k=='nac'?'Feriado nacional':k=='fac'?'Ponto facultativo':k=='est'?'Feriado do Paraná':'Feriado municipal'}</em>`).join('')+'</div>';
+  if(!usados.size&&!fUsados.size)leg='';
+  let l='',semAt=-1,tR=0,z=0;const NM=MESES[m].toLowerCase();
+  for(let d=1;d<=n;d++){
+    const w=new Date(y,m,d).getDay(),es=evs(d),fs=ff[kk(m,d)]||[];if(!es.length&&!fs.length)continue;tR+=es.length;
+    const sm=Math.floor((d+pri-1)/7);
+    if(sm!==semAt){semAt=sm;const i=Math.max(1,sm*7-pri+1),f=Math.min(n,sm*7-pri+7);l+=`<div class="sem">Semana · ${i==f?i:i+' a '+f} de ${NM}</div>`;z=0}
+    l+=`<div class="di${w==0?' dom':''}${fs.length?' fer':''}${z++%2?' z':''}"><div class="d">${d}<small>${SEM3[w]}</small></div><div class="ev">`+
+      fs.map(f=>`<div class="e fe"><b style="background:${CATF[f.t][1]}">—</b><span style="color:${CATF[f.t][1]}">${esc(f.n)}</span></div>`).join('')+
+      es.map(e=>{const t=curtoParede(e.x),lc=(e.l||'').trim();return `<div class="e"><b style="background:${(TIPOS[e.t]||TIPOS.local)[1]}">${esc(hh(e))||'—'}</b><span>${esc(t)}${lc&&!t.includes(lc)?` <span class="lc">· ${esc(lc)}</span>`:''}</span></div>`}).join('')+'</div></div>';
+  }
+  if(!l)l='<div class="nada">Nenhuma reunião lançada neste mês.</div>';
+  const logo=location.origin+'/assets/ccb-logo.png';
+  return `<div class="pw"><div class="band"><div class="mes"><h2>${MESES[m].toUpperCase()}</h2><span>${y}</span></div><div class="org"><b>Calendário de Reuniões</b><small>${esc(S.meta.sub||'')}</small></div><div class="logo"><img src="${logo}" alt=""></div></div><div class="cx"><div class="esq">${g}${leg}</div><div class="lado"><div class="tt"><b>REUNIÕES DO MÊS</b><span>${tR?tR+' '+(tR==1?'reunião':'reuniões'):'Nenhuma reunião'}</span></div><div class="tab">${l}</div></div></div><div class="rod"><span>${esc(S.meta.rod||'')}</span><span>${MESES[m]} ${y}</span></div></div>`;
+}
+function abrirParede(){
+  salvar();
+  const w=window.open('','paredeCalendario');
+  if(!w){UI.toast('O navegador bloqueou a nova aba. Permita pop-ups para este site e clique de novo.',{type:'error'});return}
+  const y=esc(S.meta.ano),pags=MESES.map((_,m)=>paginaParede(m));
+  const ops=MESES.map((n,i)=>`<option value="${i}">${n}</option>`).join('');
+  const html='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">'+
+    '<title>Calendário de parede '+y+'</title>'+
+    '<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;0,700;1,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">'+
+    '<style>'+PAREDE_CSS+
+    '@media screen{body{background:#525659;margin:0}#folhas .pw{margin:0 auto 18px;box-shadow:0 2px 14px rgba(0,0,0,.35);zoom:var(--z,1)}'+
+    '.pv-bar{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 16px;margin-bottom:18px;background:linear-gradient(180deg,#2c3f5c,#1b2a41);color:#fdfbf6;font:600 14px Inter,Arial,sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.25)}'+
+    '.pv-bar b{flex:1;font-family:Fraunces,Georgia,serif;font-size:17px;min-width:200px}.pv-bar label{display:flex;align-items:center;gap:6px;font-weight:500}'+
+    '.pv-bar select{font:600 14px Inter,Arial,sans-serif;padding:7px 10px;border-radius:9px;border:1.5px solid rgba(255,255,255,.35);background:#fdfbf6;color:#1b2a41}'+
+    '.pv-bar button{cursor:pointer;font:600 14px Inter,Arial,sans-serif;padding:8px 14px;border-radius:9px;border:1.5px solid #fdfbf6;background:#fdfbf6;color:#1b2a41}}'+
+    '@media print{html,body{margin:0;padding:0;background:#fff}.pv-bar{display:none!important}#folhas .pw{zoom:var(--zp,1)}#folhas .pw.esc{display:none}}'+
+    '</style><style id="pgsz">@page{size:A4 landscape;margin:0}</style></head><body>'+
+    '<div class="pv-bar"><b>Calendário de parede – '+y+'</b>'+
+    '<label>Folha <select id="tam"><option value="A4">A4 deitada</option><option value="A3">A3 deitada (grande)</option></select></label>'+
+    '<label>Meses <select id="qual"><option value="">Todos</option>'+ops+'</select></label>'+
+    '<button onclick="window.print()">Imprimir / PDF</button></div>'+
+    '<div id="folhas">'+pags.join('')+'</div>'+
+    '<script>'+
+    'const tam=document.getElementById("tam"),qual=document.getElementById("qual");'+
+    'function z(){document.documentElement.style.setProperty("--z",Math.min(1,(innerWidth-24)/1123))}z();addEventListener("resize",z);'+
+    'function pg(){const a3=tam.value=="A3";document.getElementById("pgsz").textContent="@page{size:"+(a3?"A3":"A4")+" landscape;margin:0}";document.documentElement.style.setProperty("--zp",a3?Math.SQRT2:1)}'+
+    'function filtro(){document.querySelectorAll("#folhas .pw").forEach((p,i)=>p.classList.toggle("esc",qual.value!==""&&+qual.value!==i));if(qual.value!=="")document.querySelectorAll("#folhas .pw")[+qual.value].scrollIntoView()}'+
+    'tam.onchange=pg;qual.onchange=filtro;'+
+    /* encaixe: a lista diminui a letra até caber; dia com muitas reuniões usa etiquetas menores */
+    'function caber(){document.querySelectorAll("#folhas .pw").forEach(p=>{const t=p.querySelector(".tab");let f=7.9,n=0;t.style.setProperty("--fl",f+"pt");while(t.scrollHeight>t.clientHeight+1&&f>4&&n++<80){f-=.1;t.style.setProperty("--fl",f.toFixed(2)+"pt")}'+
+    'p.querySelectorAll(".c").forEach(c=>{let s=6.4,k=0;while(c.scrollHeight>c.clientHeight+1&&s>4&&k++<20){s-=.3;c.querySelectorAll(".tm span").forEach(x=>x.style.fontSize=s+"pt")}})})}'+
+    'caber();if(document.fonts&&document.fonts.ready)document.fonts.ready.then(caber);addEventListener("load",caber);'+
+    '<\/script></body></html>';
+  w.document.open();w.document.write(html);w.document.close();w.focus();
+}
 function togMenu(ev){ev.stopPropagation();document.getElementById('menuArq').classList.toggle('open')}
 document.addEventListener('click',()=>{const m=document.getElementById('menuArq');if(m)m.classList.remove('open')});
 function passo(d){let n=cur<0?0:cur+d;if(n<0)n=0;if(n>11)n=11;ir(n)}
@@ -783,8 +908,8 @@ function servMes(e){
 }
 function paginaMes(m){
   const y=+S.meta.ano,n=new Date(y,m+1,0).getDate(),fer=feriados(y);let rows='',vaz=[];
-  // dias seguidos sem nada viram UMA linha pequena: "11 a 15 · sem reuniões"
-  const solta=()=>{if(!vaz.length)return;rows+=`<div class="vz2">${vaz.length>1?`${vaz[0]} a ${vaz[vaz.length-1]}`:vaz[0]}<span class="sep">·</span>sem reuniões</div>`;vaz=[]};
+  // dias seguidos sem nada viram UMA linha pequena: "11 (seg), 12 (ter), 13 (qua) sem reuniões"
+  const solta=()=>{if(!vaz.length)return;rows+=`<div class="vz2">${vaz.map(d=>`${d} (${SEM3[new Date(y,m,d).getDay()].toLowerCase()})`).join(', ')} sem reuniões</div>`;vaz=[]};
   for(let d=1;d<=n;d++){
     const w=new Date(y,m,d).getDay(),k=kk(m,d),f=fer[k];
     // em ordem de horário (estável: mesmo horário mantém a ordem lançada; sem horário vai para o fim)
